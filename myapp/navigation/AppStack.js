@@ -3,7 +3,7 @@ import React from 'react'
 import DetailScreen from '../screen/Detail';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import TabNaVigator from './TapNavigetor';
-import CalanderScreen from '../screen/Calandar';
+import CalanderScreen from '../screen/Calander';
 import BookingScreen from '../screen/Booking';
 import { useNavigation } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
