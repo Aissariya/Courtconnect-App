@@ -1,4 +1,5 @@
 import React from 'react';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
 
 export default function Detail({ navigation }) {
@@ -7,27 +8,29 @@ export default function Detail({ navigation }) {
       {/* ใช้ ScrollView เพื่อให้สามารถเลื่อนขึ้นลงได้ */}
       <ScrollView style={styles.detailsContainer}>
         {/* รูปภาพหลักของสนามบาส */}
-        <Image 
-          source={require('../assets/basketball.jpg')} 
-          style={styles.mainImage} 
+        <Image
+          source={require('../assets/basketball.jpg')}
+          style={styles.mainImage}
           resizeMode="cover"
         />
-        
+
         {/* แถวรูปภาพขนาดเล็ก */}
-        <View style={styles.smallImagesContainer}>
-          {[...Array(6)].map((_, index) => (
-            <TouchableOpacity key={index}>
-              <Image 
-                source={require('../assets/basketball.jpg')} 
-                style={styles.smallImage}
-              />
-            </TouchableOpacity>
-          ))}
-        </View>
+        <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
+          <View style={styles.smallImagesContainer}>
+            {[...Array(6)].map((_, index) => (
+              <TouchableOpacity key={index}>
+                <Image
+                  source={require('../assets/basketball.jpg')}
+                  style={styles.smallImage}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
 
         {/* ชื่อสนามบาส */}
         <Text style={styles.detailsTitle}>สนามบาสหนองงูเห่า ★★★★★ (5.0)</Text>
-        
+
         {/* กล่องราคา */}
         <View style={styles.priceBox}>
           <Text style={styles.priceText}>Price 500 per hour</Text>
@@ -48,6 +51,9 @@ export default function Detail({ navigation }) {
         {/* แถบสีดำที่มีคำว่า Score และ 5 ดาว */}
         <View style={styles.scoreBar}>
           <Text style={styles.scoreText}>Score ★★★★★</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('CommentScreen')}>
+            <Text style={styles.scoreText2}>showmore</Text>
+          </TouchableOpacity>
         </View>
 
         {/* รีวิวสนาม */}
@@ -75,26 +81,44 @@ export default function Detail({ navigation }) {
           </View>
         </View>
       </ScrollView>
-      
+
       {/* ปุ่ม Calendar และ Booking ที่ล็อกอยู่ที่ด้านล่างจอ */}
+
       <View style={styles.buttonContainer}>
-        <TouchableOpacity 
-          style={styles.calanderButton} 
-          onPress={() => navigation.navigate('CalanderScreen')}
+
+        <TouchableOpacity
+          style={styles.calanderButton}
+          onPress={() => navigation.navigate('Home')}
+          activeOpacity={1}
         >
+          <MaterialCommunityIcons name='home' size={20} color='#000' />
+          <Text style={styles.calanderText}>Home</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.calanderButton}
+          onPress={() => navigation.navigate('CalanderScreen')}
+          activeOpacity={1}
+        >
+          <MaterialCommunityIcons name='calendar-outline' size={20} color='#000' />
           <Text style={styles.calanderText}>Calendar</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.bookingButton} 
+        <TouchableOpacity
+          style={styles.bookingButton}
           onPress={() => navigation.navigate('BookingScreen')}
+          activeOpacity={1}
         >
-          <Text style={styles.bookingText}>Booking</Text>
+          <View style={styles.bookingView}>
+            <MaterialCommunityIcons name='cart' size={20} color='#fff' />
+            <Text style={styles.bookingText}>Booking</Text>
+          </View>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
+
+
 
 const styles = StyleSheet.create({
   container: {
@@ -154,11 +178,12 @@ const styles = StyleSheet.create({
     textAlign: 'left',
   },
   scoreBar: {
+    flexDirection: 'row',
     backgroundColor: 'black',
     width: '100%', // ชิดขอบจอทั้งสองฝั่ง
     paddingVertical: 10,
     alignItems: 'flex-start', // ชิดซ้าย
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     marginTop: 20, // เพิ่มช่องว่างระหว่างข้อความกับแถบสีดำ
   },
   scoreText: {
@@ -166,6 +191,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     paddingLeft: 10, // เพิ่มช่องว่างซ้ายให้ชิดซ้าย
+  },
+  scoreText2: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+    paddingTop: 4,
+    paddingRight: 10, // เพิ่มช่องว่างซ้ายให้ชิดขวา
   },
   reviewContainer: {
     marginTop: 20,
@@ -211,7 +243,7 @@ const styles = StyleSheet.create({
     flex: 1, // ปุ่มกินพื้นที่ครึ่งหนึ่งของจอ
     borderColor: 'black',
     borderWidth: 2,
-    paddingVertical: 20,
+    paddingVertical: 10,
     backgroundColor: 'white',
     alignItems: 'center',
   },
@@ -220,12 +252,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   bookingButton: {
-    flex: 1, // ปุ่มกินพื้นที่ครึ่งหนึ่งของจอ
+    flex: 2, // ปุ่มกินพื้นที่ครึ่งหนึ่งของจอ
     borderColor: 'black',
     borderWidth: 2,
-    paddingVertical: 20,
+    paddingVertical: 10,
     backgroundColor: 'black',
     alignItems: 'center',
+  }, bookingView: {
+    flexDirection: 'row',
+    padding: '10'
   },
   bookingText: {
     color: 'white',
