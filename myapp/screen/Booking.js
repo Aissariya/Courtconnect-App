@@ -1,58 +1,67 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { Ionicons } from "@expo/vector-icons";
 
-export default function Booking({ navigation }) {
+export default function Booking() {
   return (
     <View style={styles.container}>
-      {/* ส่วน Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Booking</Text>
-      </View>
+      <ScrollView showsVerticalScrollIndicator={false}>
 
-      {/* รายละเอียดสนาม */}
-      <View style={styles.card}>
-        <Image source={require('../assets/basketball.jpg')} style={styles.courtImage} />
-        <View>
-          <Text style={styles.courtName}>สนามบาสหนองงูเห่า</Text>
-          <Text style={styles.schoolName}>โรงเรียนหนองงูเห่า</Text>
-        </View>
-      </View>
+        {/* หัวข้อ Booking ตรงกลาง */}
+        <Text style={styles.header}>Booking</Text>
 
-      {/* รายละเอียดการจอง */}
-      <Text style={styles.sectionTitle}>Booking Details</Text>
-      <View style={styles.card}>
-        <Text style={styles.label}>Location</Text>
-        <Text style={styles.text}>
-          159 ถนนบรรพปราการ ตำบลเวียง{'\n'}
-          อำเภอเมืองเชียงราย{'\n'}
-          จังหวัดเชียงราย
-        </Text>
-        <Text style={styles.label}>Date</Text>
-        <TextInput style={styles.input} placeholder="Date *" />
-        <Text style={styles.label}>Time</Text>
-        <TextInput style={styles.input} placeholder="Time *" />
-        <Text style={styles.total}>Total (1 hrs.) 500 BATH</Text>
-      </View>
-
-      {/* วิธีการชำระเงิน */}
-      <Text style={styles.sectionTitle}>Payment Method</Text>
-      <View style={styles.card}>
-        <View style={styles.paymentMethod}>
-          <Image source={require('../assets/Qrcode.jpg')} style={styles.paymentIcon} />
-          <View>
-            <Text style={styles.walletText}>My Wallet</Text>
-            <Text style={styles.walletBalance}>0.00 Bath</Text>
+        {/* การ์ดข้อมูลสนาม */}
+        <View style={styles.card}>
+          <Image source={require('../assets/basketball.jpg')} style={styles.courtImage} />
+          <View style={styles.courtDetails}>
+            <Text style={styles.courtTitle}>สนามบาสหนองงูเห่า</Text>
+            <Text style={styles.courtSubtitle}>โรงเรียนหนองงูเห่า</Text>
           </View>
         </View>
-      </View>
+
+        {/* Booking Details */}
+        <Text style={styles.sectionTitle}>Booking Details</Text>
+        <View style={styles.card}>
+          <Text style={styles.label}>Location</Text>
+          <Text style={styles.value}>159 ถนนบรรพปราการ ตำบลเวียง อำเภอเมืองเชียงราย จังหวัดเชียงราย</Text>
+
+          <Text style={styles.label}>Date</Text>
+          <TextInput style={styles.input} placeholder="Date *" />
+
+          <Text style={styles.label}>Time</Text>
+          <TextInput style={styles.input} placeholder="Time *" />
+
+          {/* Total Price */}
+          <View style={styles.totalContainer}>
+            <Text style={styles.totalText}>Total (1 hrs.)</Text>
+            <Text style={styles.priceText}>500 BATH</Text>
+          </View>
+        </View>
+
+        {/* Payment Method */}
+        <Text style={styles.sectionTitle}>Payment Method</Text>
+        <View style={styles.card}>
+          <View style={styles.paymentMethod}>
+            {/* QR Code */}
+            <Image source={require('../assets/Qrcode.jpg')} style={styles.paymentIcon} />
+            
+            {/* My Wallet (รวมไอคอน) */}
+            <View style={styles.walletContainer}>
+              <Ionicons name="wallet-outline" size={32} color="black" />
+              <View>
+                <Text style={styles.walletText}>My Wallet</Text>
+                <Text style={styles.walletBalance}>0.00 Bath</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+      </ScrollView>
 
       {/* ปุ่มยืนยันการจอง */}
       <View style={styles.footer}>
         <View style={styles.priceBox}>
-          <Text style={styles.priceText}>500 Bath</Text>
+          <Text style={styles.footerPrice}>500 Bath</Text>
         </View>
         <TouchableOpacity style={styles.confirmButton}>
           <Text style={styles.confirmText}>CONFIRM</Text>
@@ -62,92 +71,105 @@ export default function Booking({ navigation }) {
   );
 }
 
+// 🎨 สไตล์ของหน้า Booking
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
-    paddingHorizontal: 15,
+    backgroundColor: '#F5F5F5',
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 15,
-  },
-  backButton: {
-    marginRight: 10,
-  },
-  backText: {
-    fontSize: 20,
-  },
-  headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
-  },
-  card: {
-    backgroundColor: '#F9F9F9',
-    borderRadius: 10,
-    padding: 15,
+    textAlign: 'center',
     marginVertical: 10,
   },
-  courtImage: {
-    width: 80,
-    height: 50,
+  card: {
+    backgroundColor: 'white',
     borderRadius: 10,
-    marginRight: 10,
+    padding: 15,
+    marginHorizontal: 15,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 2,
   },
-  courtName: {
+  courtImage: {
+    width: '100%',
+    height: 100,
+    borderRadius: 8,
+  },
+  courtDetails: {
+    marginTop: 10,
+  },
+  courtTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: 'green',
+    color: '#009900',
   },
-  schoolName: {
+  courtSubtitle: {
     fontSize: 14,
-    color: 'gray',
+    color: '#666',
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    marginTop: 10,
+    color: '#009900', // สีเขียว
+    marginBottom: 5,
+    marginHorizontal: 15,
   },
   label: {
     fontSize: 14,
     fontWeight: 'bold',
-    marginTop: 5,
+    marginTop: 10,
   },
-  text: {
+  value: {
     fontSize: 14,
-    color: 'gray',
+    color: '#555',
   },
   input: {
-    backgroundColor: 'white',
     borderWidth: 1,
     borderColor: '#ccc',
     padding: 10,
     borderRadius: 5,
-    marginVertical: 5,
+    marginTop: 5,
   },
-  total: {
+  totalContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 15,
+  },
+  totalText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'left',
+  },
+  priceText: {
     fontSize: 16,
     fontWeight: 'bold',
-    textAlign: 'right',
-    marginTop: 10,
+    color: '#000',
   },
   paymentMethod: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between', // ให้ Wallet และ QR Code อยู่กันคนละฝั่ง
   },
   paymentIcon: {
     width: 50,
     height: 50,
     marginRight: 10,
   },
+  walletContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   walletText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
   },
   walletBalance: {
     fontSize: 14,
-    color: 'gray',
+    color: '#666',
   },
   footer: {
     flexDirection: 'row',
@@ -155,27 +177,34 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+    paddingVertical: 10,
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   priceBox: {
-    flex: 1,
-    backgroundColor: 'black',
+    backgroundColor: 'black', // เปลี่ยนพื้นหลังเป็นสีดำ
     paddingVertical: 15,
-    alignItems: 'center',
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    width: '50%', // ทำให้กล่องราคาครึ่งหนึ่งของหน้าจอ
   },
-  priceText: {
-    color: 'white',
-    fontSize: 16,
+  footerPrice: {
+    color: 'white', // เปลี่ยนตัวอักษรให้เป็นสีขาว
+    fontSize: 20,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   confirmButton: {
-    flex: 1,
     backgroundColor: '#A2F193',
     paddingVertical: 15,
-    alignItems: 'center',
+    paddingHorizontal: 30,
+    borderRadius: 5,
+    width: '50%', // ทำให้ปุ่มครึ่งหนึ่งของหน้าจอ
   },
   confirmText: {
-    color: 'black',
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: 'bold',
+    color: 'black',
+    textAlign: 'center',
   },
 });
