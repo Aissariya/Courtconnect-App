@@ -1,10 +1,13 @@
-import { View ,StyleSheet,TextInput,TouchableOpacity} from 'react-native'
+import { View, StyleSheet, TextInput, TouchableOpacity, Text } from 'react-native'
 import React from 'react'
 import DetailScreen from '../screen/Detail';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import TabNaVigator from './TapNavigetor';
-import CalanderScreen from '../screen/Calandar';
+import BookingSection from '../screen/Calandar';
 import BookingScreen from '../screen/Booking';
+import CommentScreen from '../screen/Comment';
+import FilterScreen from '../screen/Filter';
+import NotificationScreen from '../screen/Notification';
 import { useNavigation } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 
@@ -13,75 +16,115 @@ const Stack = createStackNavigator();
 const AppStack = () => {
   return (
     <Stack.Navigator>
-        <Stack.Screen 
-          component={TabNaVigator} 
-          name='Home' 
-          options=
-          {{
-            headerStyle: { backgroundColor: '#A2F193' }, 
-            headerTintColor: '#fff',     
-            headerTitleStyle: { fontWeight: 'bold' }, 
-            headerTitle: () => <SearchBar />,
-            headerLeft: null,
-          }}
+      <Stack.Screen
+        component={TabNaVigator}
+        name='Home'
+        options=
+        {{
+          headerStyle: { backgroundColor: '#A2F193' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+          headerTitle: () => <SearchBar />,
+          headerLeft: null,
+        }}
       />
-      <Stack.Screen 
-            component={DetailScreen} 
-            name='DetailScreen'
-            options=
-            {{
-              headerStyle: { backgroundColor: '#A2F193' }, 
-              headerTintColor: '#fff',     
-              headerTitleStyle: { fontWeight: 'bold' }, 
-              headerTitle: () => <SearchBar2 />,
-              headerLeft: null,
-            }}
+      <Stack.Screen
+        component={DetailScreen}
+        name='DetailScreen'
+        options=
+        {{
+          headerStyle: { backgroundColor: '#A2F193' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+          headerTitle: () => <SearchBar2 />,
+          headerLeft: null,
+        }}
       />
-      <Stack.Screen 
-            component={CalanderScreen} 
-            name='CalanderScreen'
-            options=
-            {{
-              headerStyle: { backgroundColor: '#A2F193' }, 
-              headerTintColor: '#fff',     
-              headerTitleStyle: { fontWeight: 'bold' }, 
-              headerTitle: () => <SearchBar2 />,
-              headerLeft: null,
-            }}
+      <Stack.Screen
+        component={BookingSection}
+        name='CalanderScreen'
+        options=
+        {{
+          headerStyle: { backgroundColor: '#A2F193' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+          headerTitle: () => <SearchBar2 />,
+          headerLeft: null,
+        }}
       />
-      <Stack.Screen 
-            component={BookingScreen} 
-            name='BookingScreen'
-            options=
-            {{
-              headerStyle: { backgroundColor: '#A2F193' }, 
-              headerTintColor: '#fff',     
-              headerTitleStyle: { fontWeight: 'bold' }, 
-              headerTitle: () => <SearchBar2 />,
-              headerLeft: null,
-            }}
+      <Stack.Screen
+        component={BookingScreen}
+        name='BookingScreen'
+        options=
+        {{
+          headerStyle: { backgroundColor: '#A2F193' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+          headerTitle: () => <SearchBar2 />,
+          headerLeft: null,
+        }}
+      />
+      <Stack.Screen
+        component={CommentScreen}
+        name='CommentScreen'
+        options=
+        {{
+          headerStyle: { backgroundColor: '#A2F193' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+          headerTitle: () => <SearchBar2 />,
+          headerLeft: null,
+        }}
+      />
+      <Stack.Screen
+        component={FilterScreen}
+        name='FilterScreen'
+        options=
+        {{
+          headerStyle: { backgroundColor: '#A2F193' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+          headerTitle: () => <SearchBar3 />,
+          headerLeft: null,
+        }}
+      />
+      <Stack.Screen
+        component={NotificationScreen}
+        name='NotificationScreen'
+        options=
+        {{
+          headerStyle: { backgroundColor: '#A2F193' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+          headerTitle: () => <Notificationbar />,
+          headerLeft: null,
+        }}
       />
     </Stack.Navigator>
   )
 }
 
 const SearchBar = () => {
+  const navigation = useNavigation();
   return (
     <View style={styles.container2}>
-      <Ionicons name="notifications"size={25} style={styles.icon2} />
-       <View style={styles.container}>
-              <Ionicons name="search" size={20} style={styles.icon} />
-      <TextInput 
-        placeholder="Search..."
-        placeholderTextColor="#fff"
-        style={{ color: 'white' }}
-      />
+      <TouchableOpacity onPress={() => navigation.navigate('NotificationScreen')}>
+        <Ionicons name="notifications" size={25} style={styles.icon2} />
+      </TouchableOpacity>
+      <View style={styles.container}>
+        <Ionicons name="search" size={20} style={styles.icon} />
+        <TextInput
+          placeholder="Search..."
+          placeholderTextColor="#fff"
+          style={{ color: 'white' }}
+        />
       </View>
-      <Ionicons name="filter"size={25} style={styles.icon2} />
+      <TouchableOpacity onPress={() => navigation.navigate('FilterScreen')}>
+        <Ionicons name="filter" size={25} style={styles.icon2} />
+      </TouchableOpacity>
     </View>
   );
 };
-
 
 const SearchBar2 = () => {
   const navigation = useNavigation();
@@ -90,17 +133,53 @@ const SearchBar2 = () => {
       <TouchableOpacity onPress={() => navigation.goBack()}>
         <Ionicons name="arrow-back-outline" size={25} style={styles.icon2} />
       </TouchableOpacity>
-       <View style={styles.container}>
+      <View style={styles.container}>
         <Ionicons name="search" size={20} style={styles.icon} />
-      <TextInput 
-        placeholder="Search..."
-        placeholderTextColor="white"
-      />
+        <TextInput
+          placeholder="Search..."
+          placeholderTextColor="white"
+        />
       </View>
-      <Ionicons name="filter"size={25} style={styles.icon2} />
+      <TouchableOpacity onPress={() => navigation.navigate('FilterScreen')}>
+        <Ionicons name="filter" size={25} style={styles.icon2} />
+      </TouchableOpacity>
     </View>
   );
 };
+
+const SearchBar3 = () => {
+  const navigation = useNavigation();
+  return (
+    <View style={styles.container2}>
+      <TouchableOpacity onPress={() => navigation.goBack()}>
+        <Ionicons name="arrow-back-outline" size={25} style={styles.icon2} />
+      </TouchableOpacity>
+      <View style={styles.container}>
+        <Ionicons name="search" size={20} style={styles.icon} />
+        <TextInput
+          placeholder="Search..."
+          placeholderTextColor="white"
+        />
+      </View>
+
+      <Ionicons name="filter" size={25} style={styles.icon3} />
+
+    </View>
+  );
+};
+
+const Notificationbar = () => {
+  const navigation = useNavigation();
+  return (
+    <View style={styles.container2}>
+      <TouchableOpacity onPress={() => navigation.goBack()}>
+        <Ionicons name="arrow-back-outline" size={25} style={styles.icon2} />
+      </TouchableOpacity>
+      <Text style={styles.fontheader}>Notification</Text>
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
 
   container: {
@@ -114,22 +193,31 @@ const styles = StyleSheet.create({
   },
   container2: {
     flexDirection: 'row',
-    alignItems: 'center', 
+    alignItems: 'center',
     justifyContent: 'center',
-    marginBottom:10,
+    marginBottom: 10,
   },
   icon: {
     marginRight: 10,
-    color:"white"
+    color: "white"
   },
   icon2: {
     margin: 10,
-    color:"black"
+    color: "black"
+  },
+  icon3: {
+    margin: 10,
+    color: "#A2F193"
   },
   input: {
-
     flex: 1,
     color: 'white',
+  },
+  fontheader: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000'
+
   },
 })
 export default AppStack
