@@ -29,7 +29,7 @@ const BookingSection = () => {
 
           {/* Field Info */}
           <View style={styles.fieldInfo}>
-            <Image source={{ uri: "https://shorturl.asia/CDXdi" }} style={styles.fieldImage} />
+          <Image source={require("../assets/basketball.jpg")} style={styles.fieldImage} />
             <View style={styles.fieldDetails}>
               <Text style={styles.fieldName}>สนามบาสหนองงูเห่า</Text>
               <Text style={styles.fieldText}>Player : 6-15 people/court</Text>
