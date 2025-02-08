@@ -21,6 +21,22 @@ const Login = ({ navigation }) => {
                       Login
                     </Text>
                   </TouchableOpacity>
+                  <TouchableOpacity 
+                    onPress={() => navigation.navigate('Home')}
+                    style={{
+                      marginTop: 10,
+                      backgroundColor: '#A2F193',
+                      padding: 20,
+                      width: '30%',
+                      borderRadius: 5,
+                      flexDirection: 'row',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000' }}>
+                      Sign up
+                    </Text>
+                  </TouchableOpacity>
     </View>
   );
 };
