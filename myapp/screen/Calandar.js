@@ -3,6 +3,7 @@ import { View, Text, TextInput, Image, FlatList, StyleSheet } from "react-native
 import { AntDesign } from '@expo/vector-icons'; 
 import AppStack from "../navigation/AppStack";
 
+
 const timeSlots = [
   "08:00 a.m.",
   "09:00 a.m.",
@@ -34,7 +35,7 @@ const BookingSection = () => {
               <Text style={styles.fieldName}>สนามบาสหนองงูเห่า</Text>
               <Text style={styles.fieldText}>Player : 6-15 people/court</Text>
               <Text style={styles.fieldText}>Time : 8:00 - 14:00</Text>
-              <Text style={styles.fieldText}>Price : 1 Hour/ 100 Bath</Text>
+              <Text style={styles.fieldText}>Price : 1 Hour/ 500 Bath</Text>
             </View>
           </View>
 
