@@ -10,6 +10,9 @@ import FilterScreen from '../screen/Filter';
 import NotificationScreen from '../screen/Notification';
 import { useNavigation } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import MyAccount from '../screen/MyAccount';
+import MyBookingScreen from '../screen/MyBook';
+import BookingHistory from '../screen/BookingHistory';
 
 const Stack = createStackNavigator();
 
@@ -100,6 +103,43 @@ const AppStack = () => {
           headerLeft: null,
         }}
       />
+      <Stack.Screen
+        component={MyAccount}
+        name='MyAccount'
+        options=
+        {{
+          headerStyle: { backgroundColor: '#A2F193' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+          headerTitle: () => <SearchBar/>,
+          headerLeft: null,
+        }}
+      />
+      <Stack.Screen
+        component={MyBookingScreen}
+        name='MyBook'
+        options=
+        {{
+          headerStyle: { backgroundColor: '#A2F193' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+          headerTitle: () => <SearchBar2/>,
+          headerLeft: null,
+        }}
+      />
+      <Stack.Screen
+        component={BookingHistory}
+        name='BookingHistory'
+        options=
+        {{
+          headerStyle: { backgroundColor: '#A2F193' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+          headerTitle: () => <SearchBar2/>,
+          headerLeft: null,
+        }}
+      />
+ 
     </Stack.Navigator>
   )
 }

@@ -13,19 +13,35 @@ export default function Account({ navigation }) {
         <Text style={styles.headerText}>Account</Text>
       </View>
 
-      {/* Sections (แยกออกจาก Header) */}
+      {/* Sections */}
       <View style={styles.sectionContainer}>
         <Section title="My Account">
-          <Card title="Account" icon="document-text-outline" />
+          <Card 
+            title="Account" 
+            icon="document-text-outline" 
+            onPress={() => navigation.navigate("MyAccount")} // Navigate to MyAccount
+          />
         </Section>
 
         <Section title="My Booking">
-          <Card title="My Booking" icon="checkmark-circle-outline" />
-          <Card title="Booking History" icon="clipboard-outline" />
+          <Card 
+            title="My Booking" 
+            icon="checkmark-circle-outline" 
+            onPress={() => navigation.navigate("MyBook")} // Navigate to MyBook
+          />
+          <Card 
+            title="Booking History" 
+            icon="clipboard-outline" 
+            onPress={() => navigation.navigate("BookingHistory")} // Navigate to MyBook
+          />
         </Section>
 
         <Section title="My Wallet">
-          <Card title="My Wallet" icon="wallet-outline" subText="0.00 Bath" />
+          <Card 
+            title="My Wallet" 
+            icon="wallet-outline" 
+            subText="0.00 Bath" 
+          />
         </Section>
       </View>
     </View>
@@ -39,16 +55,19 @@ const Section = ({ title, children }) => (
   </View>
 );
 
-const Card = ({ title, icon, subText }) => (
-  <TouchableOpacity style={styles.card}>
+const Card = ({ title, icon, subText, onPress }) => (
+  <TouchableOpacity style={styles.card} onPress={onPress}>
     <Ionicons name={icon} size={32} color="black" />
     <View>
-      <Text style={styles.cardText}>{title}</Text>
+      {/* Display title */}
+      <Text style={styles.cardText}>{title ? title : "No title available"}</Text>
+      {/* Display subText if available */}
       {subText && <Text style={styles.subText}>{subText}</Text>}
     </View>
   </TouchableOpacity>
 );
 
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -69,7 +88,7 @@ const styles = StyleSheet.create({
   sectionContainer: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 20, // เพิ่มระยะห่างจาก Header
+    paddingTop: 20,
   },
   section: {
     marginBottom: 20,

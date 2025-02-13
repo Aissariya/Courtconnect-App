@@ -6,11 +6,14 @@ import Home from '../screen/Home'
 import DetailScreen from '../screen/Detail';
 import NotificationScreen from '../screen/Notification';
 import AccountScreen from '../screen/Account';
+import MyAccount from '../screen/MyAccount';
 import MyBookingScreen from '../screen/MyBook';
 import Login from '../screen/Login';
 import BookingScreen from '../screen/Booking'
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import BookingSection from '../screen/Calandar';
+
+
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -59,7 +62,7 @@ const TabNaVigator = () => {
                 }}
             />
             <Tab.Screen
-                name='MyBooking'
+                name='My Booking'
                 component={MyBookingScreen}
                 options=
                 {{
