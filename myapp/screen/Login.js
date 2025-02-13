@@ -22,7 +22,7 @@ const Login = ({ navigation }) => {
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity 
-                    onPress={() => navigation.navigate('Home')}
+                    onPress={() => navigation.navigate('SignUp')}
                     style={{
                       marginTop: 10,
                       backgroundColor: '#A2F193',

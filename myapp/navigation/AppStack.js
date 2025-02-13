@@ -10,9 +10,13 @@ import FilterScreen from '../screen/Filter';
 import NotificationScreen from '../screen/Notification';
 import { useNavigation } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+
 import MyAccount from '../screen/MyAccount';
 import MyBookingScreen from '../screen/MyBook';
 import BookingHistory from '../screen/BookingHistory';
+
+import SignUp from '../screen/SignUp';
+
 
 const Stack = createStackNavigator();
 
@@ -103,6 +107,7 @@ const AppStack = () => {
           headerLeft: null,
         }}
       />
+
       <Stack.Screen
         component={MyAccount}
         name='MyAccount'
@@ -111,6 +116,24 @@ const AppStack = () => {
           headerStyle: { backgroundColor: '#A2F193' },
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: 'bold' },
+
+          headerTitle: () => <SearchBar/>,
+          headerLeft: null,
+        }}
+
+            
+        
+        
+        />
+      <Stack.Screen
+        component={SignUp}
+        name='SignUp'
+        options=
+        {{
+          headerStyle: { backgroundColor: '#A2F193' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+
           headerTitle: () => <SearchBar/>,
           headerLeft: null,
         }}
@@ -139,7 +162,8 @@ const AppStack = () => {
           headerLeft: null,
         }}
       />
- 
+
+
     </Stack.Navigator>
   )
 }

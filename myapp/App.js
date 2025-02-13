@@ -9,14 +9,11 @@ import AppStack from './navigation/AppStack';
 const App = () =>{
   return (
     <NavigationContainer>
-      {/* <AuthStack /> */}
+
       <AppStack />
     </NavigationContainer>
   )
 }
-
-
-
 
 export default App; 
 
