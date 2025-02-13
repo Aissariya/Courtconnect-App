@@ -10,12 +10,25 @@ import FilterScreen from '../screen/Filter';
 import NotificationScreen from '../screen/Notification';
 import { useNavigation } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import SignUp from '../screen/SignUp';
 
 const Stack = createStackNavigator();
 
 const AppStack = () => {
   return (
     <Stack.Navigator>
+      <Stack.Screen
+        component={SignUp}
+        name='SignUp'
+        options=
+        {{
+          headerStyle: { backgroundColor: '#A2F193' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+          headerTitle: () => <SearchBar />,
+          headerLeft: null,
+        }}
+      />
       <Stack.Screen
         component={TabNaVigator}
         name='Home'
