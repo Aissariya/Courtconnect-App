@@ -18,18 +18,6 @@ const AppStack = () => {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        component={SignUp}
-        name='SignUp'
-        options=
-        {{
-          headerStyle: { backgroundColor: '#A2F193' },
-          headerTintColor: '#fff',
-          headerTitleStyle: { fontWeight: 'bold' },
-          headerTitle: () => <SearchBar />,
-          headerLeft: null,
-        }}
-      />
-      <Stack.Screen
         component={TabNaVigator}
         name='Home'
         options=
@@ -110,6 +98,18 @@ const AppStack = () => {
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: 'bold' },
           headerTitle: () => <Notificationbar />,
+          headerLeft: null,
+        }}
+      />
+            <Stack.Screen
+        component={SignUp}
+        name='SignUp'
+        options=
+        {{
+          headerStyle: { backgroundColor: '#A2F193' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+          headerTitle: () => <SearchBar />,
           headerLeft: null,
         }}
       />
