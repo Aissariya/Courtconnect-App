@@ -1,8 +1,7 @@
-import React from "react";
-import { View, Text, TextInput, Image, FlatList, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import { View, Text, TextInput, Image, FlatList, StyleSheet, TouchableOpacity } from "react-native";
 import { AntDesign } from '@expo/vector-icons'; 
-import AppStack from "../navigation/AppStack";
-
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const timeSlots = [
   "08:00 a.m.",
@@ -15,6 +14,30 @@ const timeSlots = [
 ];
 
 const BookingSection = () => {
+  const [date, setDate] = useState(new Date());
+  const [show, setShow] = useState(false);
+  const bookedSlots = [
+    { date: "2023-10-10", time: "08:00 a.m." },
+    { date: "2023-10-10", time: "13:00 p.m." },
+    // Add more booked slots here
+  ];
+
+  const onChange = (event, selectedDate) => {
+    const currentDate = selectedDate || date;
+    setShow(false);
+    setDate(currentDate);
+  };
+
+  const showDatepicker = () => {
+    setShow(true);
+  };
+
+  const isBooked = (timeSlot) => {
+    const today = new Date();
+    const isToday = date.toDateString() === today.toDateString();
+    return isToday && (timeSlot === "08:00 a.m." || timeSlot === "09:00 a.m." || timeSlot === "13:00 p.m." || timeSlot === "14:00 p.m.");
+  };
+
   return (
     <FlatList
       data={timeSlots}
@@ -30,7 +53,7 @@ const BookingSection = () => {
 
           {/* Field Info */}
           <View style={styles.fieldInfo}>
-          <Image source={require("../assets/basketball.jpg")} style={styles.fieldImage} />
+            <Image source={require("../assets/basketball.jpg")} style={styles.fieldImage} />
             <View style={styles.fieldDetails}>
               <Text style={styles.fieldName}>สนามบาสหนองงูเห่า</Text>
               <Text style={styles.fieldText}>Player : 6-15 people/court</Text>
@@ -44,15 +67,35 @@ const BookingSection = () => {
             <Text style={styles.timeLabel}>Time</Text>
             <View style={styles.dateInputContainer}>
               <AntDesign name="calendar" size={18} color="black" style={styles.calendarIcon} />
-              <TextInput style={styles.dateInput} placeholder="Select date" />
+              <TouchableOpacity onPress={showDatepicker} style={{ flex: 1 }}>
+                <TextInput 
+                  style={styles.dateInput} 
+                  placeholder="Select date" 
+                  value={date.toLocaleDateString()} 
+                  editable={false} 
+                  pointerEvents="none"
+                />
+              </TouchableOpacity>
             </View>
           </View>
+          {show && (
+            <DateTimePicker
+              testID="dateTimePicker"
+              value={date}
+              mode="date"
+              is24Hour={true}
+              display="default"
+              onChange={onChange}
+            />
+          )}
         </>
       }
       renderItem={({ item }) => (
         <View style={styles.timeSlot}>
           <Text style={styles.timeText}>{item}</Text>
-          <View style={styles.bookButton}></View>
+          <View style={[styles.bookButton, isBooked(item) && styles.booked]}>
+            {isBooked(item) && <AntDesign name="close" size={24} color="red" style={styles.bookedIcon} />}
+          </View>
         </View>
       )}
     />
@@ -160,6 +203,15 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     borderRadius: 5,
     backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  booked: {
+    backgroundColor: "#FFCDD2",
+    borderColor: "#E57373",
+  },
+  bookedIcon: {
+    color: "#D32F2F",
   },
 });
 

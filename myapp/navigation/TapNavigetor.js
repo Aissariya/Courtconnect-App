@@ -1,23 +1,20 @@
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
-import React from 'react'
-import Home from '../screen/Home'
+import React from 'react';
+import Home from '../screen/Home';
 import DetailScreen from '../screen/Detail';
 import NotificationScreen from '../screen/Notification';
 import AccountScreen from '../screen/Account';
 import MyAccount from '../screen/MyAccount';
 import MyBookingScreen from '../screen/MyBook';
 import Login from '../screen/Login';
-import BookingScreen from '../screen/Booking'
+import BookingScreen from '../screen/Booking';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import BookingSection from '../screen/Calandar';
 
-
-
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
-
 
 const HomeStack = () => {
     return (
@@ -25,11 +22,22 @@ const HomeStack = () => {
             <Stack.Screen
                 component={Home}
                 name="Home" />
-
+            <Stack.Screen
+                component={DetailScreen}
+                name="DetailScreen" />
         </Stack.Navigator>
     );
 };
 
+const DetailStack = () => {
+    return (
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen
+                component={DetailScreen}
+                name="DetailScreen" />
+        </Stack.Navigator>
+    );
+};
 
 const TabNaVigator = () => {
     return (
@@ -45,7 +53,7 @@ const TabNaVigator = () => {
                 name='Home'
                 component={HomeStack}
                 options={({ route }) => ({
-                    tabBarStyle: { display: getTabbarVisibility(route), backgroundColor: '#A2F193', },
+                    tabBarStyle: { display: getTabbarVisibility(route), backgroundColor: '#A2F193' },
                     tabBarIcon: ({ color, size }) => (
                         <Ionicons name="home" size={size} color={color} />
                     ),
@@ -54,8 +62,7 @@ const TabNaVigator = () => {
             <Tab.Screen
                 name='Account'
                 component={AccountScreen}
-                options=
-                {{
+                options={{
                     tabBarIcon: ({ color, size }) => (
                         <Ionicons name="person" size={size} color={color} />
                     ),
@@ -64,8 +71,7 @@ const TabNaVigator = () => {
             <Tab.Screen
                 name='My Booking'
                 component={MyBookingScreen}
-                options=
-                {{
+                options={{
                     tabBarIcon: ({ color, size }) => (
                         <Ionicons name="book" size={size} color={color} />
                     ),
@@ -74,16 +80,16 @@ const TabNaVigator = () => {
             <Tab.Screen
                 name='Exit'
                 component={Login}
-                options=
-                {{
+                options={{
                     tabBarIcon: ({ color, size }) => (
                         <Ionicons name="exit" size={size} color={color} />
                     ),
                 }}
             />
         </Tab.Navigator>
-    )
-}
+    );
+};
+
 const TabNaVigator2 = () => {
     return (
         <Tab.Navigator
@@ -98,7 +104,7 @@ const TabNaVigator2 = () => {
                 name='Home'
                 component={DetailStack}
                 options={({ route }) => ({
-                    tabBarStyle: { display: getTabbarVisibility(route), backgroundColor: '#A2F193', },
+                    tabBarStyle: { display: getTabbarVisibility(route), backgroundColor: '#A2F193' },
                     tabBarIcon: ({ color, size }) => (
                         <Ionicons name="home" size={size} color={color} />
                     ),
@@ -106,38 +112,33 @@ const TabNaVigator2 = () => {
             />
             <Tab.Screen
                 name='Calander'
-                component={CalanderScreen}
-                options=
-                {{
+                component={BookingSection}
+                options={{
                     tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="calander" size={size} color={color} />
+                        <Ionicons name="calendar" size={size} color={color} />
                     ),
                 }}
             />
             <Tab.Screen
                 name='Booking'
                 component={BookingScreen}
-                options=
-                {{
+                options={{
                     tabBarIcon: ({ color, size }) => (
                         <Ionicons name="cart" size={size} color={color} />
                     ),
                 }}
             />
         </Tab.Navigator>
-    )
-}
+    );
+};
 
 const getTabbarVisibility = (route) => {
-    console.log(route);
-    const rounteName = getFocusedRouteNameFromRoute(route) ?? 'Feed';
-    console.log(rounteName);
-
-    if (rounteName == 'DetailScreen') {
+    const routeName = getFocusedRouteNameFromRoute(route) ?? 'Feed';
+    if (routeName === 'DetailScreen') {
         return 'none';
     }
     return 'flex';
-}
+};
 
 const styles = {
     tabBarStyle: {
@@ -147,4 +148,5 @@ const styles = {
         backgroundColor: '#A2F193',
     },
 };
-export default TabNaVigator
+
+export default TabNaVigator;
