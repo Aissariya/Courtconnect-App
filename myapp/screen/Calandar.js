@@ -14,7 +14,7 @@ const timeSlots = [
 ];
 
 const BookingSection = () => {
-  const [date, setDate] = useState(new Date());
+  const [date, setDate] = useState(null);
   const [show, setShow] = useState(false);
   const bookedSlots = [
     { date: "2023-10-10", time: "08:00 a.m." },
@@ -34,7 +34,7 @@ const BookingSection = () => {
 
   const isBooked = (timeSlot) => {
     const today = new Date();
-    const isToday = date.toDateString() === today.toDateString();
+    const isToday = date && date.toDateString() === today.toDateString();
     return isToday && (timeSlot === "08:00 a.m." || timeSlot === "09:00 a.m." || timeSlot === "13:00 p.m." || timeSlot === "14:00 p.m.");
   };
 
@@ -71,7 +71,7 @@ const BookingSection = () => {
                 <TextInput 
                   style={styles.dateInput} 
                   placeholder="Select date" 
-                  value={date.toLocaleDateString()} 
+                  value={date ? date.toLocaleDateString() : ''} 
                   editable={false} 
                   pointerEvents="none"
                 />
@@ -81,7 +81,7 @@ const BookingSection = () => {
           {show && (
             <DateTimePicker
               testID="dateTimePicker"
-              value={date}
+              value={date || new Date()}
               mode="date"
               is24Hour={true}
               display="default"
