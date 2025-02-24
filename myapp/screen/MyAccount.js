@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
 const MyAccount = () => {
   const navigation = useNavigation();
-  const [isEditable, setIsEditable] = useState(false); // ควบคุมโหมดการแก้ไข
+  const [isEditable, setIsEditable] = useState(false);
   const [user, setUser] = useState({
     firstName: "Krit",
     lastName: "Soodchuien",
@@ -14,10 +14,6 @@ const MyAccount = () => {
     email: "Krit.soo@ku.th",
   });
 
-  // URL ของรูปภาพที่จะแสดง
-  const profileImageUrl = "https://via.placeholder.com/100"; // หรือสามารถใส่ URL ของรูปโปรไฟล์ที่ต้องการได้
-
-  // Handle input change for each field
   const handleChange = (field, value) => {
     setUser((prevState) => ({
       ...prevState,
@@ -27,7 +23,7 @@ const MyAccount = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header (เหมือนกับ Account.js) */}
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="black" />
@@ -35,9 +31,8 @@ const MyAccount = () => {
         <Text style={styles.headerText}>My Account</Text>
       </View>
 
-      {/* Profile Section */}
+      {/* Profile Section without Image */}
       <View style={styles.profileSection}>
-        <Image source={{ uri: profileImageUrl }} style={styles.profileImage} />
         <Text style={styles.profileName}>
           {user.firstName} {user.lastName}
         </Text>
@@ -45,18 +40,23 @@ const MyAccount = () => {
 
       {/* Input Fields */}
       <View style={styles.inputContainer}>
+        <Text style={styles.label}>Name account</Text>
         <TextInput
           style={styles.input}
           value={user.firstName}
           onChangeText={(text) => handleChange("firstName", text)}
           editable={isEditable}
         />
+
+        <Text style={styles.label}>Surname account</Text>
         <TextInput
           style={styles.input}
           value={user.lastName}
           onChangeText={(text) => handleChange("lastName", text)}
           editable={isEditable}
         />
+
+        <Text style={styles.label}>Password</Text>
         <TextInput
           style={styles.input}
           value={user.password}
@@ -64,6 +64,8 @@ const MyAccount = () => {
           onChangeText={(text) => handleChange("password", text)}
           editable={isEditable}
         />
+
+        <Text style={styles.label}>Phone</Text>
         <TextInput
           style={styles.input}
           value={user.phone}
@@ -71,6 +73,8 @@ const MyAccount = () => {
           onChangeText={(text) => handleChange("phone", text)}
           editable={isEditable}
         />
+
+        <Text style={styles.label}>Email</Text>
         <TextInput
           style={styles.input}
           value={user.email}
@@ -85,10 +89,9 @@ const MyAccount = () => {
         style={styles.button}
         onPress={() => {
           if (isEditable) {
-            // If in editable mode, save the changes
             console.log("User data saved:", user);
           }
-          setIsEditable(!isEditable); // Toggle between edit and save mode
+          setIsEditable(!isEditable);
         }}
       >
         <Text style={styles.buttonText}>{isEditable ? "SAVE" : "EDIT"}</Text>
@@ -125,18 +128,18 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 3,
   },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 10,
-  },
   profileName: {
     fontSize: 18,
     fontWeight: "bold",
   },
   inputContainer: {
     marginHorizontal: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "bold",
+    marginBottom: 5,
+    color: "#555",
   },
   input: {
     backgroundColor: "white",
