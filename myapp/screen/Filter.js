@@ -5,17 +5,17 @@ import { Ionicons } from "@expo/vector-icons";
 export default function Filter() {
   const [selectedSport, setSelectedSport] = useState(null);
   const [maxPrice, setMaxPrice] = useState("");
-  
+
   const sports = [
-    { name: "football", icon: "football-outline" },
-    { name: "basketball", icon: "basketball-outline" },
-    { name: "badminton", icon: "tennisball-outline" },
-    { name: "ping pong", icon: "table-tennis" },
-    { name: "tennis", icon: "tennisball-outline" },
-    { name: "swim", icon: "water-outline" },
-    { name: "boxing", icon: "fitness-outline" },
-    { name: "aerobics", icon: "walk-outline" },
-    { name: "yoga", icon: "body-outline" },
+    { name: "Football", icon: "football-outline" },
+    { name: "Basketball", icon: "basketball-outline" },
+    { name: "Badminton", icon: "tennisball-outline" },
+    { name: "Ping Pong", icon: "table-tennis" },
+    { name: "Tennis", icon: "tennisball-outline" },
+    { name: "Swimming", icon: "water-outline" },
+    { name: "Boxing", icon: "fitness-outline" },
+    { name: "Aerobic", icon: "walk-outline" },
+    { name: "Yoga", icon: "body-outline" },
   ];
 
   const toggleSport = (sport) => {
@@ -30,25 +30,25 @@ export default function Filter() {
         <Ionicons name="calendar-outline" size={20} color="white" style={styles.icon} />
         <Text style={styles.inputText}>Tuesday 24 Dec. 2024</Text>
       </TouchableOpacity>
-      
+
       {/* Time Selection */}
       <View style={styles.timeContainer}>
         <TextInput style={styles.longInputBox} value="13:00" />
         <Text style={styles.toText}>to</Text>
         <TextInput style={styles.longInputBox} value="16:00" />
       </View>
-      
+
       {/* Max Price */}
       <Text style={styles.label}>Maximum price per hour (BATH)</Text>
-      <TextInput 
-        style={styles.inputBox} 
-        value={maxPrice} 
-        onChangeText={setMaxPrice} 
-        keyboardType="numeric" 
-        placeholder="Enter price" 
+      <TextInput
+        style={styles.inputBox}
+        value={maxPrice}
+        onChangeText={setMaxPrice}
+        keyboardType="numeric"
+        placeholder="Enter price"
         placeholderTextColor="white"
       />
-      
+
       {/* Sports Type */}
       <Text style={styles.label}>Sports type</Text>
       <View style={styles.sportsContainer}>
@@ -63,7 +63,7 @@ export default function Filter() {
           </TouchableOpacity>
         ))}
       </View>
-      
+
       {/* Search Button */}
       <TouchableOpacity style={styles.searchButton}>
         <Text style={styles.searchText}>Search</Text>
@@ -73,84 +73,83 @@ export default function Filter() {
 }
 
 const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: "#F3F3F3",
-      padding: 16,
-    },
-    label: {
-      fontSize: 16,
-      fontWeight: "bold",
-      marginTop: 20,
-    },
-    inputBox: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: "black",
-      padding: 12,
-      borderRadius: 8,
-      marginVertical: 10,
-      color: "white",
-      width: "100%",
-    },
-    longInputBox: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: "black",
-      padding: 12,
-      borderRadius: 8,
-      marginVertical: 10,
-      color: "white",
-      width: "48%",  // ทำให้ช่องกรอกเวลาแต่ละช่องมีความกว้าง 48%
-    },
-    inputText: {
-      color: "white",
-      marginLeft: 8,
-    },
-    timeContainer: {
-      flexDirection: "row",
-      justifyContent: "space-between", // ให้มีระยะห่างระหว่างช่องกรอกเวลา
-      alignItems: "center",
-      width: "100%", // ใช้พื้นที่เต็มของบรรทัด
-    },
-    toText: {
-      marginHorizontal: 10,
-      fontSize: 16,
-    },
-    sportsContainer: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      justifyContent: "space-between",
-      marginTop: 10,
-    },
-    sportIcon: {
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: "white",
-      padding: 15,
-      borderRadius: 8,
-      marginVertical: 10,
-      width: 80,
-    },
-    selectedSport: {
-      backgroundColor: "#DFFFD6",
-    },
-    sportText: {
-      marginTop: 4,
-      fontSize: 12,
-      fontWeight: "bold",
-    },
-    searchButton: {
-      backgroundColor: "black",
-      padding: 14,
-      borderRadius: 8,
-      alignItems: "center",
-      marginTop: 20,
-    },
-    searchText: {
-      color: "white",
-      fontSize: 16,
-      fontWeight: "bold",
-    },
-  });
-  
+  container: {
+    flex: 1,
+    backgroundColor: "#F3F3F3",
+    padding: 16,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginTop: 20,
+  },
+  inputBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "black",
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 10,
+    color: "white",
+    width: "100%",
+  },
+  longInputBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "black",
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 10,
+    color: "white",
+    width: "45%",  // ทำให้ช่องกรอกเวลาแต่ละช่องมีความกว้าง 45%
+  },
+  inputText: {
+    color: "white",
+    marginLeft: 8,
+  },
+  timeContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between", // ให้มีระยะห่างระหว่างช่องกรอกเวลา
+    alignItems: "center",
+    width: "100%", // ใช้พื้นที่เต็มของบรรทัด
+  },
+  toText: {
+    marginHorizontal: 10,
+    fontSize: 16,
+  },
+  sportsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginTop: 10,
+  },
+  sportIcon: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "white",
+    padding: 15,
+    borderRadius: 8,
+    marginVertical: 10,
+    width: 80,
+  },
+  selectedSport: {
+    backgroundColor: "#DFFFD6",
+  },
+  sportText: {
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  searchButton: {
+    backgroundColor: "black",
+    padding: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  searchText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+});

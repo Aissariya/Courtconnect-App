@@ -24,12 +24,12 @@ const MyAccount = () => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      {/* <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
         <Text style={styles.headerText}>My Account</Text>
-      </View>
+      </View> */}
 
       {/* Profile Section without Image */}
       <View style={styles.profileSection}>

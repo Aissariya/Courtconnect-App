@@ -22,19 +22,6 @@ const HomeStack = () => {
             <Stack.Screen
                 component={Home}
                 name="Home" />
-            <Stack.Screen
-                component={DetailScreen}
-                name="DetailScreen" />
-        </Stack.Navigator>
-    );
-};
-
-const DetailStack = () => {
-    return (
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen
-                component={DetailScreen}
-                name="DetailScreen" />
         </Stack.Navigator>
     );
 };
@@ -83,48 +70,6 @@ const TabNaVigator = () => {
                 options={{
                     tabBarIcon: ({ color, size }) => (
                         <Ionicons name="exit" size={size} color={color} />
-                    ),
-                }}
-            />
-        </Tab.Navigator>
-    );
-};
-
-const TabNaVigator2 = () => {
-    return (
-        <Tab.Navigator
-            screenOptions={{
-                headerShown: false,
-                tabBarStyle: styles.tabBarStyle,
-                tabBarActiveTintColor: '#000',
-                tabBarInactiveTintColor: '#666',
-            }}
-        >
-            <Tab.Screen
-                name='Home'
-                component={DetailStack}
-                options={({ route }) => ({
-                    tabBarStyle: { display: getTabbarVisibility(route), backgroundColor: '#A2F193' },
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="home" size={size} color={color} />
-                    ),
-                })}
-            />
-            <Tab.Screen
-                name='Calander'
-                component={BookingSection}
-                options={{
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="calendar" size={size} color={color} />
-                    ),
-                }}
-            />
-            <Tab.Screen
-                name='Booking'
-                component={BookingScreen}
-                options={{
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="cart" size={size} color={color} />
                     ),
                 }}
             />

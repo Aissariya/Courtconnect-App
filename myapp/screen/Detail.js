@@ -1,15 +1,20 @@
 import React from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
+import { recommendedFields } from '../Model/datatest';
 
-export default function Detail({ navigation }) {
+export default function Detail({ route, navigation }) {
+  const { id } = route.params || {};
+  const item = recommendedFields.find(item => item.id === id);
+  const titlename = item ? item.title : "test";
+  const mainImage = item ? item.image : require('../assets/football.jpg');
   return (
     <View style={styles.container}>
       {/* ใช้ ScrollView เพื่อให้สามารถเลื่อนขึ้นลงได้ */}
       <ScrollView style={styles.detailsContainer}>
         {/* รูปภาพหลักของสนามบาส */}
         <Image
-          source={require('../assets/basketball.jpg')}
+          source={mainImage}
           style={styles.mainImage}
           resizeMode="cover"
         />
@@ -20,7 +25,7 @@ export default function Detail({ navigation }) {
             {[...Array(6)].map((_, index) => (
               <TouchableOpacity key={index}>
                 <Image
-                  source={require('../assets/basketball.jpg')}
+                  source={mainImage}
                   style={styles.smallImage}
                 />
               </TouchableOpacity>
@@ -29,7 +34,7 @@ export default function Detail({ navigation }) {
         </ScrollView>
 
         {/* ชื่อสนามบาส */}
-        <Text style={styles.detailsTitle}>สนามบาสหนองงูเห่า ★★★★★ (5.0)</Text>
+        <Text style={styles.detailsTitle}>{titlename} ★★★★★ (5.0)</Text>
 
         {/* กล่องราคา */}
         <View style={styles.priceBox}>
@@ -117,8 +122,6 @@ export default function Detail({ navigation }) {
     </View>
   );
 }
-
-
 
 const styles = StyleSheet.create({
   container: {

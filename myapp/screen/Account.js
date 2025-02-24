@@ -6,41 +6,48 @@ export default function Account({ navigation }) {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      {/* <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
         <Text style={styles.headerText}>Account</Text>
-      </View>
+      </View> */}
 
       {/* Sections */}
       <View style={styles.sectionContainer}>
         <Section title="My Account">
-          <Card 
-            title="Account" 
-            icon="document-text-outline" 
+          <Card
+            title="Account"
+            icon="document-text-outline"
             onPress={() => navigation.navigate("MyAccount")} // Navigate to MyAccount
+            options={{
+              headerStyle: { backgroundColor: '#A2F193' },
+              headerTintColor: '#fff',
+              headerTitleStyle: { fontWeight: 'bold' },
+              headerTitle: () => <SearchBar2 />,
+              headerLeft: null,
+            }}
           />
         </Section>
 
         <Section title="My Booking">
-          <Card 
-            title="My Booking" 
-            icon="checkmark-circle-outline" 
+          <Card
+            title="My Booking"
+            icon="checkmark-circle-outline"
             onPress={() => navigation.navigate("MyBook")} // Navigate to MyBook
           />
-          <Card 
-            title="Booking History" 
-            icon="clipboard-outline" 
+          <Card
+            title="Booking History"
+            icon="clipboard-outline"
             onPress={() => navigation.navigate("BookingHistory")} // Navigate to MyBook
           />
         </Section>
 
         <Section title="My Wallet">
-          <Card 
-            title="My Wallet" 
-            icon="wallet-outline" 
-            subText="0.00 Bath" 
+          <Card
+            title="My Wallet"
+            icon="wallet-outline"
+            subText="0.00 Bath"
           />
         </Section>
       </View>
