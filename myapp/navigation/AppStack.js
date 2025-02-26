@@ -15,6 +15,7 @@ import MyBookingScreen from '../screen/MyBook';
 import BookingHistory from '../screen/BookingHistory';
 import SignUp from '../screen/SignUp';
 import SearchScreen from '../screen/SearchScreen';
+import MyWallet from '../screen/MyWallet';
 import { SearchBar, SearchBar2, SearchBar3, SearchBar4, Notificationbar } from './SearchBar';
 
 const Stack = createStackNavigator();
@@ -118,6 +119,11 @@ const AppStack = () => {
       <Stack.Screen
         component={SearchScreen}
         name='SearchScreen'
+        options={screenOptions4}
+      />
+      <Stack.Screen
+        component={MyWallet}
+        name='MyWallet'
         options={screenOptions4}
       />
     </Stack.Navigator>

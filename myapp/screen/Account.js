@@ -48,6 +48,7 @@ export default function Account({ navigation }) {
             title="My Wallet"
             icon="wallet-outline"
             subText="0.00 Bath"
+            onPress={() => navigation.navigate("MyWallet")}
           />
         </Section>
       </View>
