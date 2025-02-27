@@ -1,32 +1,17 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function Account({ navigation }) {
   return (
     <View style={styles.container}>
-      {/* Header */}
-      {/* <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="black" />
-        </TouchableOpacity>
-        <Text style={styles.headerText}>Account</Text>
-      </View> */}
-
       {/* Sections */}
       <View style={styles.sectionContainer}>
         <Section title="My Account">
           <Card
             title="Account"
             icon="document-text-outline"
-            onPress={() => navigation.navigate("MyAccount")} // Navigate to MyAccount
-            options={{
-              headerStyle: { backgroundColor: '#A2F193' },
-              headerTintColor: '#fff',
-              headerTitleStyle: { fontWeight: 'bold' },
-              headerTitle: () => <SearchBar2 />,
-              headerLeft: null,
-            }}
+            onPress={() => navigation.navigate("MyAccount")}
           />
         </Section>
 
@@ -34,12 +19,12 @@ export default function Account({ navigation }) {
           <Card
             title="My Booking"
             icon="checkmark-circle-outline"
-            onPress={() => navigation.navigate("MyBook")} // Navigate to MyBook
+            onPress={() => navigation.navigate("MyBook")}
           />
           <Card
             title="Booking History"
             icon="clipboard-outline"
-            onPress={() => navigation.navigate("BookingHistory")} // Navigate to MyBook
+            onPress={() => navigation.navigate("BookingHistory")}
           />
         </Section>
 
@@ -63,35 +48,33 @@ const Section = ({ title, children }) => (
   </View>
 );
 
-const Card = ({ title, icon, subText, onPress }) => (
-  <TouchableOpacity style={styles.card} onPress={onPress}>
-    <Ionicons name={icon} size={32} color="black" />
-    <View>
-      {/* Display title */}
-      <Text style={styles.cardText}>{title ? title : "No title available"}</Text>
-      {/* Display subText if available */}
-      {subText && <Text style={styles.subText}>{subText}</Text>}
-    </View>
-  </TouchableOpacity>
-);
+const Card = ({ title, icon, subText, onPress }) => {
+  const [pressed, setPressed] = useState(false);
+
+  return (
+    <TouchableOpacity
+      style={[styles.card, pressed && styles.cardPressed]}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => {
+        setTimeout(() => setPressed(false), 100); // แก้ปัญหาสีเปลี่ยนไม่ตรงกัน
+        onPress();
+      }}
+    >
+      <Ionicons name={icon} size={32} color="black" />
+      <View>
+        <Text style={styles.cardText}>{title}</Text>
+        {subText && <Text style={styles.subText}>{subText}</Text>}
+      </View>
+    </TouchableOpacity>
+  );
+};
+
 
 // Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F3F3F3",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#A2F193",
-    height: 60,
-    paddingHorizontal: 16,
-  },
-  headerText: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginLeft: 10,
   },
   sectionContainer: {
     flex: 1,
@@ -121,6 +104,9 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
   },
+  cardPressed: {
+    backgroundColor: "#DFFFD6",
+  },
   cardText: {
     fontSize: 16,
     marginLeft: 10,
@@ -132,3 +118,5 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
 });
+
+
