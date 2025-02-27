@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { AuthContext } from "../context/AuthContext";
 
 export default function Account({ navigation }) {
+  const { logout } = useContext(AuthContext);
   const [fadeAnim] = useState(new Animated.Value(1));
 
   const handlePressIn = () => {
@@ -44,6 +46,7 @@ export default function Account({ navigation }) {
           style={styles.logoutButton}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
+          onPress={() => logout()}
         >
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
@@ -119,7 +122,7 @@ const styles = StyleSheet.create({
   cardText: {
     fontSize: 16,
     marginLeft: 10,
-    color:"black"
+    color: "black"
   },
   subText: {
     fontSize: 14,

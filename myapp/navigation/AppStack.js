@@ -20,7 +20,7 @@ import { SearchBar, SearchBar2, SearchBar3, SearchBar4, Notificationbar } from '
 
 const Stack = createStackNavigator();
 
-const screenOptions1 = (headerComponent) => ({
+const screenOptions1 = () => ({
   headerStyle: { backgroundColor: '#A2F193' },
   headerTintColor: '#fff',
   headerTitleStyle: { fontWeight: 'bold' },
@@ -28,7 +28,7 @@ const screenOptions1 = (headerComponent) => ({
   headerLeft: null,
 });
 
-const screenOptions2 = (headerComponent) => ({
+const screenOptions2 = () => ({
   headerStyle: { backgroundColor: '#A2F193' },
   headerTintColor: '#fff',
   headerTitleStyle: { fontWeight: 'bold' },
@@ -36,7 +36,7 @@ const screenOptions2 = (headerComponent) => ({
   headerLeft: null,
 });
 
-const screenOptions3 = (headerComponent) => ({
+const screenOptions3 = () => ({
   headerStyle: { backgroundColor: '#A2F193' },
   headerTintColor: '#fff',
   headerTitleStyle: { fontWeight: 'bold' },
@@ -44,7 +44,7 @@ const screenOptions3 = (headerComponent) => ({
   headerLeft: null,
 });
 
-const screenOptions4 = (headerComponent) => ({
+const screenOptions4 = () => ({
   headerStyle: { backgroundColor: '#A2F193' },
   headerTintColor: '#fff',
   headerTitleStyle: { fontWeight: 'bold' },
@@ -57,7 +57,7 @@ const AppStack = () => {
     <Stack.Navigator>
       <Stack.Screen
         component={TabNaVigator}
-        name='Home'
+        name='MainTab'
         options={screenOptions1}
       />
       <Stack.Screen

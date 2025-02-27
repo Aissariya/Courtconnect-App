@@ -93,7 +93,7 @@ export default function Detail({ route, navigation }) {
 
         <TouchableOpacity
           style={styles.calanderButton}
-          onPress={() => navigation.navigate('Home')}
+          onPress={() => navigation.navigate('MainTab')}
           activeOpacity={1}
         >
           <MaterialCommunityIcons name='home' size={20} color='#000' />
@@ -125,6 +125,7 @@ export default function Detail({ route, navigation }) {
 
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: 'white',
     flex: 1,
     alignItems: 'center',
     paddingTop: 0,

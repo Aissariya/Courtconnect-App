@@ -1,11 +1,12 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from "react-native";
 /*import { auth } from "./firebaseConfig";*/
 /*import { signInWithEmailAndPassword } from "firebase/auth";*/
 import Icon from "react-native-vector-icons/FontAwesome";
-
+import { AuthContext } from "../context/AuthContext";
 
 const Login = ({ navigation }) => {
+  const { login } = useContext(AuthContext);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -13,8 +14,10 @@ const Login = ({ navigation }) => {
 
   const handleLogin = async () => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      // await signInWithEmailAndPassword(auth, email, password);
       console.log("Login successful!");
+
+      login();
       // ไปยังหน้าหลักหรือ Dashboard
     } catch (err) {
       setError("Invalid email or password.");

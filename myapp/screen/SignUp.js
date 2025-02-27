@@ -17,10 +17,10 @@ const SignUp = ({ navigation }) => {
       <View style={styles.container}>
         <Image source={require("../assets/logo.png")} style={styles.logo} />
         <Text style={styles.title}>Sign up</Text>
-        
+
         <View style={styles.inputContainer}>
           <Ionicons name="person-outline" size={20} color="black" />
-          <TextInput 
+          <TextInput
             style={styles.input}
             placeholder="E-mail:"
             value={email}
@@ -30,7 +30,7 @@ const SignUp = ({ navigation }) => {
 
         <View style={styles.inputContainer}>
           <Ionicons name="lock-closed-outline" size={20} color="black" />
-          <TextInput 
+          <TextInput
             style={styles.input}
             placeholder="Password:"
             value={password}
@@ -38,17 +38,17 @@ const SignUp = ({ navigation }) => {
             secureTextEntry={!showPassword}
           />
           <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-            <Ionicons 
-              name={showPassword ? "eye-outline" : "eye-off-outline"} 
-              size={20} 
-              color="black" 
+            <Ionicons
+              name={showPassword ? "eye-outline" : "eye-off-outline"}
+              size={20}
+              color="black"
             />
           </TouchableOpacity>
         </View>
 
         <View style={styles.inputContainer}>
           <Ionicons name="lock-closed-outline" size={20} color="black" />
-          <TextInput 
+          <TextInput
             style={styles.input}
             placeholder="Confirm Password:"
             value={confirmPassword}
@@ -56,15 +56,15 @@ const SignUp = ({ navigation }) => {
             secureTextEntry={!showConfirmPassword}
           />
           <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-            <Ionicons 
-              name={showConfirmPassword ? "eye-outline" : "eye-off-outline"} 
-              size={20} 
-              color="black" 
+            <Ionicons
+              name={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
+              size={20}
+              color="black"
             />
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.statusButton}
           onPress={() => setIsCustomer(!isCustomer)}
         >
@@ -74,7 +74,7 @@ const SignUp = ({ navigation }) => {
         </TouchableOpacity>
 
         <View style={styles.inputContainer}>
-          <TextInput 
+          <TextInput
             style={styles.input}
             placeholder="Name:"
             value={name}
@@ -83,7 +83,7 @@ const SignUp = ({ navigation }) => {
         </View>
 
         <View style={styles.inputContainer}>
-          <TextInput 
+          <TextInput
             style={styles.input}
             placeholder="Surname:"
             value={surname}
@@ -96,9 +96,9 @@ const SignUp = ({ navigation }) => {
         </TouchableOpacity>
 
         <Text style={styles.signInText}>
-          Already had an account? 
-          <Text 
-            style={styles.signInLink} 
+          Already had an account?
+          <Text
+            style={styles.signInLink}
             onPress={() => navigation.navigate('Login')}
           > Sign in
           </Text>
@@ -114,9 +114,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingBottom: 20,
+    backgroundColor: 'white',
   },
   container: {
-    width: '80%',  
+    width: '80%',
     alignItems: 'center',
   },
   logo: {

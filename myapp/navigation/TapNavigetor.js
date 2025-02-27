@@ -16,15 +16,15 @@ import BookingSection from '../screen/Calandar';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-const HomeStack = () => {
-    return (
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen
-                component={Home}
-                name="Home" />
-        </Stack.Navigator>
-    );
-};
+// const HomeStack = () => {
+//     return (
+//         <Stack.Navigator screenOptions={{ headerShown: false }}>
+//             <Stack.Screen
+//                 component={Home}
+//                 name="HomeScreen" />
+//         </Stack.Navigator>
+//     );
+// };
 
 const TabNaVigator = () => {
     return (
@@ -36,22 +36,22 @@ const TabNaVigator = () => {
                 tabBarInactiveTintColor: '#666',
             }}
         >
-            <Tab.Screen
+            {/* <Tab.Screen
                 name='Home'
-                component={HomeStack}
+                component={Home}
                 options={({ route }) => ({
                     tabBarStyle: { display: getTabbarVisibility(route), backgroundColor: '#A2F193' },
                     tabBarIcon: ({ color, size }) => (
                         <Ionicons name="home" size={size} color={color} />
                     ),
                 })}
-            />
+            /> */}
             <Tab.Screen
-                name='Account'
-                component={AccountScreen}
+                name='Home'
+                component={Home}
                 options={{
                     tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="person" size={size} color={color} />
+                        <Ionicons name="home" size={size} color={color} />
                     ),
                 }}
             />
@@ -65,14 +65,15 @@ const TabNaVigator = () => {
                 }}
             />
             <Tab.Screen
-                name='Exit'
-                component={Login}
+                name='Account'
+                component={AccountScreen}
                 options={{
                     tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="exit" size={size} color={color} />
+                        <Ionicons name="person" size={size} color={color} />
                     ),
                 }}
             />
+
         </Tab.Navigator>
     );
 };
@@ -87,9 +88,9 @@ const getTabbarVisibility = (route) => {
 
 const styles = {
     tabBarStyle: {
-        height: 70,
+        height: 60,
         paddingBottom: 10,
-        paddingTop: 10,
+        paddingTop: 5,
         backgroundColor: '#A2F193',
     },
 };
