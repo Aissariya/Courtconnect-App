@@ -1,30 +1,35 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from "react-native";
+import { View, Text, StyleSheet, Dimensions, Image } from "react-native";
 import { FontAwesome5 } from "@expo/vector-icons";
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
 const MyWallet = () => {
   return (
     <View style={styles.container}>
-      {/* Account Balance */}
-      <View style={styles.balanceContainer}>
-        <Text style={styles.balanceLabel}>Account Balance</Text>
-        <View style={styles.balanceCircle}>
-          <Text style={styles.balanceText}>฿ 0.00</Text>
+      {/* Account Info Card */}
+      <View style={styles.accountCard}>
+        <View style={styles.accountHeader}>
+          <Image source={require("../assets/logo.png")} style={styles.bankIcon} />
+          <View style={styles.textContainer}>
+            <Text style={styles.accountName}>Court Connect Wallet</Text>
+            
+          </View>
         </View>
+        <Text style={styles.balanceLabel}>Available Balance</Text>
+        <Text style={styles.balanceText}>0.00</Text>
       </View>
 
-      {/* Buttons Section */}
+      {/* Action Buttons */}
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button}>
+        <View style={styles.button}>
           <FontAwesome5 name="dollar-sign" size={24} color="black" />
           <Text style={styles.buttonText}>Top up</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button}>
+        </View>
+        <View style={styles.button}>
           <FontAwesome5 name="credit-card" size={24} color="black" />
           <Text style={styles.buttonText}>Transfer</Text>
-        </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -34,45 +39,57 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F3F3F3",
-    width: width,
-    height: height,
-  },
-  balanceContainer: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 10,
     alignItems: "center",
-    margin: 20,
+    paddingTop: 20,
+  },
+  accountCard: {
+    backgroundColor: "white",
+    borderRadius: 15,
+    padding: 20,
+    width: width - 40,
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 5,
-    elevation: 3,
-    width: width - 40,
+    elevation: 5,
+    alignItems: "flex-start",
+  },
+  accountHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  textContainer: {
+    marginLeft: 10,
+  },
+  bankIcon: {
+    width: 40,
+    height: 40,
+  },
+  accountName: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  bankName: {
+    fontSize: 12,
+    color: "gray",
   },
   balanceLabel: {
     fontSize: 14,
     color: "black",
-    marginBottom: 10,
-  },
-  balanceCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 2,
-    borderColor: "black",
-    alignItems: "center",
-    justifyContent: "center",
+    marginTop: 10,
   },
   balanceText: {
-    fontSize: 16,
+    fontSize: 25,
     fontWeight: "bold",
     color: "black",
+    marginTop: 10,
+    
   },
   buttonContainer: {
     flexDirection: "row",
     backgroundColor: "white",
     borderRadius: 10,
-    marginHorizontal: 20,
+    marginTop: 20,
     paddingVertical: 10,
     justifyContent: "space-around",
     shadowColor: "#000",
