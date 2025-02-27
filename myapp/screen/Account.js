@@ -1,8 +1,26 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function Account({ navigation }) {
+  const [fadeAnim] = useState(new Animated.Value(1));
+
+  const handlePressIn = () => {
+    Animated.timing(fadeAnim, {
+      toValue: 0.5,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.sectionContainer}>
@@ -16,9 +34,20 @@ export default function Account({ navigation }) {
         </Section>
 
         <Section title="My Wallet">
-          <Card title="My Wallet" icon="wallet-outline" subText="0.00 Bath" onPress={() => navigation.navigate("MyWallet")} />
+          <Card title="My Wallet" icon="wallet-outline" subText="0.00 THB" onPress={() => navigation.navigate("MyWallet")} />
         </Section>
       </View>
+
+      {/* Logout Button */}
+      <Animated.View style={{ opacity: fadeAnim }}>
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+        >
+          <Text style={styles.logoutText}>Log Out</Text>
+        </TouchableOpacity>
+      </Animated.View>
     </View>
   );
 }
@@ -90,11 +119,27 @@ const styles = StyleSheet.create({
   cardText: {
     fontSize: 16,
     marginLeft: 10,
+    color:"black"
   },
   subText: {
     fontSize: 14,
     fontWeight: "bold",
     color: "black",
     marginLeft: 10,
+    marginTop: 5,
+  },
+  logoutButton: {
+    backgroundColor: "black",
+    borderWidth: 1,
+    borderColor: "white",
+    paddingVertical: 12,
+    alignItems: "center",
+    margin: 16,
+    borderRadius: 10,
+  },
+  logoutText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
