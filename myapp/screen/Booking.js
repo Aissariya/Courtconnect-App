@@ -1,12 +1,42 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { SafeAreaView, Text, View, TouchableOpacity, Modal, Button } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from "@expo/vector-icons";
+import { StyleSheet, Image, TextInput, ScrollView } from 'react-native';
 
-export default function Booking() {
+const App = () => {
+  const [hourStart, setHourStart] = useState("12");
+  const [minuteStart, setMinuteStart] = useState("00");
+  const [hourEnd, setHourEnd] = useState("14");
+  const [minuteEnd, setMinuteEnd] = useState("00");
+  const [showStartTimeModal, setShowStartTimeModal] = useState(false);
+  const [showEndTimeModal, setShowEndTimeModal] = useState(false);
+  const [totalPrice, setTotalPrice] = useState(0);
+
+  // ฟังก์ชันคำนวณราคา
+  const calculatePrice = (hStart, mStart, hEnd, mEnd) => {
+    let startMinutes = parseInt(hStart) * 60 + parseInt(mStart);
+    let endMinutes = parseInt(hEnd) * 60 + parseInt(mEnd);
+
+    if (endMinutes <= startMinutes) {
+      setTotalPrice(0); // กรณีเลือกเวลาจบก่อนเวลาเริ่ม
+      return;
+    }
+
+    let diffMinutes = endMinutes - startMinutes;
+    let hours = Math.floor(diffMinutes / 60);
+    let remainingMinutes = diffMinutes % 60;
+
+    if (remainingMinutes > 30) {
+      hours += 1; // ปัดขึ้นเป็นชั่วโมงถัดไปถ้าเกิน 30 นาที
+    }
+
+    setTotalPrice(hours * 500);
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-
         {/* หัวข้อ Booking ตรงกลาง */}
         <Text style={styles.header}>Booking</Text>
 
@@ -29,12 +59,36 @@ export default function Booking() {
           <TextInput style={styles.input} placeholder="Date *" />
 
           <Text style={styles.label}>Time</Text>
-          <TextInput style={styles.input} placeholder="Time *" />
+
+          {/* Start Time Picker */}
+          <View style={styles.timePickerContainer}>
+            <Picker selectedValue={hourStart} onValueChange={(itemValue) => setHourStart(itemValue)} style={styles.picker}>
+              {[...Array(24).keys()].map(i => <Picker.Item key={i} label={String(i).padStart(2, '0')} value={String(i).padStart(2, '0')} />)}
+            </Picker>
+            <Picker selectedValue={minuteStart} onValueChange={(itemValue) => setMinuteStart(itemValue)} style={styles.picker}>
+              {[...Array(60).keys()].map(i => <Picker.Item key={i} label={String(i).padStart(2, '0')} value={String(i).padStart(2, '0')} />)}
+            </Picker>
+          </View>
+
+          {/* End Time Picker */}
+          <View style={styles.timePickerContainer}>
+            <Picker selectedValue={hourEnd} onValueChange={(itemValue) => setHourEnd(itemValue)} style={styles.picker}>
+              {[...Array(24).keys()].map(i => <Picker.Item key={i} label={String(i).padStart(2, '0')} value={String(i).padStart(2, '0')} />)}
+            </Picker>
+            <Picker selectedValue={minuteEnd} onValueChange={(itemValue) => setMinuteEnd(itemValue)} style={styles.picker}>
+              {[...Array(60).keys()].map(i => <Picker.Item key={i} label={String(i).padStart(2, '0')} value={String(i).padStart(2, '0')} />)}
+            </Picker>
+          </View>
+
+          {/* คำนวณราคา */}
+          <TouchableOpacity onPress={() => calculatePrice(hourStart, minuteStart, hourEnd, minuteEnd)} style={styles.calculateButton}>
+            <Text style={styles.calculateButtonText}>Calculate Price</Text>
+          </TouchableOpacity>
 
           {/* Total Price */}
           <View style={styles.totalContainer}>
-            <Text style={styles.totalText}>Total (1 hrs.)</Text>
-            <Text style={styles.priceText}>500 BATH</Text>
+            <Text style={styles.totalText}>Total ({totalPrice / 500} hrs.)</Text>
+            <Text style={styles.priceText}>{totalPrice} BATH</Text>
           </View>
         </View>
 
@@ -42,10 +96,7 @@ export default function Booking() {
         <Text style={styles.sectionTitle}>Payment Method</Text>
         <View style={styles.card}>
           <View style={styles.paymentMethod}>
-            {/* QR Code */}
             <Image source={require('../assets/Qrcode.jpg')} style={styles.paymentIcon} />
-            
-            {/* My Wallet (รวมไอคอน) */}
             <View style={styles.walletContainer}>
               <Ionicons name="wallet-outline" size={32} color="black" />
               <View>
@@ -55,13 +106,12 @@ export default function Booking() {
             </View>
           </View>
         </View>
-
       </ScrollView>
 
       {/* ปุ่มยืนยันการจอง */}
       <View style={styles.footer}>
         <View style={styles.priceBox}>
-          <Text style={styles.footerPrice}>500 Bath</Text>
+          <Text style={styles.footerPrice}>{totalPrice} Bath</Text>
         </View>
         <TouchableOpacity style={styles.confirmButton}>
           <Text style={styles.confirmText}>CONFIRM</Text>
@@ -71,7 +121,6 @@ export default function Booking() {
   );
 }
 
-// 🎨 สไตล์ของหน้า Booking
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -134,6 +183,26 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginTop: 5,
   },
+  timePickerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 5,
+  },
+  picker: {
+    width: '45%',
+  },
+  calculateButton: {
+    backgroundColor: '#A2F193',
+    paddingVertical: 10,
+    borderRadius: 5,
+    marginTop: 15,
+    alignItems: 'center',
+  },
+  calculateButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'black',
+  },
   totalContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -182,14 +251,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   priceBox: {
-    backgroundColor: 'black', // เปลี่ยนพื้นหลังเป็นสีดำ
+    backgroundColor: 'black',
     paddingVertical: 15,
     paddingHorizontal: 20,
     borderRadius: 5,
-    width: '50%', // ทำให้กล่องราคาครึ่งหนึ่งของหน้าจอ
+    width: '50%',
   },
   footerPrice: {
-    color: 'white', // เปลี่ยนตัวอักษรให้เป็นสีขาว
+    color: 'white',
     fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
@@ -199,7 +268,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 30,
     borderRadius: 5,
-    width: '50%', // ทำให้ปุ่มครึ่งหนึ่งของหน้าจอ
+    width: '50%',
   },
   confirmText: {
     fontSize: 20,
@@ -208,3 +277,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+export default App;
