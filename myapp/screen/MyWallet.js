@@ -1,35 +1,45 @@
-import React from "react";
-import { View, Text, StyleSheet, Dimensions, Image } from "react-native";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, Dimensions, Image, TouchableOpacity } from "react-native";
 import { FontAwesome5 } from "@expo/vector-icons";
 
 const { width } = Dimensions.get("window");
 
 const MyWallet = () => {
+  const [depositPressed, setDepositPressed] = useState(false);
+  const [transferPressed, setTransferPressed] = useState(false);
+
   return (
     <View style={styles.container}>
-      {/* Account Info Card */}
+      {/* Account Information Card */}
       <View style={styles.accountCard}>
         <View style={styles.accountHeader}>
           <Image source={require("../assets/logo.png")} style={styles.bankIcon} />
           <View style={styles.textContainer}>
             <Text style={styles.accountName}>Court Connect Wallet</Text>
-            
           </View>
         </View>
         <Text style={styles.balanceLabel}>Available Balance</Text>
-        <Text style={styles.balanceText}>0.00</Text>
+        <Text style={styles.balanceText}>0.00 THB</Text>
       </View>
 
       {/* Action Buttons */}
       <View style={styles.buttonContainer}>
-        <View style={styles.button}>
-          <FontAwesome5 name="dollar-sign" size={24} color="black" />
-          <Text style={styles.buttonText}>Top up</Text>
-        </View>
-        <View style={styles.button}>
-          <FontAwesome5 name="credit-card" size={24} color="black" />
-          <Text style={styles.buttonText}>Transfer</Text>
-        </View>
+        <TouchableOpacity
+          style={styles.button}
+          onPressIn={() => setDepositPressed(true)}
+          onPressOut={() => setDepositPressed(false)}
+        >
+          <FontAwesome5 name="university" size={24} color={depositPressed ? "#1E7D32" : "black"} />
+          <Text style={[styles.buttonText, depositPressed && { color: "#1E7D32" }]}>Deposit</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.button}
+          onPressIn={() => setTransferPressed(true)}
+          onPressOut={() => setTransferPressed(false)}
+        >
+          <FontAwesome5 name="exchange-alt" size={24} color={transferPressed ? "#1E7D32" : "black"} />
+          <Text style={[styles.buttonText, transferPressed && { color: "#1E7D32" }]}>Transfer</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -69,10 +79,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-  bankName: {
-    fontSize: 12,
-    color: "gray",
-  },
   balanceLabel: {
     fontSize: 14,
     color: "black",
@@ -83,7 +89,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "black",
     marginTop: 10,
-    
   },
   buttonContainer: {
     flexDirection: "row",
