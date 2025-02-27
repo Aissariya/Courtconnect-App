@@ -1,23 +1,12 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from "react-native";
-import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { FontAwesome5 } from "@expo/vector-icons";
 
 const { width, height } = Dimensions.get("window");
 
 const MyWallet = () => {
-  const navigation = useNavigation();
-
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="black" />
-        </TouchableOpacity>
-        <Text style={styles.headerText}>My Wallet</Text>
-      </View>
-
       {/* Account Balance */}
       <View style={styles.balanceContainer}>
         <Text style={styles.balanceLabel}>Account Balance</Text>
@@ -47,18 +36,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#F3F3F3",
     width: width,
     height: height,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#A2F193",
-    height: 60,
-    paddingHorizontal: 16,
-  },
-  headerText: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginLeft: 10,
   },
   balanceContainer: {
     backgroundColor: "white",
