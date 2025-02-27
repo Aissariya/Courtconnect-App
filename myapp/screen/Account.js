@@ -5,36 +5,18 @@ import { Ionicons } from "@expo/vector-icons";
 export default function Account({ navigation }) {
   return (
     <View style={styles.container}>
-      {/* Sections */}
       <View style={styles.sectionContainer}>
         <Section title="My Account">
-          <Card
-            title="Account"
-            icon="document-text-outline"
-            onPress={() => navigation.navigate("MyAccount")}
-          />
+          <Card title="Account" icon="document-text-outline" onPress={() => navigation.navigate("MyAccount")} />
         </Section>
 
         <Section title="My Booking">
-          <Card
-            title="My Booking"
-            icon="checkmark-circle-outline"
-            onPress={() => navigation.navigate("MyBook")}
-          />
-          <Card
-            title="Booking History"
-            icon="clipboard-outline"
-            onPress={() => navigation.navigate("BookingHistory")}
-          />
+          <Card title="My Booking" icon="checkmark-circle-outline" onPress={() => navigation.navigate("MyBook")} />
+          <Card title="Booking History" icon="clipboard-outline" onPress={() => navigation.navigate("BookingHistory")} />
         </Section>
 
         <Section title="My Wallet">
-          <Card
-            title="My Wallet"
-            icon="wallet-outline"
-            subText="0.00 Bath"
-            onPress={() => navigation.navigate("MyWallet")}
-          />
+          <Card title="My Wallet" icon="wallet-outline" subText="0.00 Bath" onPress={() => navigation.navigate("MyWallet")} />
         </Section>
       </View>
     </View>
@@ -56,7 +38,7 @@ const Card = ({ title, icon, subText, onPress }) => {
       style={[styles.card, pressed && styles.cardPressed]}
       onPressIn={() => setPressed(true)}
       onPressOut={() => {
-        setTimeout(() => setPressed(false), 100); // แก้ปัญหาสีเปลี่ยนไม่ตรงกัน
+        setTimeout(() => setPressed(false), 100);
         onPress();
       }}
     >
@@ -69,8 +51,6 @@ const Card = ({ title, icon, subText, onPress }) => {
   );
 };
 
-
-// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -118,5 +98,3 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
 });
-
-
