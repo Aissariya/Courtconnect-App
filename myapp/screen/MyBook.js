@@ -8,7 +8,7 @@ export default function MyBook() {
       <View style={styles.card}>
         
         <View style={styles.statusBadge}>
-          <Text style={styles.statusText}>กำลังจะมาถึง</Text>
+          <Text style={styles.statusText}>Upcoming</Text>
         </View>
 
         <Image source={require("../assets/football.jpg")} style={styles.image} />

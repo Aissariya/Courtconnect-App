@@ -18,7 +18,7 @@ export default function BookingHistory() {
 
         
         <View style={[styles.statusContainer, styles.completed]}>
-          <Text style={styles.statusText}>สำเร็จ</Text>
+          <Text style={styles.statusText}>Ended</Text>
         </View>
       </View>
     </View>

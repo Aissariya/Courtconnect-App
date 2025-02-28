@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Dimensions, Image, TouchableOpacity } from "react-native";
 import { FontAwesome5 } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 
 const { width } = Dimensions.get("window");
 
 const MyWallet = () => {
+  const navigation = useNavigation();
   const [depositPressed, setDepositPressed] = useState(false);
   const [transferPressed, setTransferPressed] = useState(false);
 
@@ -28,6 +30,7 @@ const MyWallet = () => {
           style={styles.button}
           onPressIn={() => setDepositPressed(true)}
           onPressOut={() => setDepositPressed(false)}
+          onPress={() => navigation.navigate("Deposit")} // Navigate to Deposit.js
         >
           <FontAwesome5 name="university" size={24} color={depositPressed ? "#1E7D32" : "black"} />
           <Text style={[styles.buttonText, depositPressed && { color: "#1E7D32" }]}>Deposit</Text>
