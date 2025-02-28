@@ -1,7 +1,8 @@
 import React, { useContext, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from "react-native";
-/*import { auth } from "./firebaseConfig";*/
-/*import { signInWithEmailAndPassword } from "firebase/auth";*/
+import { auth } from "../FirebaseConfig";
+import { signInWithEmailAndPassword } from "firebase/auth";
+
 import Icon from "react-native-vector-icons/FontAwesome";
 import { AuthContext } from "../context/AuthContext";
 
@@ -12,12 +13,15 @@ const Login = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLogin = async () => {
+  const handlerLogin = async () => {
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
     try {
-      // await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, trimmedPassword);
+      const token = await userCredential.user.getIdToken();
       console.log("Login successful!");
 
-      login();
+      login(token);
       // ไปยังหน้าหลักหรือ Dashboard
     } catch (err) {
       setError("Invalid email or password.");
@@ -61,7 +65,7 @@ const Login = ({ navigation }) => {
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       {/* Login Button */}
-      <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+      <TouchableOpacity style={styles.loginButton} onPress={handlerLogin}>
         <Text style={styles.loginText}>Sign In</Text>
       </TouchableOpacity>
 

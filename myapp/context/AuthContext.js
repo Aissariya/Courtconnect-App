@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useEffect, useState } from "react";
+import { getAuth } from "firebase/auth";
 
 export const AuthContext = createContext();
 
@@ -7,10 +8,11 @@ export const AuthProvider = ({ children }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [userToken, setUserToken] = useState(null);
 
-    const login = () => {
+
+    const login = (token) => {
         setIsLoading(true);
-        setUserToken('sadboi'); //จำลองการ login ด้วยการ set token ใน state
-        AsyncStorage.setItem('userToken', 'sadboi'); // set token ใน local storage
+        setUserToken(token); //จำลองการ login ด้วยการ set token ใน state
+        AsyncStorage.setItem('userToken', token); // set token ใน local storage
         console.log("login!");
         setIsLoading(false);
     }

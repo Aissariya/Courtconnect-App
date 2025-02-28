@@ -1,8 +1,27 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, ImageBackground, TouchableOpacity, FlatList } from 'react-native';
-import { windowWidth, windowHeight } from '../utils/Dimensions';
+import { windowWidth } from '../utils/Dimensions';
 import { recommendedFields } from '../Model/datatest';
+import { db } from '../FirebaseConfig';
+import { collection, getDocs } from 'firebase/firestore';
+
 export default function Home({ navigation }) {
+  const [courts, setCourts] = useState([]);
+  useEffect(() => {
+    const fetchCourts = async () => {
+      try {
+        const courtSnapshot = await getDocs(collection(db, 'Court'));
+        if (!courtSnapshot.empty) {
+          setCourts(courtSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        }
+      } catch (error) {
+        console.error("Error fetching courts: ", error);
+      }
+    };
+
+    fetchCourts();
+  }, []);
+
   return (
     <SafeAreaView>
       <ScrollView>
@@ -54,7 +73,6 @@ export default function Home({ navigation }) {
                 </View>
               </ImageBackground>
             )}
-
           />
           <View style={{
             flexDirection: 'row',
@@ -143,6 +161,21 @@ export default function Home({ navigation }) {
               </ImageBackground>
             )}
           />
+          <FlatList
+            data={courts}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.card}>
+                <Text style={styles.text}>Address: {item.address || "N/A"}</Text>
+                <Text style={styles.text}>Booking Slot: {item.bookingslot || 60} min</Text>
+                <Text style={styles.text}>Capacity: {item.capacity || "N/A"}</Text>
+                <Text style={styles.text}>Court ID: {item.court_id || "c01"}</Text>
+                <Text style={styles.text}>Type: {item.court_type || "football"}</Text>
+                <Text style={styles.text}>Field: {item.field || "test1"}</Text>
+                <Text style={styles.text}>Price Slot: {item.priceslot || 1500} THB</Text>
+              </View>
+            )}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -161,6 +194,21 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#000'
+  },
+  card: {
+    backgroundColor: '#fff',
+    padding: 15,
+    marginVertical: 8,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  text: {
+    fontSize: 16,
+    marginBottom: 5,
   },
   image: {
     margin: 10,

@@ -103,11 +103,6 @@ const AppStack = () => {
         options={screenOptions2}
       />
       <Stack.Screen
-        component={SignUp}
-        name='SignUp'
-        options={screenOptions1}
-      />
-      <Stack.Screen
         component={MyBookingScreen}
         name='MyBook'
         options={screenOptions2}

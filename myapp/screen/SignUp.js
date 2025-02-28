@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { getFirestore, collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { auth, db } from '../FirebaseConfig';
 const SignUp = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -11,6 +13,32 @@ const SignUp = ({ navigation }) => {
   const [isCustomer, setIsCustomer] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const handlerSignup = async () => {
+    if (password !== confirmPassword) {
+      alert("Passwords do not match!");
+      return;
+    }
+
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      await setDoc(doc(db, "users", user.uid), {
+        email: email,
+        name: name,
+        surname: surname,
+        createdAt: serverTimestamp(), // ใช้ timestamp ของ Firestore
+      });
+
+      console.log("Signup successful!");
+      // กลับไปยังหน้า login 
+      navigation.pop();
+    } catch (err) {
+      console.error("Signup failed:", err.message);
+      alert("Signup failed: " + err.message);
+    }
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -91,7 +119,7 @@ const SignUp = ({ navigation }) => {
           />
         </View>
 
-        <TouchableOpacity style={styles.signUpButton}onPress={() => navigation.pop()}>
+        <TouchableOpacity style={styles.signUpButton} onPress={handlerSignup}>
           <Text style={styles.signUpButtonText}>Sign up</Text>
         </TouchableOpacity>
 
