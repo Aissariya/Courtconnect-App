@@ -99,7 +99,7 @@ const SignUp = ({ navigation }) => {
           Already had an account?
           <Text
             style={styles.signInLink}
-            onPress={() => navigation.navigate('Login')}
+            onPress={() => navigation.pop()}
           > Sign in
           </Text>
         </Text>
