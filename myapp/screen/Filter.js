@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-export default function Filter() {
+export default function Filter({ navigation }) {
   const [selectedSport, setSelectedSport] = useState(null);
   const [maxPrice, setMaxPrice] = useState("");
 
@@ -10,7 +10,7 @@ export default function Filter() {
     { name: "Football", icon: "football-outline" },
     { name: "Basketball", icon: "basketball-outline" },
     { name: "Badminton", icon: "tennisball-outline" },
-    { name: "Ping Pong", icon: "table-tennis" },
+    { name: "Ping Pong", icon: "ellipse-outline" },
     { name: "Tennis", icon: "tennisball-outline" },
     { name: "Swimming", icon: "water-outline" },
     { name: "Boxing", icon: "fitness-outline" },
@@ -20,6 +20,18 @@ export default function Filter() {
 
   const toggleSport = (sport) => {
     setSelectedSport(selectedSport === sport ? null : sport);
+  };
+
+  const handleSearch = () => {
+    if (selectedSport) {
+      if (maxPrice === "") {
+        alert("Please enter a maximum price!");
+      } else {
+        navigation.navigate("SearchScreen", { court_type: selectedSport, priceslot: maxPrice });
+      }
+    } else {
+      alert("Please select a sport!");
+    }
   };
 
   return (
@@ -65,7 +77,7 @@ export default function Filter() {
       </View>
 
       {/* Search Button */}
-      <TouchableOpacity style={styles.searchButton}>
+      <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
         <Text style={styles.searchText}>Search</Text>
       </TouchableOpacity>
     </View>

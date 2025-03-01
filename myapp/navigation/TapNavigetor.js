@@ -36,16 +36,6 @@ const TabNaVigator = () => {
                 tabBarInactiveTintColor: '#666',
             }}
         >
-            {/* <Tab.Screen
-                name='Home'
-                component={Home}
-                options={({ route }) => ({
-                    tabBarStyle: { display: getTabbarVisibility(route), backgroundColor: '#A2F193' },
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="home" size={size} color={color} />
-                    ),
-                })}
-            /> */}
             <Tab.Screen
                 name='Home'
                 component={Home}
@@ -73,7 +63,6 @@ const TabNaVigator = () => {
                     ),
                 }}
             />
-
         </Tab.Navigator>
     );
 };

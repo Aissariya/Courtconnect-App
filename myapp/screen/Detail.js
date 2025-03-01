@@ -1,14 +1,32 @@
 import React from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
-import { recommendedFields } from '../Model/datatest';
+import Database from '../Model/database';
 
 export default function Detail({ route, navigation }) {
-  const { id } = route.params || {};
-  const item = recommendedFields.find(item => item.id === id);
-  const titlename = item ? item.title : "test";
-  const mainImage = item ? item.image : require('../assets/football.jpg');
+  const courts = Database();
+
+  const { court_id } = route.params || {};
+  console.log('court_id:', court_id);
+
+  const item = courts.find(item => item.court_id === court_id);
+  if (!item) {
+    return (
+      <View style={styles.loadcontainer}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+  console.log('item:', item);
+
+  const titlename = item ? item.field : "test";
+  const mainImage = item ? { uri: item.image[0] } : require('../assets/pingpong.jpg');
+  const subImages = item ? item.image.slice(1) : [];
+  const price = item ? item.priceslot : "500";
+  const court = item ? item.court_type : "Null";
+
   return (
+
     <View style={styles.container}>
       {/* ใช้ ScrollView เพื่อให้สามารถเลื่อนขึ้นลงได้ */}
       <ScrollView style={styles.detailsContainer}>
@@ -22,10 +40,10 @@ export default function Detail({ route, navigation }) {
         {/* แถวรูปภาพขนาดเล็ก */}
         <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
           <View style={styles.smallImagesContainer}>
-            {[...Array(6)].map((_, index) => (
+            {subImages.map((imageUri, index) => (
               <TouchableOpacity key={index}>
                 <Image
-                  source={mainImage}
+                  source={{ uri: imageUri }}
                   style={styles.smallImage}
                 />
               </TouchableOpacity>
@@ -38,12 +56,12 @@ export default function Detail({ route, navigation }) {
 
         {/* กล่องราคา */}
         <View style={styles.priceBox}>
-          <Text style={styles.priceText}>Price 500 per hour</Text>
+          <Text style={styles.priceText}>Price {price} per hour</Text>
         </View>
 
         {/* รายละเอียดสนาม */}
         <Text style={styles.detailsText}>
-          Field type: Outdoor field, full field{"\n"}
+          Field type: {court}{"\n"}
           Facilities: locker room, shower room{"\n"}
           Business hours: Open every day 8:00 - 14:00{"\n"}
           Terms and conditions:{"\n"}
@@ -55,7 +73,7 @@ export default function Detail({ route, navigation }) {
 
         {/* แถบสีดำที่มีคำว่า Score และ 5 ดาว */}
         <View style={styles.scoreBar}>
-          <Text style={styles.scoreText}>Score ★★★★★</Text>
+          <Text style={styles.scoreText}>Score ★★★★★ (5.0)</Text>
           <TouchableOpacity onPress={() => navigation.navigate('CommentScreen')}>
             <Text style={styles.scoreText2}>showmore</Text>
           </TouchableOpacity>
@@ -88,9 +106,7 @@ export default function Detail({ route, navigation }) {
       </ScrollView>
 
       {/* ปุ่ม Calendar และ Booking ที่ล็อกอยู่ที่ด้านล่างจอ */}
-
       <View style={styles.buttonContainer}>
-
         <TouchableOpacity
           style={styles.calanderButton}
           onPress={() => navigation.navigate('MainTab')}
@@ -130,6 +146,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 0,
   },
+  loadcontainer: {
+    backgroundColor: 'white',
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   mainImage: {
     width: '100%',
     height: 250,  // ความสูงของรูป
@@ -139,10 +161,10 @@ const styles = StyleSheet.create({
   },
   smallImagesContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     marginTop: 10,
     width: '100%',
-    paddingHorizontal: 10,
+    // paddingHorizontal: 10,
   },
   smallImage: {
     width: 50,
@@ -153,6 +175,7 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingHorizontal: 10,
     paddingTop: 10,  // เพิ่มช่องว่างเล็กน้อยหลังจาก ScrollView เริ่มต้น
+    marginBottom: 70,
   },
   detailsTitle: {
     marginTop: 10,
@@ -208,7 +231,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   reviewBox: {
-    backgroundColor: '#f4f4f4',
+    backgroundColor: 'white',
     padding: 15,
     marginBottom: 15,
     borderRadius: 10,
@@ -262,7 +285,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: 'black',
     alignItems: 'center',
-  }, bookingView: {
+  },
+  bookingView: {
     flexDirection: 'row',
     padding: '10'
   },
