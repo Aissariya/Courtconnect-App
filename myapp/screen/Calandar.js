@@ -55,10 +55,10 @@ const BookingSection = () => {
           <View style={styles.fieldInfo}>
             <Image source={require("../assets/basketball.jpg")} style={styles.fieldImage} />
             <View style={styles.fieldDetails}>
-              <Text style={styles.fieldName}>สนามบาสหนองงูเห่า</Text>
-              <Text style={styles.fieldText}>Player : 6-15 people/court</Text>
-              <Text style={styles.fieldText}>Time : 8:00 - 14:00</Text>
-              <Text style={styles.fieldText}>Price : 1 Hour/ 500 Bath</Text>
+              <Text style={[styles.fieldName, { textAlign: 'center' }]}>สนามบาสหนองงูเห่า</Text>
+              <Text style={[styles.fieldText, { textAlign: 'center' }]}>Player : 6-15 people/court</Text>
+              <Text style={[styles.fieldText, { textAlign: 'center' }]}>Time : 8:00 - 14:00</Text>
+              <Text style={[styles.fieldText, { textAlign: 'center' }]}>Price : 1 Hour/ 500 Bath</Text>
             </View>
           </View>
 
