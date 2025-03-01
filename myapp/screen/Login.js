@@ -70,8 +70,8 @@ const Login = ({ navigation }) => {
       </TouchableOpacity>
 
       {/* Forgot Password */}
-      <TouchableOpacity>
-        <Text style={styles.forgotPassword}>Forgot your password?</Text>
+      <TouchableOpacity onPress={() => navigation.navigate("resetpass")}>
+      <Text style={styles.forgotPassword}>Forgot your password?</Text>
       </TouchableOpacity>
 
       {/* Create Account */}
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   loginButton: {
-    backgroundColor: "#B1F77E",
+    backgroundColor: "#A2F193",
     borderRadius: 10,
     width: "100%",
     alignItems: "center",
