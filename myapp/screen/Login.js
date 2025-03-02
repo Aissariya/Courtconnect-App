@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     width: 280,
     height: 290,
     marginBottom: 30,
-    marginTop: -160,
+    marginTop: -80,
   },
   inputContainer: {
     flexDirection: "row",
@@ -131,6 +131,7 @@ const styles = StyleSheet.create({
   },
   forgotPassword: {
     color: "black",
+    fontWeight: "bold",
     marginVertical: 40,
   },
   newUserText: {
