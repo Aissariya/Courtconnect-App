@@ -29,7 +29,7 @@ const resetpass = () => {
       <TextInput
         style={styles.input}
         placeholder="Enter your email"
-        placeholderTextColor="#aaa"
+        placeholderTextColor="#FFFFFF"
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
@@ -55,9 +55,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: 70,
+
   },
   input: {
     width: "80%",
@@ -66,13 +67,14 @@ const styles = StyleSheet.create({
     color: "#fff",
     borderRadius: 10,
     paddingHorizontal: 15,
-    fontSize: 16,
-    textAlign: "center",
-    marginBottom: 15,
+    fontSize: 15,
+    textAlign: "left",
+    marginBottom: 30,
   },
   backToSignIn: {
     fontSize: 14,
-    marginBottom: 10,
+    marginBottom: 30,
+    fontWeight: "bold",
   },
   resetButton: {
     backgroundColor: "#A2F193",
