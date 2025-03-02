@@ -59,9 +59,6 @@ export default function Transfer() {
                         placeholderTextColor="#888"
                     />
 
-                    
-                    
-
                     <TouchableOpacity style={styles.confirmButton} onPress={handleNext}>
                         <Text style={styles.confirmText}>NEXT</Text>
                     </TouchableOpacity>
@@ -71,6 +68,7 @@ export default function Transfer() {
             <Modal visible={modalVisible} transparent animationType="slide">
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
+                        <Text style={styles.modalHeader}>Select Bank</Text>
                         <FlatList
                             data={banks}
                             keyExtractor={(item) => item.value}
@@ -171,6 +169,12 @@ const styles = StyleSheet.create({
         width: "80%",
         borderRadius: 10,
         padding: 20,
+    },
+    modalHeader: {
+        fontSize: 18,
+        fontWeight: "bold",
+        textAlign: "center",
+        marginBottom: 10,
     },
     bankItem: {
         flexDirection: "row",
