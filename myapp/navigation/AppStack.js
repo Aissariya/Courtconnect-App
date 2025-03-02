@@ -18,6 +18,8 @@ import SearchScreen from '../screen/SearchScreen';
 import MyWallet from '../screen/MyWallet';
 import { SearchBar, SearchBar2, SearchBar3, SearchBar4, Notificationbar } from './SearchBar';
 import Deposit from '../screen/Deposit';
+import Transfer from '../screen/Transfer';
+
 
 const Stack = createStackNavigator();
 
@@ -125,6 +127,11 @@ const AppStack = () => {
       <Stack.Screen
         component={Deposit}
         name='Deposit'
+        options={screenOptions4}
+      />
+      <Stack.Screen
+        component={Transfer}
+        name='Transfer'
         options={screenOptions4}
       />
     </Stack.Navigator>
