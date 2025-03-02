@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { getFirestore, collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from '../FirebaseConfig';
+
 const SignUp = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -13,10 +14,35 @@ const SignUp = ({ navigation }) => {
   const [isCustomer, setIsCustomer] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // เก็บ error ของ input แต่ละช่อง
+  const [errors, setErrors] = useState({});
 
-  const handlerSignup = async () => {
+  const validateInputs = () => {
+    let newErrors = {};
+    
+    if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      newErrors.email = "Invalid email format!";
+    }
+    if (password.length < 6) {
+      newErrors.password = "Password must be at least 8 characters!";
+    }
     if (password !== confirmPassword) {
-      alert("Passwords do not match!");
+      newErrors.confirmPassword = "Passwords do not match!";
+    }
+    if (name.trim() === "") {
+      newErrors.name = "Name is required!";
+    }
+    if (surname.trim() === "") {
+      newErrors.surname = "Surname is required!";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0; // คืนค่า true ถ้าไม่มี error
+  };
+
+  const handleSignup = async () => {
+    if (!validateInputs()) {
       return;
     }
 
@@ -25,15 +51,15 @@ const SignUp = ({ navigation }) => {
       const user = userCredential.user;
 
       await setDoc(doc(db, "users", user.uid), {
-        email: email,
-        name: name,
-        surname: surname,
-        createdAt: serverTimestamp(), // ใช้ timestamp ของ Firestore
+        email,
+        name,
+        surname,
+        isCustomer,
+        createdAt: serverTimestamp(),
       });
 
       console.log("Signup successful!");
-      // กลับไปยังหน้า login 
-      navigation.pop();
+      navigation.pop(); // กลับไปหน้า login
     } catch (err) {
       console.error("Signup failed:", err.message);
       alert("Signup failed: " + err.message);
@@ -46,6 +72,7 @@ const SignUp = ({ navigation }) => {
         <Image source={require("../assets/logo.png")} style={styles.logo} />
         <Text style={styles.title}>Sign up</Text>
 
+        {/* Email */}
         <View style={styles.inputContainer}>
           <Ionicons name="person-outline" size={20} color="black" />
           <TextInput
@@ -53,9 +80,12 @@ const SignUp = ({ navigation }) => {
             placeholder="E-mail:"
             value={email}
             onChangeText={setEmail}
+            placeholderTextColor="rgba(105, 105, 105, 0.35)"
           />
         </View>
+        {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
 
+        {/* Password */}
         <View style={styles.inputContainer}>
           <Ionicons name="lock-closed-outline" size={20} color="black" />
           <TextInput
@@ -64,6 +94,7 @@ const SignUp = ({ navigation }) => {
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
+            placeholderTextColor="rgba(105, 105, 105, 0.35)"
           />
           <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
             <Ionicons
@@ -73,7 +104,9 @@ const SignUp = ({ navigation }) => {
             />
           </TouchableOpacity>
         </View>
+        {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
 
+        {/* Confirm Password */}
         <View style={styles.inputContainer}>
           <Ionicons name="lock-closed-outline" size={20} color="black" />
           <TextInput
@@ -82,6 +115,7 @@ const SignUp = ({ navigation }) => {
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry={!showConfirmPassword}
+            placeholderTextColor="rgba(105, 105, 105, 0.35)"
           />
           <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
             <Ionicons
@@ -91,7 +125,9 @@ const SignUp = ({ navigation }) => {
             />
           </TouchableOpacity>
         </View>
+        {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
 
+        {/* Switch Customer/Owner }
         <TouchableOpacity
           style={styles.statusButton}
           onPress={() => setIsCustomer(!isCustomer)}
@@ -99,27 +135,34 @@ const SignUp = ({ navigation }) => {
           <Text style={styles.statusButtonText}>
             {isCustomer ? "You Are Now Customer" : "You Are Now Owner"}
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity*/}
 
+        {/* Name */}
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
             placeholder="Name:"
             value={name}
             onChangeText={setName}
+            placeholderTextColor="rgba(105, 105, 105, 0.35)"
           />
         </View>
+        {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
 
+        {/* Surname */}
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
             placeholder="Surname:"
             value={surname}
             onChangeText={setSurname}
+            placeholderTextColor="rgba(105, 105, 105, 0.35)"
           />
         </View>
+        {errors.surname && <Text style={styles.errorText}>{errors.surname}</Text>}
 
-        <TouchableOpacity style={styles.signUpButton} onPress={handlerSignup}>
+        {/* Sign Up Button */}
+        <TouchableOpacity style={styles.signUpButton} onPress={handleSignup}>
           <Text style={styles.signUpButtonText}>Sign up</Text>
         </TouchableOpacity>
 
@@ -149,38 +192,44 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logo: {
-    width: 120,
-    height: 120,
+    width: 100,
+    height: 100,
     resizeMode: 'contain',
-    marginBottom: 20,
+    marginBottom: 10,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 15,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#A2F193',
     borderRadius: 10,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 8,
     width: '100%',
-    marginBottom: 15,
+    marginBottom: 10,
   },
   input: {
     flex: 1,
     paddingHorizontal: 10,
     color: '#000',
   },
+  errorText: {
+    color: 'red',
+    alignSelf: 'flex-start',
+    marginLeft: 10,
+    marginBottom: 10,
+  },
   statusButton: {
     backgroundColor: '#000',
     borderRadius: 10,
-    paddingVertical: 10,
+    paddingVertical:8,
     width: '100%',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 10,
   },
   statusButtonText: {
     color: '#fff',
@@ -189,7 +238,7 @@ const styles = StyleSheet.create({
   signUpButton: {
     backgroundColor: '#000',
     borderRadius: 10,
-    paddingVertical: 10,
+    paddingVertical: 8,
     width: '100%',
     alignItems: 'center',
     marginBottom: 10,
