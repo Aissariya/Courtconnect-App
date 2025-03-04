@@ -1,16 +1,19 @@
 import React from "react";
-import { View, Text, StyleSheet, Image } from "react-native";
+import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 
 export default function MyBook() {
+  const navigation = useNavigation();
+
   return (
     <View style={styles.container}>
-      
-      <View style={styles.card}>
-        
+      <TouchableOpacity 
+        onPress={() => navigation.navigate("AlreadyBooked", { court_id: 1 })} 
+        style={styles.card}
+      >
         <View style={styles.statusBadge}>
           <Text style={styles.statusText}>Upcoming</Text>
         </View>
-
         <Image source={require("../assets/football.jpg")} style={styles.image} />
         <View style={styles.cardContent}>
           <Text style={styles.title}>สนามบาสหนองงูเห่า</Text>
@@ -18,8 +21,7 @@ export default function MyBook() {
           <Text style={styles.text}>Time: 13:00 - 14:00</Text>
           <Text style={styles.price}>Price: 200 THB</Text>
         </View>
-      </View>
-
+      </TouchableOpacity>
     </View>
   );
 }
@@ -87,53 +89,3 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
 });
-
-
-/*import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-
-export default function MyBook() {
-  return (
-    <View style={styles.container}>
-      
-      <View style={styles.messageContainer}>
-        <View style={styles.messageBox}>
-          <Text style={styles.messageText}>No fields have been booked yet.</Text>
-        </View>
-      </View>
-
-      
-      <View style={styles.content}></View>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F3F3F3",
-    paddingHorizontal: 10,
-  },
-  messageContainer: {
-    alignItems: "center",
-    marginVertical: 10,
-    
-  },
-  messageBox: {
-    backgroundColor: "white",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
-    marginTop:10,
-  },
-  messageText: {
-    fontSize: 16,
-  },
-  content: {
-    flex: 1,
-  },
-});*/

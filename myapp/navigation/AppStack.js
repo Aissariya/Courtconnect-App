@@ -19,6 +19,7 @@ import MyWallet from '../screen/MyWallet';
 import { SearchBar, SearchBar2, SearchBar3, SearchBar4, Notificationbar } from './SearchBar';
 import Deposit from '../screen/Deposit';
 import Transfer from '../screen/Transfer';
+import AlreadyBooked from '../screen/AlreadyBooked';
 
 
 const Stack = createStackNavigator();
@@ -134,6 +135,12 @@ const AppStack = () => {
         name='Transfer'
         options={screenOptions4}
       />
+      <Stack.Screen
+        component={AlreadyBooked}
+        name='AlreadyBooked'
+        options={screenOptions4}
+      />
+
     </Stack.Navigator>
   );
 };
