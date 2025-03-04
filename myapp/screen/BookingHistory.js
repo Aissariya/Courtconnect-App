@@ -12,7 +12,7 @@ export default function BookingHistory() {
         <View style={styles.cardContent}>
           <Text style={styles.title}>สนามบาสหนองงูเห่า</Text>
           <Text style={styles.text}>Date: 12 Dec 2024</Text>
-          <Text style={styles.text}>Time: 16:00 - 18:00</Text>
+          <Text style={styles.text}>Time: 13:00 - 14:00</Text>
           <Text style={styles.price}>Price: 200 THB</Text>
         </View>
 
@@ -95,8 +95,8 @@ const styles = StyleSheet.create({
 });
 
 
-
-/*import React from "react";
+/*
+import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 
 export default function MyBook() {
@@ -143,5 +143,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-});*/
+});
 
+*/
