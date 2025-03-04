@@ -3,6 +3,9 @@ import { SafeAreaView, Text, View, TouchableOpacity, Modal, Button } from 'react
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Image, TextInput, ScrollView } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker'; // เพิ่มการใช้งาน DateTimePicker
+import { AntDesign } from '@expo/vector-icons'; // ต้องการใช้ไอคอนปฏิทิน
+import { useNavigation } from '@react-navigation/native';
 
 const App = () => {
   const [hourStart, setHourStart] = useState("12");
@@ -12,6 +15,23 @@ const App = () => {
   const [showStartTimeModal, setShowStartTimeModal] = useState(false);
   const [showEndTimeModal, setShowEndTimeModal] = useState(false);
   const [totalPrice, setTotalPrice] = useState(0);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const navigation = useNavigation();
+
+  const handleConfirm = () => {
+    setShowConfirmModal(true);
+  };
+  
+  const handleFinalConfirm = () => {
+    setShowConfirmModal(false);
+    navigation.navigate('MainTab');
+  };
+  
+  const handleSuccessPress = () => {
+    setShowSuccess(false);
+    navigation.navigate('MainTab');
+  };
 
   // ฟังก์ชันคำนวณราคา
   const calculatePrice = (hStart, mStart, hEnd, mEnd) => {
@@ -32,6 +52,20 @@ const App = () => {
     }
 
     setTotalPrice(hours * 500);
+  };
+
+  // เพิ่มสถานะสำหรับการเลือกวันที่
+  const [date, setDate] = useState(null);
+  const [show, setShow] = useState(false);
+
+  const onChange = (event, selectedDate) => {
+    const currentDate = selectedDate || date;
+    setShow(false);
+    setDate(currentDate);
+  };
+
+  const showDatepicker = () => {
+    setShow(true);
   };
 
   return (
@@ -56,7 +90,31 @@ const App = () => {
           <Text style={styles.value}>159 ถนนบรรพปราการ ตำบลเวียง อำเภอเมืองเชียงราย จังหวัดเชียงราย</Text>
 
           <Text style={styles.label}>Date</Text>
-          <TextInput style={styles.input} placeholder="Date *" />
+          
+          {/* ช่องกรอกวันที่ */}
+          <View style={styles.dateInputContainer}>
+            <AntDesign name="calendar" size={18} color="black" style={styles.calendarIcon} />
+            <TouchableOpacity onPress={showDatepicker} style={{ flex: 1 }}>
+              <TextInput 
+                style={styles.dateInput} 
+                placeholder="Select date" 
+                value={date ? date.toLocaleDateString() : ''} 
+                editable={false} 
+                pointerEvents="none"
+              />
+            </TouchableOpacity>
+          </View>
+
+          {show && (
+            <DateTimePicker
+              testID="dateTimePicker"
+              value={date || new Date()}
+              mode="date"
+              is24Hour={true}
+              display="default"
+              onChange={onChange}
+            />
+          )}
 
           <Text style={styles.label}>Time</Text>
 
@@ -110,13 +168,40 @@ const App = () => {
 
       {/* ปุ่มยืนยันการจอง */}
       <View style={styles.footer}>
-        <View style={styles.priceBox}>
-          <Text style={styles.footerPrice}>{totalPrice} Bath</Text>
+        <View style={styles.priceContainer}>
+          <Text style={styles.priceText}>{totalPrice} Bath</Text>
         </View>
-        <TouchableOpacity style={styles.confirmButton}>
+        <TouchableOpacity style={styles.confirmButton} onPress={handleFinalConfirm}>
           <Text style={styles.confirmText}>CONFIRM</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Modal ยืนยัน */}
+      <Modal transparent visible={showConfirmModal} animationType="fade">
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 10, alignItems: 'center' }}>
+            <Text style={{ fontSize: 18, marginBottom: 20 }}>ARE YOU SURE?</Text>
+            <View style={{ flexDirection: 'row' }}>
+              <TouchableOpacity onPress={() => setShowConfirmModal(false)} style={{ backgroundColor: 'black', padding: 10, margin: 5, borderRadius: 5 }}>
+                <Text style={{ color: 'white' }}>CANCEL</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleFinalConfirm} style={{ backgroundColor: 'green', padding: 10, margin: 5, borderRadius: 5 }}>
+                <Text style={{ color: 'white' }}>CONFIRM</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ไอคอนติ๊กถูก */}
+      <Modal transparent visible={showSuccess} animationType="fade">
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <TouchableOpacity onPress={handleSuccessPress} style={{ alignItems: 'center' }}>
+            <Ionicons name="checkmark-circle" size={100} color="green" />
+            <Image source={require('../assets/check.png')} style={{ width: 150, height: 150, marginTop: 20 }} />
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -183,6 +268,21 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginTop: 5,
   },
+  dateInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  calendarIcon: {
+    marginRight: 10,
+  },
+  dateInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 10,
+    borderRadius: 5,
+    flex: 1,
+  },
   timePickerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -201,39 +301,37 @@ const styles = StyleSheet.create({
   calculateButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: 'black',
   },
   totalContainer: {
+    marginTop: 15,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 15,
   },
   totalText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
-    textAlign: 'left',
   },
   priceText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#009900',
   },
   paymentMethod: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'space-between', // ให้ Wallet และ QR Code อยู่กันคนละฝั่ง
   },
   paymentIcon: {
     width: 50,
     height: 50,
-    marginRight: 10,
+    borderRadius: 5,
   },
   walletContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   walletText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   walletBalance: {
@@ -242,39 +340,30 @@ const styles = StyleSheet.create({
   },
   footer: {
     flexDirection: 'row',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingVertical: 10,
-    justifyContent: 'space-between',
+    height: 50,
+    width: '100%',
+  },
+  priceContainer: {
+    flex: 1,
+    backgroundColor: 'black',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  priceBox: {
-    backgroundColor: 'black',
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    width: '50%',
-  },
-  footerPrice: {
+  priceText: {
     color: 'white',
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
-    textAlign: 'center',
   },
   confirmButton: {
-    backgroundColor: '#A2F193',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 5,
-    width: '50%',
+    flex: 1,
+    backgroundColor: '#A5F59C', // สีเขียวอ่อน
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   confirmText: {
-    fontSize: 20,
-    fontWeight: 'bold',
     color: 'black',
-    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
