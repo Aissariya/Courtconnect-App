@@ -166,12 +166,13 @@ const App = () => {
         </View>
       </ScrollView>
 
-      {/* ปุ่มยืนยันการจอง */}
+      {/* แสดงราคา*/}
       <View style={styles.footer}>
         <View style={styles.priceContainer}>
           <Text style={styles.priceText}>{totalPrice} Bath</Text>
+       {/* ปุ่มยืนยัน*/}
         </View>
-        <TouchableOpacity style={styles.confirmButton} onPress={handleFinalConfirm}>
+        <TouchableOpacity style={styles.confirmButton} onPress={() => setShowConfirmModal(true)}>
           <Text style={styles.confirmText}>CONFIRM</Text>
         </TouchableOpacity>
       </View>
