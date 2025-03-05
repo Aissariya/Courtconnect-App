@@ -1,10 +1,17 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, TextInput } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function Filter({ navigation }) {
   const [selectedSport, setSelectedSport] = useState(null);
   const [maxPrice, setMaxPrice] = useState("");
+  const [date, setDate] = useState(new Date());
+  const [startTime, setStartTime] = useState(new Date());
+  const [endTime, setEndTime] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+  const [showEndTimePicker, setShowEndTimePicker] = useState(false);
 
   const sports = [
     { name: "Football", icon: "football-outline" },
@@ -34,21 +41,98 @@ export default function Filter({ navigation }) {
     }
   };
 
+  const onChangeDate = (event, selectedDate) => {
+    const currentDate = selectedDate || date;
+    setShowDatePicker(false);
+    setDate(currentDate);
+  };
+
+  const onChangeStartTime = (event, selectedTime) => {
+    const currentTime = selectedTime || startTime;
+    setShowStartTimePicker(false);
+    setStartTime(currentTime);
+  };
+
+  const onChangeEndTime = (event, selectedTime) => {
+    const currentTime = selectedTime || endTime;
+    setShowEndTimePicker(false);
+    setEndTime(currentTime);
+  };
+
+  const showDatepicker = () => {
+    setShowDatePicker(true);
+  };
+
+  const showStartTimepicker = () => {
+    setShowStartTimePicker(true);
+  };
+
+  const showEndTimepicker = () => {
+    setShowEndTimePicker(true);
+  };
+
+  const formatDate = (date) => {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return date.toLocaleDateString('en-US', options);
+  };
+
+  const formatTime = (time) => {
+    return time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
-    <View style={styles.container}>
-      {/* Select Date and Time */}
-      <Text style={styles.label}>Select date and time</Text>
-      <TouchableOpacity style={styles.inputBox}>
+    <ScrollView style={styles.container}>
+      {/* Select Date */}
+      <Text style={styles.label}>Select date</Text>
+      <TouchableOpacity style={styles.inputBox} onPress={showDatepicker}>
         <Ionicons name="calendar-outline" size={20} color="white" style={styles.icon} />
-        <Text style={styles.inputText}>Tuesday 24 Dec. 2024</Text>
+        <Text style={styles.inputText}>{formatDate(date)}</Text>
       </TouchableOpacity>
 
-      {/* Time Selection */}
+      {showDatePicker && (
+        <DateTimePicker
+          testID="dateTimePicker"
+          value={date}
+          mode="date"
+          is24Hour={true}
+          display="default"
+          onChange={onChangeDate}
+        />
+      )}
+
+      {/* Select Time */}
+      <Text style={styles.label}>Select time</Text>
       <View style={styles.timeContainer}>
-        <TextInput style={styles.longInputBox} value="13:00" />
+        <TouchableOpacity style={styles.longInputBox} onPress={showStartTimepicker}>
+          <Text style={styles.inputText}>{formatTime(startTime)}</Text>
+        </TouchableOpacity>
         <Text style={styles.toText}>to</Text>
-        <TextInput style={styles.longInputBox} value="16:00" />
+        <TouchableOpacity style={styles.longInputBox} onPress={showEndTimepicker}>
+          <Text style={styles.inputText}>{formatTime(endTime)}</Text>
+        </TouchableOpacity>
       </View>
+
+      {showStartTimePicker && (
+        <DateTimePicker
+          testID="startTimePicker"
+          value={startTime}
+          mode="time"
+          is24Hour={true}
+          display="default"
+          onChange={onChangeStartTime}
+        />
+      )}
+
+      {showEndTimePicker && (
+        <DateTimePicker
+          testID="endTimePicker"
+          value={endTime}
+          mode="time"
+          is24Hour={true}
+          display="default"
+          onChange={onChangeEndTime}
+        />
+      )}
 
       {/* Max Price */}
       <Text style={styles.label}>Maximum price per hour (BATH)</Text>
@@ -80,7 +164,7 @@ export default function Filter({ navigation }) {
       <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
         <Text style={styles.searchText}>Search</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }
 

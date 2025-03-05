@@ -97,6 +97,7 @@ const App = ({ navigation, route }) => {
   const onChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set the time to midnight for comparison
     
     if (currentDate < today) {
       alert('Cannot select past dates');
