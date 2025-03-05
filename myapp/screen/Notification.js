@@ -1,99 +1,104 @@
 import React from "react";
-import { View, Text, StyleSheet, Image } from "react-native";
-
-export default function BookingCard() {
-  return (
-    <View style={styles.container}>
-      <Image source={require("../assets/basketball.jpg")} style={styles.image} />
-
-      {/* ป้าย "จองแล้ว" */}
-      <View style={styles.statusBadge}>
-        <Text style={styles.statusText}>Already Booking</Text>
-      </View>
-
-      {/* เวลาการแจ้งเตือน (เป็นนาฬิกา) */}
-      <View style={styles.notificationTime}>
-        <Text style={styles.notificationText}>13:45</Text>
-      </View>
-
-      {/* ป้ายชื่อสนาม */}
-      <View style={styles.label}>
-        <Text style={styles.labelText}>สนามบาสหนองงูเห่า</Text>
-      </View>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    position: "relative",
-    borderRadius: 10,
-    overflow: "hidden",
-    margin: 10,
-  },
-  image: {
-    width: "100%",
-    height: 150,
-    borderRadius: 10,
-  },
-  statusBadge: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    backgroundColor: "red",
-    paddingVertical: 5,
-    paddingHorizontal: 15,
-    borderRadius: 5,
-  },
-  statusText: {
-    color: "white",
-    fontWeight: "bold",
-  },
-  notificationTime: {
-    position: "absolute",
-    top: 10,
-    left: 10,
-    backgroundColor: "rgb(255, 255, 255)", // สีเทาอ่อนโปร่งใส
-    paddingVertical: 3,
-    paddingHorizontal: 10,
-    borderRadius: 5,
-  },
-  notificationText: {
-    fontSize: 12,
-    color: "#555",
-    fontWeight: "bold",
-  },
-  label: {
-    position: "absolute",
-    bottom: 10,
-    left: 10,
-    backgroundColor: "white",
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 5,
-  },
-  labelText: {
-    fontWeight: "bold",
-  },
-});
-
-
-
-/*import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, FlatList } from "react-native";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function Notification() {
-  return (
-    <View style={styles.container}>
-      
-      <View style={styles.messageContainer}>
-        <View style={styles.messageBox}>
-          <Text style={styles.messageText}>No notifications yet.</Text>
+  const notifications = [
+    {
+      id: '1',
+      title: 'Booking Confirmed',
+      message: 'สนามบาสหนองงูเห่า - Court A',
+      time: '13:45',
+      date: 'Today',
+      status: 'success'
+    },
+    {
+      id: '2',
+      title: 'Cancellation Under Review',
+      message: 'สนามฟุตบอล - Field B',
+      time: '10:30',
+      date: 'Yesterday',
+      status: 'review'
+    },
+    {
+      id: '3',
+      title: 'Refund Successful',
+      message: 'Refund for booking at สนามบาสหนองงูเห่า - Court A',
+      time: '09:00',
+      date: 'Yesterday',
+      status: 'refundSuccess'
+    },
+    {
+      id: '4',
+      title: 'Cancellation Rejected',
+      message: 'Cancellation for booking at สนามฟุตบอล - Field B',
+      time: '08:00',
+      date: 'Yesterday',
+      status: 'rejected'
+    },
+    {
+      id: '5',
+      title: 'Refund Failed',
+      message: 'Refund for booking at สนามบาสหนองงูเห่า - Court A',
+      time: '07:00',
+      date: 'Yesterday',
+      status: 'refundFailed'
+    }
+  ];
+
+  const renderNotification = ({ item }) => (
+    <View style={styles.notificationItem}>
+      <View style={styles.notificationHeader}>
+        <View style={styles.iconContainer}>
+          <MaterialCommunityIcons
+            name={
+              item.status === 'success' ? 'check-circle' :
+              item.status === 'review' ? 'clock-outline' :
+              item.status === 'refundSuccess' ? 'cash-refund' :
+              item.status === 'rejected' ? 'close-circle' :
+              'alert-circle'
+            }
+            size={24}
+            color={
+              item.status === 'success' ? '#4CAF50' :
+              item.status === 'review' ? '#FFD700' :
+              item.status === 'refundSuccess' ? '#4CAF50' :
+              item.status === 'rejected' ? '#FF6B6B' :
+              '#FF0000'
+            }
+          />
+        </View>
+        <View style={styles.textContainer}>
+          <Text style={styles.notificationTitle}>{item.title}</Text>
+          <Text style={styles.notificationTime}>{item.time}</Text>
         </View>
       </View>
+      <Text style={styles.notificationMessage}>{item.message}</Text>
+      <Text style={styles.notificationDate}>{item.date}</Text>
+      <View style={[
+        styles.statusIndicator, 
+        item.status === 'success' ? styles.statusSuccess :
+        item.status === 'review' ? styles.statusReview :
+        item.status === 'refundSuccess' ? styles.statusRefundSuccess :
+        item.status === 'rejected' ? styles.statusRejected :
+        styles.statusRefundFailed
+      ]} />
+    </View>
+  );
 
-      
-      <View style={styles.content}></View>
+  return (
+    <View style={styles.container}>
+      <FlatList
+        data={notifications}
+        renderItem={renderNotification}
+        keyExtractor={item => item.id}
+        contentContainerStyle={styles.listContainer}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No notifications yet.</Text>
+          </View>
+        }
+      />
     </View>
   );
 }
@@ -102,30 +107,84 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F3F3F3",
-    paddingHorizontal: 10,
   },
-  messageContainer: {
-    alignItems: "center",
-    marginVertical: 10,
-    
+  listContainer: {
+    padding: 16,
   },
-  messageBox: {
-    backgroundColor: "white",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    shadowColor: "#000",
+  notificationItem: {
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+    position: 'relative',
+    borderLeftWidth: 4,
+    borderLeftColor: '#A2F193',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 5,
+    shadowRadius: 4,
     elevation: 3,
-    marginTop:10,
   },
-  messageText: {
-    fontSize: 16,
+  notificationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  content: {
+  iconContainer: {
+    marginRight: 10,
+  },
+  textContainer: {
     flex: 1,
   },
+  notificationTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  notificationTime: {
+    fontSize: 12,
+    color: '#666',
+  },
+  notificationMessage: {
+    fontSize: 14,
+    color: '#444',
+    marginBottom: 4,
+  },
+  notificationDate: {
+    fontSize: 12,
+    color: '#888',
+  },
+  statusIndicator: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: 4,
+    height: '100%',
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
+  },
+  statusSuccess: {
+    backgroundColor: '#A2F193',
+  },
+  statusReview: {
+    backgroundColor: '#FFD700',
+  },
+  statusRefundSuccess: {
+    backgroundColor: '#4CAF50',
+  },
+  statusRejected: {
+    backgroundColor: '#FF6B6B',
+  },
+  statusRefundFailed: {
+    backgroundColor: '#FF0000',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 32,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#666',
+  },
 });
-
-*/
