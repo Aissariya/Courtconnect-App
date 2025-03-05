@@ -30,7 +30,6 @@ export default function AlreadyBooked({ navigation }) {
     'Personal reasons',
     'Health issues',
     'Weather concerns',
-    'Transportation issues',
     'Other',
   ];
 
