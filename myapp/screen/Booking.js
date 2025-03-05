@@ -9,6 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import Database from '../Model/database';
 import PropTypes from 'prop-types';
 
+const courts = Database();
 const App = () => {
   const courts = Database();  
   const [hourStart, setHourStart] = useState("12");
@@ -64,36 +65,20 @@ const App = () => {
       return;
     }
 
-    const diffMinutes = endMinutes - startMinutes;
-    const hours = Math.ceil(diffMinutes / 60); // Always round up to nearest hour
-    const price = hours * 500;
-    
-    setTotalPrice(price);
-    return price;
+    let diffMinutes = endMinutes - startMinutes;
+    let hours = Math.floor(diffMinutes / 60);
+    let remainingMinutes = diffMinutes % 60;
+
+    if (remainingMinutes > 30) {
+      hours += 1; // ปัดขึ้นเป็นชั่วโมงถัดไปถ้าเกิน 30 นาที
+    }
+
+    setTotalPrice(hours * 500);
   };
 
-  // ฟังก์ชัน validateBooking
-  const validateBooking = () => {
-    if (!date) {
-      alert('Please select a date');
-      return false;
-    }
-
-    const startTime = parseInt(hourStart) * 60 + parseInt(minuteStart);
-    const endTime = parseInt(hourEnd) * 60 + parseInt(minuteEnd);
-    
-    if (endTime <= startTime) {
-      alert('End time must be after start time');
-      return false;
-    }
-
-    if (totalPrice === 0) {
-      alert('Please calculate price first');
-      return false;
-    }
-
-    return true;
-  };
+  // เพิ่มสถานะสำหรับการเลือกวันที่
+  const [date, setDate] = useState(null);
+  const [show, setShow] = useState(false);
 
   const onChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
