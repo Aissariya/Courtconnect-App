@@ -186,7 +186,7 @@ export default function AlreadyBooked({ navigation }) {
             </Text>
             <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={styles.modalButton}
+                style={[styles.modalButton, styles.modalButtonCancel]}
                 onPress={() => setShowConfirmModal(false)}
               >
                 <Text style={styles.modalButtonText}>Cancel</Text>
@@ -424,14 +424,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 10,
+    color: '#333',
   },
   modalText: {
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 20,
+    color: '#555',
   },
   modalButtons: {
     flexDirection: 'row',
@@ -443,18 +445,22 @@ const styles = StyleSheet.create({
     padding: 10,
     alignItems: 'center',
     borderRadius: 5,
-    backgroundColor: '#ccc',
     marginHorizontal: 5,
   },
+  modalButtonCancel: {
+    backgroundColor: '#ccc',
+  },
   modalButtonConfirm: {
-    backgroundColor: 'black',
+    backgroundColor: '#A2F193',
+    
   },
   modalButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: 'black',
   },
   modalButtonTextConfirm: {
-    color: 'white',
+    color: '#A2F193',
   },
   gotItButton: {
     marginTop: 20,

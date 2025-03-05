@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SafeAreaView, Text, View, TouchableOpacity, Modal, Button } from 'react-native';
+import { SafeAreaView, Text, View, TouchableOpacity, Modal, Button, ActivityIndicator } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Image, TextInput, ScrollView } from 'react-native';
@@ -7,9 +7,10 @@ import DateTimePicker from '@react-native-community/datetimepicker'; // เพ�
 import { AntDesign } from '@expo/vector-icons'; // ต้องการใช้ไอคอนปฏิทิน
 import { useNavigation } from '@react-navigation/native';
 import Database from '../Model/database';
+import PropTypes from 'prop-types';
 
-const courts = Database();
 const App = () => {
+  const courts = Database();  
   const [hourStart, setHourStart] = useState("12");
   const [minuteStart, setMinuteStart] = useState("00");
   const [hourEnd, setHourEnd] = useState("14");
@@ -19,17 +20,34 @@ const App = () => {
   const [totalPrice, setTotalPrice] = useState(0);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [date, setDate] = useState(null);
+  const [show, setShow] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
 
   const handleConfirm = () => {
-    setShowConfirmModal(true);
+    if (validateBooking()) {
+      setShowConfirmModal(true);
+    }
   };
-  
-  const handleFinalConfirm = () => {
-    setShowConfirmModal(false);
-    navigation.navigate('MainTab');
+
+  const handleFinalConfirm = async () => {
+    try {
+      setIsLoading(true);
+      // Add your booking logic here
+      setShowConfirmModal(false);
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        navigation.navigate('MainTab');
+      }, 2000);
+    } catch (error) {
+      alert('Booking failed: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
-  
+
   const handleSuccessPress = () => {
     setShowSuccess(false);
     navigation.navigate('MainTab');
@@ -37,31 +55,55 @@ const App = () => {
 
   // ฟังก์ชันคำนวณราคา
   const calculatePrice = (hStart, mStart, hEnd, mEnd) => {
-    let startMinutes = parseInt(hStart) * 60 + parseInt(mStart);
-    let endMinutes = parseInt(hEnd) * 60 + parseInt(mEnd);
+    const startMinutes = parseInt(hStart) * 60 + parseInt(mStart);
+    const endMinutes = parseInt(hEnd) * 60 + parseInt(mEnd);
 
     if (endMinutes <= startMinutes) {
-      setTotalPrice(0); // กรณีเลือกเวลาจบก่อนเวลาเริ่ม
+      alert('End time must be after start time');
+      setTotalPrice(0);
       return;
     }
 
-    let diffMinutes = endMinutes - startMinutes;
-    let hours = Math.floor(diffMinutes / 60);
-    let remainingMinutes = diffMinutes % 60;
-
-    if (remainingMinutes > 30) {
-      hours += 1; // ปัดขึ้นเป็นชั่วโมงถัดไปถ้าเกิน 30 นาที
-    }
-
-    setTotalPrice(hours * 500);
+    const diffMinutes = endMinutes - startMinutes;
+    const hours = Math.ceil(diffMinutes / 60); // Always round up to nearest hour
+    const price = hours * 500;
+    
+    setTotalPrice(price);
+    return price;
   };
 
-  // เพิ่มสถานะสำหรับการเลือกวันที่
-  const [date, setDate] = useState(null);
-  const [show, setShow] = useState(false);
+  // ฟังก์ชัน validateBooking
+  const validateBooking = () => {
+    if (!date) {
+      alert('Please select a date');
+      return false;
+    }
+
+    const startTime = parseInt(hourStart) * 60 + parseInt(minuteStart);
+    const endTime = parseInt(hourEnd) * 60 + parseInt(minuteEnd);
+    
+    if (endTime <= startTime) {
+      alert('End time must be after start time');
+      return false;
+    }
+
+    if (totalPrice === 0) {
+      alert('Please calculate price first');
+      return false;
+    }
+
+    return true;
+  };
 
   const onChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
+    const today = new Date();
+    
+    if (currentDate < today) {
+      alert('Cannot select past dates');
+      return;
+    }
+    
     setShow(false);
     setDate(currentDate);
   };
@@ -174,7 +216,7 @@ const App = () => {
           <Text style={styles.priceText}>{totalPrice} Bath</Text>
        {/* ปุ่มยืนยัน*/}
         </View>
-        <TouchableOpacity style={styles.confirmButton} onPress={() => setShowConfirmModal(true)}>
+        <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
           <Text style={styles.confirmText}>CONFIRM</Text>
         </TouchableOpacity>
       </View>
@@ -200,12 +242,49 @@ const App = () => {
       <Modal transparent visible={showSuccess} animationType="fade">
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <TouchableOpacity onPress={handleSuccessPress} style={{ alignItems: 'center' }}>
-            <Ionicons name="checkmark-circle" size={100} color="green" />
             <Image source={require('../assets/check.png')} style={{ width: 150, height: 150, marginTop: 20 }} />
           </TouchableOpacity>
         </View>
       </Modal>
+
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#0000ff" />
+        </View>
+      )}
     </View>
+  );
+}
+
+App.propTypes = {
+  navigation: PropTypes.object.isRequired
+};
+
+class ErrorBoundary extends React.Component {
+  state = { hasError: false };
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text>Something went wrong. Please try again.</Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// Wrap the main component
+export default function BookingWrapper() {
+  return (
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   );
 }
 
@@ -368,6 +447,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
 });
 
-export default App;
