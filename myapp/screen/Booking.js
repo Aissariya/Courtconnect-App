@@ -23,6 +23,7 @@ const App = ({ navigation }) => {
   const [date, setDate] = useState(null);
   const [show, setShow] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [numPeople, setNumPeople] = useState("1"); // เปลี่ยนเป็น string
 
   const handleConfirm = () => {
     if (validateBooking()) {
@@ -178,6 +179,14 @@ const App = ({ navigation }) => {
             </Picker>
             <Picker selectedValue={minuteEnd} onValueChange={(itemValue) => setMinuteEnd(itemValue)} style={styles.picker}>
               {[...Array(60).keys()].map(i => <Picker.Item key={i} label={String(i).padStart(2, '0')} value={String(i).padStart(2, '0')} />)}
+            </Picker>
+          </View>
+
+          {/* จำนวนคน */}
+          <Text style={styles.label}>Number of People</Text>
+          <View style={styles.numPeopleContainer}>
+            <Picker selectedValue={numPeople} onValueChange={(itemValue) => setNumPeople(String(itemValue))} style={styles.picker}>
+              {[...Array(15).keys()].map(i => <Picker.Item key={i} label={String(i + 1)} value={String(i + 1)} />)}
             </Picker>
           </View>
 
@@ -371,6 +380,11 @@ const styles = StyleSheet.create({
   },
   picker: {
     width: '45%',
+  },
+  numPeopleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 5,
   },
   calculateButton: {
     backgroundColor: '#A2F193',
