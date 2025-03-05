@@ -8,7 +8,7 @@ import { AntDesign } from '@expo/vector-icons'; // ต้องการใช�
 import { useNavigation } from '@react-navigation/native';
 import Database from '../Model/database';
 
-const courts = Database();
+//const courts = Database();
 const App = () => {
   const [hourStart, setHourStart] = useState("12");
   const [minuteStart, setMinuteStart] = useState("00");
@@ -57,9 +57,9 @@ const App = () => {
   };
 
   // เพิ่มสถานะสำหรับการเลือกวันที่
-  const [date, setDate] = useState(null);
+  /*const [date, setDate] = useState(null);
   const [show, setShow] = useState(false);
-
+*/
   const onChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
     setShow(false);
