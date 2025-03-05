@@ -26,40 +26,22 @@ export default function Detail({ route, navigation }) {
   const court = item ? item.court_type : "Null";
 
   return (
-
     <View style={styles.container}>
-      {/* ใช้ ScrollView เพื่อให้สามารถเลื่อนขึ้นลงได้ */}
       <ScrollView style={styles.detailsContainer}>
-        {/* รูปภาพหลักของสนามบาส */}
-        <Image
-          source={mainImage}
-          style={styles.mainImage}
-          resizeMode="cover"
-        />
-
-        {/* แถวรูปภาพขนาดเล็ก */}
+        <Image source={mainImage} style={styles.mainImage} resizeMode="cover" />
         <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
           <View style={styles.smallImagesContainer}>
             {subImages.map((imageUri, index) => (
               <TouchableOpacity key={index}>
-                <Image
-                  source={{ uri: imageUri }}
-                  style={styles.smallImage}
-                />
+                <Image source={{ uri: imageUri }} style={styles.smallImage} />
               </TouchableOpacity>
             ))}
           </View>
         </ScrollView>
-
-        {/* ชื่อสนามบาส */}
         <Text style={styles.detailsTitle}>{titlename} ★★★★★ (5.0)</Text>
-
-        {/* กล่องราคา */}
         <View style={styles.priceBox}>
           <Text style={styles.priceText}>Price {price} per hour</Text>
         </View>
-
-        {/* รายละเอียดสนาม */}
         <Text style={styles.detailsText}>
           Field type: {court}{"\n"}
           Facilities: locker room, shower room{"\n"}
@@ -70,18 +52,13 @@ export default function Detail({ route, navigation }) {
           - Use of the field must be careful to ensure the safety of all players.{"\n"}
           Payment: Can pay through various channels
         </Text>
-
-        {/* แถบสีดำที่มีคำว่า Score และ 5 ดาว */}
         <View style={styles.scoreBar}>
           <Text style={styles.scoreText}>Score ★★★★★ (5.0)</Text>
           <TouchableOpacity onPress={() => navigation.navigate('CommentScreen')}>
             <Text style={styles.scoreText2}>showmore</Text>
           </TouchableOpacity>
         </View>
-
-        {/* รีวิวสนาม */}
         <View style={styles.reviewContainer}>
-          {/* รีวิว 1 */}
           <View style={styles.reviewBox}>
             <Text style={styles.reviewerName}>John Doe</Text>
             <Text style={styles.reviewText}>สนามบาสดีมาก บรรยากาศเยี่ยม และการดูแลรักษาสนามดีเยี่ยม</Text>
@@ -91,8 +68,6 @@ export default function Detail({ route, navigation }) {
               ))}
             </View>
           </View>
-
-          {/* รีวิว 2 */}
           <View style={styles.reviewBox}>
             <Text style={styles.reviewerName}>Jane Smith</Text>
             <Text style={styles.reviewText}>สนามบาสสะอาดและมีอุปกรณ์ครบครัน สะดวกสบายมากๆ</Text>
@@ -104,8 +79,6 @@ export default function Detail({ route, navigation }) {
           </View>
         </View>
       </ScrollView>
-
-      {/* ปุ่ม Calendar และ Booking ที่ล็อกอยู่ที่ด้านล่างจอ */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={styles.calanderButton}
@@ -123,10 +96,9 @@ export default function Detail({ route, navigation }) {
           <MaterialCommunityIcons name='calendar-outline' size={20} color='#000' />
           <Text style={styles.calanderText}>Calendar</Text>
         </TouchableOpacity>
-
         <TouchableOpacity
           style={styles.bookingButton}
-          onPress={() => navigation.navigate('BookingScreen')}
+          onPress={() => navigation.navigate('BookingScreen', { court: item })}
           activeOpacity={1}
         >
           <View style={styles.bookingView}>

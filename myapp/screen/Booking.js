@@ -1,16 +1,15 @@
-import React, { useState } from 'react';
-import { SafeAreaView, Text, View, TouchableOpacity, Modal, Button, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { SafeAreaView, Text, View, TouchableOpacity, Modal, Button, ActivityIndicator, Image } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from "@expo/vector-icons";
-import { StyleSheet, Image, TextInput, ScrollView } from 'react-native';
+import { StyleSheet, TextInput, ScrollView } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker'; // เพิ่มการใช้งาน DateTimePicker
 import { AntDesign } from '@expo/vector-icons'; // ต้องการใช้ไอคอนปฏิทิน
 import { useNavigation } from '@react-navigation/native';
-import Database from '../Model/database';
 import PropTypes from 'prop-types';
 
-const App = ({ navigation }) => {
-  const courts = Database();  
+const App = ({ navigation, route }) => {
+  const { court } = route.params || {};
   const [hourStart, setHourStart] = useState("12");
   const [minuteStart, setMinuteStart] = useState("00");
   const [hourEnd, setHourEnd] = useState("14");
@@ -120,10 +119,12 @@ const App = ({ navigation }) => {
 
         {/* การ์ดข้อมูลสนาม */}
         <View style={styles.card}>
-          <Image source={require('../assets/basketball.jpg')} style={styles.courtImage} />
+          {court && (
+            <Image source={{ uri: court.image[0] }} style={styles.courtImage} />
+          )}
           <View style={styles.courtDetails}>
-            <Text style={styles.courtTitle}>สนามบาสหนองงูเห่า</Text>
-            <Text style={styles.courtSubtitle}>โรงเรียนหนองงูเห่า</Text>
+            <Text style={styles.courtTitle}>{court ? court.field : 'Loading...'}</Text>
+            <Text style={styles.courtSubtitle}>{court ? court.address : 'Loading...'}</Text>
           </View>
         </View>
 
@@ -131,7 +132,7 @@ const App = ({ navigation }) => {
         <Text style={styles.sectionTitle}>Booking Details</Text>
         <View style={styles.card}>
           <Text style={styles.label}>Location</Text>
-          <Text style={styles.value}>159 ถนนบรรพปราการ ตำบลเวียง อำเภอเมืองเชียงราย จังหวัดเชียงราย</Text>
+          <Text style={styles.value}>{court ? court.address : 'Loading...'}</Text>
 
           <Text style={styles.label}>Date</Text>
           
@@ -265,7 +266,8 @@ const App = ({ navigation }) => {
 }
 
 App.propTypes = {
-  navigation: PropTypes.object.isRequired
+  navigation: PropTypes.object.isRequired,
+  route: PropTypes.object.isRequired,
 };
 
 class ErrorBoundary extends React.Component {
@@ -288,10 +290,10 @@ class ErrorBoundary extends React.Component {
 }
 
 // Wrap the main component
-export default function BookingWrapper({ navigation }) {
+export default function BookingWrapper({ navigation, route }) {
   return (
     <ErrorBoundary>
-      <App navigation={navigation} />
+      <App navigation={navigation} route={route} />
     </ErrorBoundary>
   );
 }
