@@ -24,9 +24,13 @@ export default function AlreadyBooked({ navigation }) {
   };
 
   const reasons = [
+    'Made a mistake in booking',
     'Change of plans',
     'Found a better option',
     'Personal reasons',
+    'Health issues',
+    'Weather concerns',
+    'Transportation issues',
     'Other',
   ];
 
@@ -178,15 +182,24 @@ export default function AlreadyBooked({ navigation }) {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Confirm Cancellation</Text>
+            <View style={styles.modalDetailsContainer}>
+              <Text style={styles.modalLabel}>Court:</Text>
+              <Text style={styles.modalDetail}>{bookingDetails.courtName}</Text>
+            </View>
+            <View style={styles.modalDetailsContainer}>
+              <Text style={styles.modalLabel}>Time:</Text>
+              <Text style={styles.modalDetail}>{bookingDetails.bookingTime}</Text>
+            </View>
+            <View style={styles.modalDetailsContainer}>
+              <Text style={styles.modalLabel}>Price:</Text>
+              <Text style={styles.modalDetail}>{bookingDetails.price}</Text>
+            </View>
             <Text style={styles.modalText}>
               Are you sure you want to cancel this booking?
-              {"\n\n"}Court: {bookingDetails.courtName}
-              {"\n"}Time: {bookingDetails.bookingTime}
-              {"\n"}Price: {bookingDetails.price}
             </Text>
             <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={styles.modalButton}
+                style={[styles.modalButton, styles.modalButtonCancel]}
                 onPress={() => setShowConfirmModal(false)}
               >
                 <Text style={styles.modalButtonText}>Cancel</Text>
@@ -424,14 +437,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 10,
+    color: '#333',
+  },
+  modalDetailsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 10,
+  },
+  modalLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#555',
+  },
+  modalDetail: {
+    fontSize: 16,
+    color: '#555',
   },
   modalText: {
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 20,
+    color: '#555',
   },
   modalButtons: {
     flexDirection: 'row',
@@ -443,18 +473,22 @@ const styles = StyleSheet.create({
     padding: 10,
     alignItems: 'center',
     borderRadius: 5,
-    backgroundColor: '#ccc',
     marginHorizontal: 5,
   },
+  modalButtonCancel: {
+    backgroundColor: '#ccc',
+  },
   modalButtonConfirm: {
-    backgroundColor: 'black',
+    backgroundColor: '#A2F193',
+    
   },
   modalButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: 'black',
   },
   modalButtonTextConfirm: {
-    color: 'white',
+    color: 'black',
   },
   gotItButton: {
     marginTop: 20,
