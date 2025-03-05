@@ -6,7 +6,9 @@ import { StyleSheet, Image, TextInput, ScrollView } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker'; // เพิ่มการใช้งาน DateTimePicker
 import { AntDesign } from '@expo/vector-icons'; // ต้องการใช้ไอคอนปฏิทิน
 import { useNavigation } from '@react-navigation/native';
+import Database from '../Model/database';
 
+const courts = Database();
 const App = () => {
   const [hourStart, setHourStart] = useState("12");
   const [minuteStart, setMinuteStart] = useState("00");
