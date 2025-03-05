@@ -180,6 +180,9 @@ export default function AlreadyBooked({ navigation }) {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Confirm Cancellation</Text>
+            <Text style={styles.modalText}>
+              Are you certain you want to cancel this booking?
+            </Text>
             <View style={styles.modalDetailsContainer}>
               <Text style={styles.modalLabel}>Court:</Text>
               <Text style={styles.modalDetail}>{bookingDetails.courtName}</Text>
@@ -192,9 +195,6 @@ export default function AlreadyBooked({ navigation }) {
               <Text style={styles.modalLabel}>Price:</Text>
               <Text style={styles.modalDetail}>{bookingDetails.price}</Text>
             </View>
-            <Text style={styles.modalText}>
-              Are you sure you want to cancel this booking?
-            </Text>
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.modalButtonCancel]}
@@ -460,6 +460,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
     color: '#555',
+    marginTop : 10,
   },
   modalButtons: {
     flexDirection: 'row',
