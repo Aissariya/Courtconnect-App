@@ -9,7 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import Database from '../Model/database';
 import PropTypes from 'prop-types';
 
-const App = () => {
+const App = ({ navigation }) => {
   const courts = Database();  
   const [hourStart, setHourStart] = useState("12");
   const [minuteStart, setMinuteStart] = useState("00");
@@ -23,7 +23,6 @@ const App = () => {
   const [date, setDate] = useState(null);
   const [show, setShow] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const navigation = useNavigation();
 
   const handleConfirm = () => {
     if (validateBooking()) {
@@ -280,10 +279,10 @@ class ErrorBoundary extends React.Component {
 }
 
 // Wrap the main component
-export default function BookingWrapper() {
+export default function BookingWrapper({ navigation }) {
   return (
     <ErrorBoundary>
-      <App />
+      <App navigation={navigation} />
     </ErrorBoundary>
   );
 }
