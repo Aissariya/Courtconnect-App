@@ -1,5 +1,14 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  Alert,
+} from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
@@ -12,39 +21,67 @@ const MyAccount = () => {
     password: "************",
     phone: "075-63854463",
     email: "Krit.soo@ku.th",
+    profileImage: null,
   });
 
-  const handleChange = (field, value) => {
-    setUser((prevState) => ({
-      ...prevState,
-      [field]: value,
-    }));
+  // ฟังก์ชันขออนุญาตเข้าถึงแกลเลอรี
+  const requestPermission = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission Required", "ต้องอนุญาตให้เข้าถึงรูปภาพเพื่อเปลี่ยนโปรไฟล์");
+    }
+  };
+
+  useEffect(() => {
+    requestPermission();  // เรียกขออนุญาตเมื่อเข้าหน้าจอ
+  }, []);
+
+  // ฟังก์ชันเลือกรูปภาพจากแกลเลอรี
+  const pickImage = async () => {
+    if (!isEditable) return; // ถ้าไม่ใช่โหมดแก้ไข จะไม่สามารถเลือกภาพได้
+
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, // ใช้ MediaTypeOptions
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setUser((prevState) => ({ ...prevState, profileImage: result.assets[0].uri }));
+    }
   };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      {/* <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="black" />
-        </TouchableOpacity>
-        <Text style={styles.headerText}>My Account</Text>
-      </View> */}
-
-      {/* Profile Section without Image */}
       <View style={styles.profileSection}>
+        <View style={styles.profileImageContainer}>
+          <Image
+            source={
+              user.profileImage
+                ? { uri: user.profileImage }
+                : require("../assets/profile-user.png")
+            }
+            style={styles.profileImage}
+          />
+          {isEditable && (
+            <TouchableOpacity style={styles.editIcon} onPress={pickImage}>
+              <Ionicons name="camera" size={24} color="white" />
+            </TouchableOpacity>
+          )}
+        </View>
+
         <Text style={styles.profileName}>
           {user.firstName} {user.lastName}
         </Text>
       </View>
 
-      {/* Input Fields */}
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Name account</Text>
         <TextInput
           style={styles.input}
           value={user.firstName}
-          onChangeText={(text) => handleChange("firstName", text)}
+          onChangeText={(text) => setUser({ ...user, firstName: text })}
           editable={isEditable}
         />
 
@@ -52,7 +89,7 @@ const MyAccount = () => {
         <TextInput
           style={styles.input}
           value={user.lastName}
-          onChangeText={(text) => handleChange("lastName", text)}
+          onChangeText={(text) => setUser({ ...user, lastName: text })}
           editable={isEditable}
         />
 
@@ -61,7 +98,7 @@ const MyAccount = () => {
           style={styles.input}
           value={user.password}
           secureTextEntry
-          onChangeText={(text) => handleChange("password", text)}
+          onChangeText={(text) => setUser({ ...user, password: text })}
           editable={isEditable}
         />
 
@@ -70,7 +107,7 @@ const MyAccount = () => {
           style={styles.input}
           value={user.phone}
           keyboardType="phone-pad"
-          onChangeText={(text) => handleChange("phone", text)}
+          onChangeText={(text) => setUser({ ...user, phone: text })}
           editable={isEditable}
         />
 
@@ -79,19 +116,18 @@ const MyAccount = () => {
           style={styles.input}
           value={user.email}
           keyboardType="email-address"
-          onChangeText={(text) => handleChange("email", text)}
+          onChangeText={(text) => setUser({ ...user, email: text })}
           editable={isEditable}
         />
       </View>
 
-      {/* Edit Button */}
       <TouchableOpacity
         style={styles.button}
         onPress={() => {
           if (isEditable) {
             console.log("User data saved:", user);
           }
-          setIsEditable(!isEditable);
+          setIsEditable(!isEditable); // เปลี่ยนสถานะของ isEditable
         }}
       >
         <Text style={styles.buttonText}>{isEditable ? "SAVE" : "EDIT"}</Text>
@@ -105,32 +141,31 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F3F3F3",
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#A2F193",
-    height: 60,
-    paddingHorizontal: 16,
-  },
-  headerText: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginLeft: 10,
-  },
   profileSection: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 10,
     alignItems: "center",
-    margin: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
+    marginVertical: 20,
+  },
+  profileImageContainer: {
+    position: "relative",
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#ddd",
+  },
+  editIcon: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    backgroundColor: "#A2F193",
+    borderRadius: 15,
+    padding: 5,
   },
   profileName: {
     fontSize: 18,
     fontWeight: "bold",
+    marginTop: 10,
   },
   inputContainer: {
     marginHorizontal: 20,
