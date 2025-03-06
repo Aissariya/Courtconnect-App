@@ -48,14 +48,13 @@ const App = ({ navigation, route }) => {
       const endDate = new Date(date);
       endDate.setHours(parseInt(hourEnd), parseInt(minuteEnd));
 
-      // Format the times
+      // Format the times without seconds
       const startTime = startDate.toLocaleString('en-US', {
         month: 'long',
         day: 'numeric',
         year: 'numeric',
         hour: 'numeric',
         minute: '2-digit',
-        second: '2-digit',
         hour12: true,
         timeZone: 'Asia/Bangkok'
       }) + ' UTC+7';
@@ -66,7 +65,6 @@ const App = ({ navigation, route }) => {
         year: 'numeric',
         hour: 'numeric',
         minute: '2-digit',
-        second: '2-digit',
         hour12: true,
         timeZone: 'Asia/Bangkok'
       }) + ' UTC+7';
@@ -77,21 +75,26 @@ const App = ({ navigation, route }) => {
         court_id: court.court_id,
         end_time: endTime,
         start_time: startTime,
-        status: "pending"
+        status: "pending",
+        user_id: 'currentUserId' // Replace 'currentUserId' with actual user ID
       };
 
       // Add to Firestore Booking collection
       const bookingRef = collection(db, 'Booking');
-      const docRef = await addDoc(bookingRef, bookingData);
-      
-      console.log('Booking added with ID:', docRef.id);
-      console.log('Booking ID:', booking_id);
-      console.log('Court ID:', court.court_id);
-      console.log('Start time:', startTime);
-      console.log('End time:', endTime);
+      await addDoc(bookingRef, bookingData);
 
+      // Close confirm modal first
       setShowConfirmModal(false);
+      
+      // Show success animation
       setShowSuccess(true);
+
+      // Wait for 2 seconds before navigating
+      setTimeout(() => {
+        setShowSuccess(false);
+        navigation.navigate('MainTab');
+      }, 2000);
+
     } catch (error) {
       console.error('Error adding booking:', error);
       alert('Failed to create booking: ' + error.message);

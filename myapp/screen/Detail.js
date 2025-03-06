@@ -89,12 +89,17 @@ export default function Detail({ route, navigation }) {
           <Text style={styles.calanderText}>Home</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.calanderButton}
-          onPress={() => navigation.navigate('CalanderScreen')}
-          activeOpacity={1}
+          onPress={() => navigation.navigate('CalanderScreen', {
+            court: {
+              court_id: item.court_id,
+              field: item.field,
+              image: item.image,
+              address: item.address
+            }
+          })}
+          style={styles.calendarButton}
         >
-          <MaterialCommunityIcons name='calendar-outline' size={20} color='#000' />
-          <Text style={styles.calanderText}>Calendar</Text>
+          <Text>Calendar</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.bookingButton}
@@ -249,6 +254,14 @@ const styles = StyleSheet.create({
   calanderText: {
     color: 'black',
     fontWeight: 'bold',
+  },
+  calendarButton: {
+    flex: 1, // ปุ่มกินพื้นที่ครึ่งหนึ่งของจอ
+    borderColor: 'black',
+    borderWidth: 2,
+    paddingVertical: 10,
+    backgroundColor: 'white',
+    alignItems: 'center',
   },
   bookingButton: {
     flex: 2, // ปุ่มกินพื้นที่ครึ่งหนึ่งของจอ
