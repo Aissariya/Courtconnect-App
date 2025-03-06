@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from '../FirebaseConfig';
+import { Wallet } from 'lucide-react-native';
 
 const SignUp = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -18,27 +19,55 @@ const SignUp = ({ navigation }) => {
   // เก็บ error ของ input แต่ละช่อง
   const [errors, setErrors] = useState({});
 
+  const validateField = (name, value) => {
+    let error = "";
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
+    const nameRegex = /^[A-Za-z\u0E00-\u0E7F]+$/;
+
+    switch (name) {
+      case "email":
+        if (!emailRegex.test(value)) {
+          error = "Invalid email format!";
+        }
+        break;
+      case "password":
+        if (!passwordRegex.test(value)) {
+          error = "Password must be at least 8 characters long and contain both uppercase and lowercase letters!";
+        }
+        break;
+      case "confirmPassword":
+        if (value !== password) {
+          error = "Passwords do not match!";
+        }
+        break;
+      case "name":
+        if (!nameRegex.test(value)) {
+          error = "Name must contain only letters!";
+        }
+        break;
+      case "surname":
+        if (!nameRegex.test(value)) {
+          error = "Surname must contain only letters!";
+        }
+        break;
+      default:
+        break;
+    }
+    return error;
+  };
+
   const validateInputs = () => {
     let newErrors = {};
     
-    if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-      newErrors.email = "Invalid email format!";
-    }
-    if (password.length < 6) {
-      newErrors.password = "Password must be at least 8 characters!";
-    }
-    if (password !== confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match!";
-    }
-    if (name.trim() === "") {
-      newErrors.name = "Name is required!";
-    }
-    if (surname.trim() === "") {
-      newErrors.surname = "Surname is required!";
-    }
+    newErrors.email = validateField("email", email);
+    newErrors.password = validateField("password", password);
+    newErrors.confirmPassword = validateField("confirmPassword", confirmPassword);
+    newErrors.name = validateField("name", name);
+    newErrors.surname = validateField("surname", surname);
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0; // คืนค่า true ถ้าไม่มี error
+    return Object.keys(newErrors).every(key => !newErrors[key]); // คืนค่า true ถ้าไม่มี error
   };
 
   const handleSignup = async () => {
@@ -51,10 +80,11 @@ const SignUp = ({ navigation }) => {
       const user = userCredential.user;
 
       await setDoc(doc(db, "users", user.uid), {
-        email,
-        name,
-        surname,
-        isCustomer,
+        email:email,
+        name: name,
+        surname: surname,
+        isCustomer: isCustomer,
+        Wallet: 0,
         createdAt: serverTimestamp(),
       });
 
@@ -126,16 +156,6 @@ const SignUp = ({ navigation }) => {
           </TouchableOpacity>
         </View>
         {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
-
-        {/* Switch Customer/Owner }
-        <TouchableOpacity
-          style={styles.statusButton}
-          onPress={() => setIsCustomer(!isCustomer)}
-        >
-          <Text style={styles.statusButtonText}>
-            {isCustomer ? "You Are Now Customer" : "You Are Now Owner"}
-          </Text>
-        </TouchableOpacity*/}
 
         {/* Name */}
         <View style={styles.inputContainer}>
