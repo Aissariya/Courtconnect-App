@@ -3,10 +3,12 @@ import { SafeAreaView, Text, View, TouchableOpacity, Modal, Button, ActivityIndi
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, TextInput, ScrollView } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker'; // เพิ่มการใช้งาน DateTimePicker
-import { AntDesign } from '@expo/vector-icons'; // ต้องการใช้ไอคอนปฏิทิน
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { AntDesign } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import PropTypes from 'prop-types';
+import { collection, addDoc, getFirestore } from 'firebase/firestore';
+import { db } from '../FirebaseConfig';
 
 const App = ({ navigation, route }) => {
   const { court } = route.params || {};
@@ -34,15 +36,65 @@ const App = ({ navigation, route }) => {
   const handleFinalConfirm = async () => {
     try {
       setIsLoading(true);
-      // Add your booking logic here
+
+      // Generate booking ID
+      const booking_id = `BK${Date.now()}`;
+
+      // Create start time date object
+      const startDate = new Date(date);
+      startDate.setHours(parseInt(hourStart), parseInt(minuteStart));
+      
+      // Create end time date object
+      const endDate = new Date(date);
+      endDate.setHours(parseInt(hourEnd), parseInt(minuteEnd));
+
+      // Format the times
+      const startTime = startDate.toLocaleString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+        timeZone: 'Asia/Bangkok'
+      }) + ' UTC+7';
+
+      const endTime = endDate.toLocaleString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+        timeZone: 'Asia/Bangkok'
+      }) + ' UTC+7';
+
+      // Create booking data
+      const bookingData = {
+        booking_id: booking_id,
+        court_id: court.court_id,
+        end_time: endTime,
+        start_time: startTime,
+        status: "pending"
+      };
+
+      // Add to Firestore Booking collection
+      const bookingRef = collection(db, 'Booking');
+      const docRef = await addDoc(bookingRef, bookingData);
+      
+      console.log('Booking added with ID:', docRef.id);
+      console.log('Booking ID:', booking_id);
+      console.log('Court ID:', court.court_id);
+      console.log('Start time:', startTime);
+      console.log('End time:', endTime);
+
       setShowConfirmModal(false);
       setShowSuccess(true);
-      setTimeout(() => {
-        setShowSuccess(false);
-        navigation.navigate('MainTab');
-      }, 2000);
     } catch (error) {
-      alert('Booking failed: ' + error.message);
+      console.error('Error adding booking:', error);
+      alert('Failed to create booking: ' + error.message);
     } finally {
       setIsLoading(false);
     }
