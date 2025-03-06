@@ -23,6 +23,7 @@ const App = ({ navigation, route }) => {
   const [show, setShow] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [numPeople, setNumPeople] = useState("1"); // เปลี่ยนเป็น string
+  const [showImageModal, setShowImageModal] = useState(false);
 
   const handleConfirm = () => {
     if (validateBooking()) {
@@ -110,6 +111,10 @@ const App = ({ navigation, route }) => {
 
   const showDatepicker = () => {
     setShow(true);
+  };
+
+  const handleImagePress = () => {
+    setShowImageModal(true);
   };
 
   return (
@@ -208,7 +213,9 @@ const App = ({ navigation, route }) => {
         <Text style={styles.sectionTitle}>Payment Method</Text>
         <View style={styles.card}>
           <View style={styles.paymentMethod}>
-            <Image source={require('../assets/Qrcode.jpg')} style={styles.paymentIcon} />
+            <TouchableOpacity onPress={handleImagePress}>
+              <Image source={require('../assets/Qrcode.jpg')} style={styles.paymentIcon} />
+            </TouchableOpacity>
             <View style={styles.walletContainer}>
               <Ionicons name="wallet-outline" size={32} color="black" />
               <View>
@@ -253,6 +260,15 @@ const App = ({ navigation, route }) => {
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <TouchableOpacity onPress={handleSuccessPress} style={{ alignItems: 'center' }}>
             <Image source={require('../assets/check.png')} style={{ width: 150, height: 150, marginTop: 20 }} />
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      {/* Modal แสดงรูปขยาย */}
+      <Modal transparent visible={showImageModal} animationType="fade">
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <TouchableOpacity onPress={() => setShowImageModal(false)} style={{ alignItems: 'center' }}>
+            <Image source={require('../assets/Qrcode.jpg')} style={{ width: 300, height: 300 }} />
           </TouchableOpacity>
         </View>
       </Modal>

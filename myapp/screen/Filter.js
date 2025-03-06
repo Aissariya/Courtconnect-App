@@ -7,8 +7,8 @@ export default function Filter({ navigation }) {
   const [selectedSport, setSelectedSport] = useState(null);
   const [maxPrice, setMaxPrice] = useState("");
   const [date, setDate] = useState(new Date());
-  const [startTime, setStartTime] = useState(new Date());
-  const [endTime, setEndTime] = useState(new Date());
+  const [startTime, setStartTime] = useState(new Date().setMinutes(0, 0, 0));
+  const [endTime, setEndTime] = useState(new Date().setMinutes(0, 0, 0));
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
@@ -49,12 +49,14 @@ export default function Filter({ navigation }) {
 
   const onChangeStartTime = (event, selectedTime) => {
     const currentTime = selectedTime || startTime;
+    currentTime.setMinutes(0, 0, 0); // Set minutes to 00
     setShowStartTimePicker(false);
     setStartTime(currentTime);
   };
 
   const onChangeEndTime = (event, selectedTime) => {
     const currentTime = selectedTime || endTime;
+    currentTime.setMinutes(0, 0, 0); // Set minutes to 00
     setShowEndTimePicker(false);
     setEndTime(currentTime);
   };
@@ -77,7 +79,7 @@ export default function Filter({ navigation }) {
   };
 
   const formatTime = (time) => {
-    return time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    return new Date(time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -115,7 +117,7 @@ export default function Filter({ navigation }) {
       {showStartTimePicker && (
         <DateTimePicker
           testID="startTimePicker"
-          value={startTime}
+          value={new Date(startTime)}
           mode="time"
           is24Hour={true}
           display="default"
@@ -126,7 +128,7 @@ export default function Filter({ navigation }) {
       {showEndTimePicker && (
         <DateTimePicker
           testID="endTimePicker"
-          value={endTime}
+          value={new Date(endTime)}
           mode="time"
           is24Hour={true}
           display="default"
