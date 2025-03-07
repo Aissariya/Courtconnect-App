@@ -1,11 +1,41 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthContext } from "../context/AuthContext";
+import { getAuth } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../FirebaseConfig";
 
 export default function Account({ navigation }) {
   const { logout } = useContext(AuthContext);
   const [fadeAnim] = useState(new Animated.Value(1));
+  const [walletAmount, setWalletAmount] = useState("0.00");
+
+  const auth = getAuth();
+  const userAuth = auth.currentUser;
+
+  useEffect(() => {
+    const fetchWalletAmount = async () => {
+      if (!userAuth) {
+        console.error("No user is logged in");
+        return;
+      }
+
+      try {
+        const userDoc = await getDoc(doc(db, "users", userAuth.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setWalletAmount(userData.wallet ? userData.wallet.toFixed(2) : "0.00");
+        } else {
+          console.error("User data not found in Firestore");
+        }
+      } catch (error) {
+        console.error("Error fetching wallet amount:", error);
+      }
+    };
+
+    fetchWalletAmount();
+  }, [userAuth]);
 
   const handlePressIn = () => {
     Animated.timing(fadeAnim, {
@@ -36,7 +66,7 @@ export default function Account({ navigation }) {
         </Section>
 
         <Section title="My Wallet">
-          <Card title="My Wallet" icon="wallet-outline" subText="0.00 THB" onPress={() => navigation.navigate("MyWallet")} />
+          <Card title="My Wallet" icon="wallet-outline" subText={`${walletAmount} THB`} onPress={() => navigation.navigate("MyWallet")} />
         </Section>
       </View>
 

@@ -108,7 +108,7 @@ const SignUp = ({ navigation }) => {
         name: name,
         surname: surname,
         isCustomer: isCustomer,
-        Wallet: 0,
+        wallet: 0, // Set wallet to 0
         createdAt: serverTimestamp(),
       });
 
