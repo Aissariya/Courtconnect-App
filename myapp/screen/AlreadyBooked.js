@@ -1,26 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, Alert } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 
-export default function AlreadyBooked({ navigation }) {
+export default function AlreadyBooked({ navigation, route }) {
   const [showReason, setShowReason] = useState(false);
   const [selectedReason, setSelectedReason] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
 
-  const bookingDetails = {
-    bookingId: '12345',
-    courtName: 'Court A',
-    bookingTime: '10:00 AM - 11:00 AM',
-    bookingDate: '2025-03-05',
-    mainImage: require('../assets/pingpong.jpg'),
-    subImages: [
-      require('../assets/pingpong.jpg'),
-      require('../assets/pingpong.jpg'),
-    ],
-    price: '500',
-    courtType: 'Indoor',
+  const { booking } = route.params || {};
+
+  useEffect(() => {
+    console.log('Received booking data:', booking);
+  }, [booking]);
+
+  const formatDateTime = (dateTimeStr) => {
+    try {
+      const [datePart, timePart] = dateTimeStr.split(' at ');
+      return {
+        date: datePart,
+        time: timePart.split(' UTC')[0]
+      };
+    } catch (error) {
+      console.error('Error parsing datetime:', error);
+      return { date: 'Invalid date', time: 'Invalid time' };
+    }
   };
 
   const reasons = [
@@ -49,46 +54,34 @@ export default function AlreadyBooked({ navigation }) {
   return (
     <View style={styles.container}>
       <ScrollView style={styles.detailsContainer}>
-        <Image
-          source={bookingDetails.mainImage}
-          style={styles.mainImage}
-          resizeMode="cover"
-        />
-
-        <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-          <View style={styles.smallImagesContainer}>
-            {bookingDetails.subImages.map((imageUri, index) => (
-              <TouchableOpacity key={index}>
-                <Image
-                  source={imageUri}
-                  style={styles.smallImage}
-                />
-              </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
-
-        <Text style={styles.detailsTitle}>{bookingDetails.courtName} ★★★★★ (5.0)</Text>
-
-        <View style={styles.priceBox}>
-          <Text style={styles.priceText}> Already Booked</Text>
-        </View>
-
-        <Text style={styles.detailsText}>
-          Field type: {bookingDetails.courtType}{"\n"}
-          Booking Time: {bookingDetails.bookingTime}{"\n"}
-          Booking Date: {bookingDetails.bookingDate}{"\n"}
-          Facilities: locker room, shower room{"\n"}
-          Business hours: Open every day 8:00 - 14:00{"\n"}
-          Terms and conditions:{"\n"}
-          - Users must follow the rules and regulations of the field.{"\n"}
-          - If you want to cancel your reservation, you should notify in advance according to the specified period.{"\n"}
-          - Use of the field must be careful to ensure the safety of all players.{"\n"}
-          Payment: Can pay through various channels
-        </Text>
-
-        {!showReason && (
+        {booking ? (
           <>
+            <Image
+              source={{ uri: booking.courtDetails.image }}
+              style={styles.mainImage}
+              resizeMode="cover"
+            />
+
+            <Text style={styles.detailsTitle}>
+              {booking.courtDetails.name} ★★★★★ (5.0)
+            </Text>
+
+            <View style={styles.priceBox}>
+              <Text style={styles.priceText}>
+                {booking.status === 'pending' ? 'รอการยืนยัน' : 'ยืนยันแล้ว'}
+              </Text>
+            </View>
+
+            <Text style={styles.detailsText}>
+              ประเภทสนาม: {booking.courtDetails.type}{"\n"}
+              วันที่จอง: {formatDateTime(booking.start_time).date}{"\n"}
+              เวลา: {formatDateTime(booking.start_time).time} - {formatDateTime(booking.end_time).time}{"\n"}
+              จำนวนคน: {booking.people} คน{"\n"}
+              สถานที่: {booking.courtDetails.address}{"\n"}
+              สิ่งอำนวยความสะดวก: ห้องล็อคเกอร์, ห้องอาบน้ำ{"\n"}
+              เวลาทำการ: เปิดทุกวัน 8:00 - 22:00{"\n"}
+            </Text>
+
             <View style={styles.scoreBar}>
               <Text style={styles.scoreText}>Score ★★★★★ (5.0)</Text>
               <TouchableOpacity onPress={() => navigation.navigate('CommentScreen')}>
@@ -117,6 +110,8 @@ export default function AlreadyBooked({ navigation }) {
               </View>
             </View>
           </>
+        ) : (
+          <Text style={styles.errorText}>ไม่พบข้อมูลการจอง</Text>
         )}
 
         {showReason && (
@@ -141,7 +136,7 @@ export default function AlreadyBooked({ navigation }) {
         )}
       </ScrollView>
 
-      {!showReason && (
+      {!showReason && booking && (
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={styles.calanderButton}
@@ -151,6 +146,7 @@ export default function AlreadyBooked({ navigation }) {
             <MaterialCommunityIcons name='home' size={20} color='#000' />
             <Text style={styles.calanderText}>Home</Text>
           </TouchableOpacity>
+          
           <TouchableOpacity
             style={styles.calanderButton}
             onPress={() => navigation.navigate('CalanderScreen')}
@@ -160,15 +156,17 @@ export default function AlreadyBooked({ navigation }) {
             <Text style={styles.calanderText}>Calendar</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.bookingButton}
-            onPress={() => setShowReason(true)}
-            activeOpacity={1}
-          >
-            <View style={styles.CancelView}>
-              <Text style={styles.CancelText}>Cancel Booking</Text>
-            </View>
-          </TouchableOpacity>
+          {booking.status === 'pending' && (
+            <TouchableOpacity
+              style={styles.bookingButton}
+              onPress={() => setShowReason(true)}
+              activeOpacity={1}
+            >
+              <View style={styles.CancelView}>
+                <Text style={styles.CancelText}>Cancel Booking</Text>
+              </View>
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
@@ -185,15 +183,15 @@ export default function AlreadyBooked({ navigation }) {
             </Text>
             <View style={styles.modalDetailsContainer}>
               <Text style={styles.modalLabel}>Court:</Text>
-              <Text style={styles.modalDetail}>{bookingDetails.courtName}</Text>
+              <Text style={styles.modalDetail}>{booking.courtDetails.name}</Text>
             </View>
             <View style={styles.modalDetailsContainer}>
               <Text style={styles.modalLabel}>Time:</Text>
-              <Text style={styles.modalDetail}>{bookingDetails.bookingTime}</Text>
+              <Text style={styles.modalDetail}>{formatDateTime(booking.start_time).time} - {formatDateTime(booking.end_time).time}</Text>
             </View>
             <View style={styles.modalDetailsContainer}>
               <Text style={styles.modalLabel}>Price:</Text>
-              <Text style={styles.modalDetail}>{bookingDetails.price}</Text>
+              <Text style={styles.modalDetail}>{booking.price}</Text>
             </View>
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -501,4 +499,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  errorText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 20,
+    color: '#666'
+  }
 });

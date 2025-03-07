@@ -38,6 +38,7 @@ const BookingSection = ({ route }) => {
   const [bookedSlots, setBookedSlots] = useState([]);
   const [userBookings, setUserBookings] = useState([]);
   const [currentUserId, setCurrentUserId] = useState(null);
+  const [bookingDetails, setBookingDetails] = useState([]);
 
   // Fetch booked slots from Firebase
   useEffect(() => {
