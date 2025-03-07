@@ -5,16 +5,6 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
 
-const timeSlots = [
-  "08:00 a.m.",
-  "09:00 a.m.",
-  "10:00 a.m.", // Will be marked as booked
-  "11:00 a.m.", // Will be marked as booked
-  "12:00 p.m.", // Will be marked as booked
-  "13:00 p.m.", // Will be marked as booked
-  "14:00 p.m.", // Will be marked as booked
-];
-
 const BookingSection = ({ route }) => {
   const { court } = route.params || {};
   const [date, setDate] = useState(new Date()); // เปลี่ยนจาก null เป็น new Date()
@@ -288,8 +278,8 @@ const BookingSection = ({ route }) => {
           }
 
           return (
-            <View key={booking.booking_id} style={styles.bookedSlotItem}>
-              <AntDesign name="clockcircle" size={16} color="#00796B" style={styles.clockIcon} />
+            <View key={booking.booking_id} style={styles.userBookedSlotItem}>
+              <AntDesign name="clockcircle" size={16} color="#388E3C" style={styles.clockIcon} />
               <View style={styles.bookedSlotContent}>
                 <Text style={styles.userBookingDate}>
                   {startDate.toLocaleDateString('th-TH', {
@@ -336,7 +326,6 @@ const BookingSection = ({ route }) => {
 
   return (
     <FlatList
-      data={timeSlots}
       keyExtractor={(item) => item}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.container}
@@ -358,6 +347,10 @@ const BookingSection = ({ route }) => {
             <View style={styles.courtDetails}>
               <Text style={styles.courtTitle}>{court ? court.field : 'Loading...'}</Text>
               <Text style={styles.courtSubtitle}>{court ? court.address : 'Loading...'}</Text>
+              <Text style={[styles.fieldName, { textAlign: 'center' }]}>สนามบาสหนองงูเห่า</Text>
+              <Text style={[styles.fieldText, { textAlign: 'center' }]}>Player : 6-15 people/court</Text>
+              <Text style={[styles.fieldText, { textAlign: 'center' }]}>Time : 8:00 - 14:00</Text>
+              <Text style={[styles.fieldText, { textAlign: 'center' }]}>Price : 1 Hour/ 500 Bath</Text>
             </View>
           </View>
 
@@ -593,14 +586,18 @@ const styles = StyleSheet.create({
   },
   userBookingsContainer: {
     marginVertical: 10,
-    padding: 10,
-    backgroundColor: '#E0F7FA',
-    borderRadius: 5,
+    padding: 15,
+    backgroundColor: '#C8E6C9', // พื้นหลังสีเขียวเข้ม
+    marginHorizontal: 15,
+    borderWidth: 1,
+    borderColor: '#FFFFFF', // เส้นกรอบสีขาว
+    borderRadius: 10, 
   },
   userBookingsTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 5,
+    marginBottom: 10,
+    color: '#388E3C', // สีข้อความสีเขียวเข้ม
   },
   userBookingText: {
     fontSize: 14,
@@ -609,12 +606,22 @@ const styles = StyleSheet.create({
   userBookingDate: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#333',
+    color: '0000000', // สีข้อความ1
     marginBottom: 2,
   },
   userBookingTime: {
     fontSize: 14,
-    color: '#00796B',
+    color: '#388E3C', // สีข้อความ2
+  },
+  userBookedSlotItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#388E3C', // สีขอบสีเขียวเข้ม
   },
 });
 

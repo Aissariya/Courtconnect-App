@@ -99,7 +99,8 @@ export default function Detail({ route, navigation }) {
           })}
           style={styles.calendarButton}
         >
-          <Text>Calendar</Text>
+          <MaterialCommunityIcons name='calendar' size={20} color='#000' />
+          <Text style={{ fontWeight: 'bold' }}>Calendar</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.bookingButton}
