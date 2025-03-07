@@ -7,7 +7,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { AntDesign } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import PropTypes from 'prop-types';
-import { collection, addDoc, getFirestore } from 'firebase/firestore';
+import { collection, addDoc, getFirestore, doc, getDoc } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
 
 const App = ({ navigation, route }) => {
@@ -27,6 +27,29 @@ const App = ({ navigation, route }) => {
   const [numPeople, setNumPeople] = useState("1"); // เปลี่ยนเป็น string
   const [showImageModal, setShowImageModal] = useState(false);
   const { getAuth } = require('firebase/auth'); // เพิ่ม import getAuth
+  const [userData, setUserData] = useState(null);
+
+  // เพิ่ม useEffect เพื่อดึงข้อมูล user
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const auth = getAuth();
+        const currentUser = auth.currentUser;
+        
+        if (currentUser) {
+          const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+          if (userDoc.exists()) {
+            setUserData(userDoc.data());
+            console.log("Fetched user data:", userDoc.data());
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   const handleConfirm = () => {
     if (validateBooking()) {
@@ -38,12 +61,11 @@ const App = ({ navigation, route }) => {
     try {
       setIsLoading(true);
 
-      // Get current user
       const auth = getAuth();
       const currentUser = auth.currentUser;
       
-      if (!currentUser) {
-        throw new Error('No user logged in');
+      if (!currentUser || !userData) {
+        throw new Error('No user data available');
       }
 
       // Generate booking ID
@@ -85,7 +107,7 @@ const App = ({ navigation, route }) => {
         end_time: endTime,
         start_time: startTime,
         status: "pending",
-        user_id: currentUser.uid,
+        user_id: userData.user_id, // ใช้ user_id จาก userData
         people: parseInt(numPeople) // เพิ่มจำนวนคน
       };
 

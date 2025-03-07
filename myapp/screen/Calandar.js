@@ -4,6 +4,8 @@ import { AntDesign } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
+import { getAuth } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 
 const BookingSection = ({ route }) => {
   const { court } = route.params || {};
@@ -35,6 +37,7 @@ const BookingSection = ({ route }) => {
   const [show, setShow] = useState(false);
   const [bookedSlots, setBookedSlots] = useState([]);
   const [userBookings, setUserBookings] = useState([]);
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   // Fetch booked slots from Firebase
   useEffect(() => {
@@ -95,6 +98,30 @@ const BookingSection = ({ route }) => {
     fetchUserBookings();
   }, []);
 
+  // เพิ่ม useEffect สำหรับดึง user_id
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const auth = getAuth();
+        if (!auth.currentUser) {
+          console.log('No authenticated user found');
+          return;
+        }
+
+        const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setCurrentUserId(userData.user_id);
+          console.log('Current user_id:', userData.user_id);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
+
   // แก้ไข isBooked function เพื่อเพิ่ม console.log
   const isBooked = (timeSlot) => {
     if (!date || !bookedSlots.length) {
@@ -131,10 +158,53 @@ const BookingSection = ({ route }) => {
     });
   };
 
-  const onChange = (event, selectedDate) => {
-    const currentDate = selectedDate || date;
+  // แก้ไข onChange function เพื่อตรวจสอบการจองเมื่อเลือกวันที่
+  const onChange = async (event, selectedDate) => {
+    if (selectedDate) {
+      setDate(selectedDate);
+      fetchBookingsForDate(selectedDate);
+    }
     setShow(false);
-    setDate(currentDate);
+  };
+
+  // เพิ่มฟังก์ชันใหม่สำหรับดึงข้อมูลการจองตามวันที่
+  const fetchBookingsForDate = async (selectedDate) => {
+    if (!court?.court_id) return;
+
+    try {
+      console.log('Fetching bookings for date:', selectedDate);
+      const bookingsRef = collection(db, 'Booking');
+      const q = query(bookingsRef, where('court_id', '==', court.court_id));
+      const querySnapshot = await getDocs(q);
+      
+      // กรองข้อมูลตามวันที่
+      const todayBookings = [];
+      querySnapshot.forEach((doc) => {
+        const booking = doc.data();
+        // ดึงวันที่จาก start_time
+        const bookingDateStr = booking.start_time.split(' at')[0];
+        const selectedDateStr = selectedDate.toLocaleDateString('en-US', {
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric'
+        });
+
+        console.log('Comparing dates:', {
+          bookingDate: bookingDateStr,
+          selectedDate: selectedDateStr,
+          booking
+        });
+
+        if (bookingDateStr === selectedDateStr) {
+          todayBookings.push(booking);
+        }
+      });
+
+      console.log('Found bookings:', todayBookings);
+      setBookedSlots(todayBookings);
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+    }
   };
 
   const showDatepicker = () => {
@@ -323,6 +393,162 @@ const BookingSection = ({ route }) => {
       </View>
     </View>
   );
+
+  // แก้ไขฟังก์ชัน parseBookingTime เพื่อแปลงรูปแบบเวลาให้ถูกต้อง
+  const parseBookingTime = (timeStr) => {
+    try {
+      // แยกส่วนวันที่และเวลา
+      const [datePart, timePart] = timeStr.split(' at ');
+      const [time, period] = timePart.split(' UTC')[0].split(' ');
+      let [hours, minutes] = time.split(':').map(num => parseInt(num));
+
+      // แปลง 12-hour เป็น 24-hour format
+      if (period === 'PM' && hours !== 12) hours += 12;
+      if (period === 'AM' && hours === 12) hours = 0;
+
+      return { hours, minutes };
+    } catch (error) {
+      console.error('Error parsing booking time:', error);
+      return null;
+    }
+  };
+
+  // แก้ไขฟังก์ชัน checkTimeSlotAvailability
+  const checkTimeSlotAvailability = (hour) => {
+    if (!bookedSlots.length) return { isBooked: false };
+
+    // เช็คการจองแต่ละรายการ
+    for (const booking of bookedSlots) {
+      try {
+        // แยกเวลาออกจาก start_time และ end_time
+        const startTimePart = booking.start_time.split(' at ')[1];
+        const endTimePart = booking.end_time.split(' at ')[1];
+        
+        // แปลงเวลาเป็นชั่วโมง
+        const startHour = parseInt(startTimePart.split(':')[0]);
+        const endHour = parseInt(endTimePart.split(':')[0]);
+        
+        // ปรับค่าชั่วโมงตาม AM/PM
+        const adjustedStartHour = startTimePart.includes('PM') && startHour !== 12 
+          ? startHour + 12 
+          : startHour;
+        const adjustedEndHour = endTimePart.includes('PM') && endHour !== 12 
+          ? endHour + 12 
+          : endHour;
+
+        console.log('Checking time slot:', {
+          slotHour: hour,
+          startHour: adjustedStartHour,
+          endHour: adjustedEndHour,
+          booking: booking
+        });
+
+        if (hour >= adjustedStartHour && hour < adjustedEndHour) {
+          return {
+            isBooked: true,
+            isUserBooking: booking.user_id === currentUserId,
+            booking: booking,
+            timeRange: `${startTimePart.split(' UTC')[0]} - ${endTimePart.split(' UTC')[0]}`
+          };
+        }
+      } catch (error) {
+        console.error('Error checking time slot:', error);
+      }
+    }
+
+    return { isBooked: false };
+  };
+
+  // แก้ไข renderTimeSlots function เพื่อแสดงสถานะการจอง
+  const renderTimeSlots = () => {
+    if (!date) return null;
+
+    const timeSlots = Array.from({ length: 24 }, (_, i) => ({
+      hour: i,
+      display: `${String(i).padStart(2, '0')}:00`
+    }));
+
+    return (
+      <View style={styles.timeSlotsContainer}>
+        <Text style={styles.dateHeader}>
+          {date.toLocaleDateString('th-TH', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })}
+        </Text>
+
+        {bookedSlots.length > 0 && (
+          <Text style={styles.bookingsSummary}>
+            การจองวันนี้: {bookedSlots.length} รายการ
+          </Text>
+        )}
+
+        {timeSlots.map(({ hour, display }) => {
+          const { isBooked, isUserBooking, timeRange } = checkTimeSlotAvailability(hour);
+          
+          return (
+            <View key={hour} style={styles.timeSlotRow}>
+              <Text style={styles.timeDisplay}>{display}</Text>
+              <View style={[
+                styles.statusIndicator,
+                isBooked ? 
+                  (isUserBooking ? styles.userBookedSlot : styles.bookedSlot) 
+                  : styles.availableSlot
+              ]}>
+                <Text style={styles.statusText}>
+                  {isBooked ? 
+                    (isUserBooking ? 'การจองของคุณ' : 'ไม่ว่าง') 
+                    : 'ว่าง'}
+                </Text>
+                {timeRange && <Text style={styles.timeRangeText}>{timeRange}</Text>}
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
+
+  // เพิ่ม styles ใหม่
+  const newStyles = StyleSheet.create({
+    userBookedSlot: {
+      backgroundColor: '#C8E6C9',
+      borderColor: '#81C784',
+    },
+    bookedSlot: {
+      backgroundColor: '#FFEBEE',
+      borderColor: '#FFCDD2',
+    },
+    availableSlot: {
+      backgroundColor: '#E8F5E9',
+      borderColor: '#A5D6A7',
+    },
+    bookingTimeRange: {
+      fontSize: 11,
+      color: '#666',
+      marginTop: 4,
+    }
+  });
+
+  const additionalStyles = StyleSheet.create({
+    bookingsSummary: {
+      fontSize: 14,
+      color: '#666',
+      textAlign: 'center',
+      marginBottom: 10,
+      backgroundColor: '#f5f5f5',
+      padding: 8,
+      borderRadius: 5,
+    },
+    timeRangeText: {
+      fontSize: 12,
+      color: '#666',
+      marginTop: 2
+    },
+    // ...existing styles...
+  });
 
   return (
     <FlatList
