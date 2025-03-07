@@ -66,7 +66,7 @@ const MyWallet = () => {
           <Text style={styles.balanceText}>{walletAmount} THB</Text>
         </View>
 
-        {/* Action Buttons */}
+        
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={styles.button}
