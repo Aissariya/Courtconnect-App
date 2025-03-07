@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 import { auth, db } from '../FirebaseConfig';
 import { Wallet } from 'lucide-react-native';
 
@@ -70,17 +70,41 @@ const SignUp = ({ navigation }) => {
     return Object.keys(newErrors).every(key => !newErrors[key]); // คืนค่า true ถ้าไม่มี error
   };
 
+  const generateNextUserId = async () => {
+    try {
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, orderBy("user_id", "desc"), limit(1));
+      const querySnapshot = await getDocs(q);
+  
+      let nextId = "USR0001"; // Default first ID
+  
+      if (!querySnapshot.empty) {
+        const latestUser = querySnapshot.docs[0].data();
+        const latestId = latestUser.user_id;
+        const num = parseInt(latestId.substring(3)) + 1;
+        nextId = `USR${num.toString().padStart(4, '0')}`;
+      }
+  
+      return nextId;
+    } catch (error) {
+      console.error("Error generating user ID:", error);
+      throw error;
+    }
+  };
+
   const handleSignup = async () => {
     if (!validateInputs()) {
       return;
     }
 
     try {
+      const nextUserId = await generateNextUserId();
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
       await setDoc(doc(db, "users", user.uid), {
-        email:email,
+        user_id: nextUserId,
+        email: email,
         name: name,
         surname: surname,
         isCustomer: isCustomer,
