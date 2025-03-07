@@ -7,7 +7,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { AntDesign } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import PropTypes from 'prop-types';
-import { collection, addDoc, getFirestore, doc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, getFirestore, doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
 
 const App = ({ navigation, route }) => {
@@ -68,7 +68,7 @@ const App = ({ navigation, route }) => {
         throw new Error('No user data available');
       }
 
-      // Generate booking ID
+      // สร้าง booking_id
       const booking_id = `BK${Date.now()}`;
 
       // Create start time date object
@@ -100,28 +100,34 @@ const App = ({ navigation, route }) => {
         timeZone: 'Asia/Bangkok'
       }) + ' UTC+7';
 
-      // Create booking data with people count and user_id
-      const bookingData = {
-        booking_id: booking_id,
+      // เพิ่มข้อมูลลงใน Booking collection เท่านั้น
+      const bookingRef = collection(db, 'Booking');
+      await addDoc(bookingRef, {
+        booking_id,
         court_id: court.court_id,
         end_time: endTime,
         start_time: startTime,
         status: "pending",
-        user_id: userData.user_id, // ใช้ user_id จาก userData
-        people: parseInt(numPeople) // เพิ่มจำนวนคน
-      };
+        user_id: userData.user_id,
+        people: parseInt(numPeople)
+      });
 
-      // Add to Firestore Booking collection
-      const bookingRef = collection(db, 'Booking');
-      await addDoc(bookingRef, bookingData);
+      // เพิ่ม court_id และเวลาที่จองลงใน users collection
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, {
+        booked_courts: arrayUnion({
+          court_id: court.court_id,
+          booked_at: new Date().toISOString(),
+          booking_time: {
+            start: startTime,
+            end: endTime
+          }
+        })
+      });
 
-      // Close confirm modal first
       setShowConfirmModal(false);
-      
-      // Show success animation
       setShowSuccess(true);
 
-      // Wait for 2 seconds before navigating
       setTimeout(() => {
         setShowSuccess(false);
         navigation.navigate('MainTab');
