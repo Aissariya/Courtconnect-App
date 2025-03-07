@@ -1,5 +1,5 @@
-import React, { useState, useContext, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from "react-native";
+import React, { useState, useContext, useEffect, useCallback } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Animated, ScrollView, RefreshControl } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthContext } from "../context/AuthContext";
 import { getAuth } from "firebase/auth";
@@ -10,32 +10,38 @@ export default function Account({ navigation }) {
   const { logout } = useContext(AuthContext);
   const [fadeAnim] = useState(new Animated.Value(1));
   const [walletAmount, setWalletAmount] = useState("0.00");
+  const [refreshing, setRefreshing] = useState(false);
 
   const auth = getAuth();
   const userAuth = auth.currentUser;
 
+  const fetchWalletAmount = async () => {
+    if (!userAuth) {
+      console.error("No user is logged in");
+      return;
+    }
+
+    try {
+      const userDoc = await getDoc(doc(db, "users", userAuth.uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        setWalletAmount(userData.wallet ? userData.wallet.toFixed(2) : "0.00");
+      } else {
+        console.error("User data not found in Firestore");
+      }
+    } catch (error) {
+      console.error("Error fetching wallet amount:", error);
+    }
+  };
+
   useEffect(() => {
-    const fetchWalletAmount = async () => {
-      if (!userAuth) {
-        console.error("No user is logged in");
-        return;
-      }
-
-      try {
-        const userDoc = await getDoc(doc(db, "users", userAuth.uid));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setWalletAmount(userData.wallet ? userData.wallet.toFixed(2) : "0.00");
-        } else {
-          console.error("User data not found in Firestore");
-        }
-      } catch (error) {
-        console.error("Error fetching wallet amount:", error);
-      }
-    };
-
     fetchWalletAmount();
   }, [userAuth]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchWalletAmount().then(() => setRefreshing(false));
+  }, []);
 
   const handlePressIn = () => {
     Animated.timing(fadeAnim, {
@@ -54,34 +60,41 @@ export default function Account({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.sectionContainer}>
-        <Section title="My Account">
-          <Card title="Account" icon="document-text-outline" onPress={() => navigation.navigate("MyAccount")} />
-        </Section>
+    <ScrollView
+      contentContainerStyle={styles.scrollContainer}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      <View style={styles.container}>
+        <View style={styles.sectionContainer}>
+          <Section title="My Account">
+            <Card title="Account" icon="document-text-outline" onPress={() => navigation.navigate("MyAccount")} />
+          </Section>
 
-        <Section title="My Booking">
-          <Card title="My Booking" icon="checkmark-circle-outline" onPress={() => navigation.navigate("MyBook")} />
-          <Card title="Booking History" icon="clipboard-outline" onPress={() => navigation.navigate("BookingHistory")} />
-        </Section>
+          <Section title="My Booking">
+            <Card title="My Booking" icon="checkmark-circle-outline" onPress={() => navigation.navigate("MyBook")} />
+            <Card title="Booking History" icon="clipboard-outline" onPress={() => navigation.navigate("BookingHistory")} />
+          </Section>
 
-        <Section title="My Wallet">
-          <Card title="My Wallet" icon="wallet-outline" subText={`${walletAmount} THB`} onPress={() => navigation.navigate("MyWallet")} />
-        </Section>
+          <Section title="My Wallet">
+            <Card title="My Wallet" icon="wallet-outline" subText={`${walletAmount} THB`} onPress={() => navigation.navigate("MyWallet")} />
+          </Section>
+        </View>
+
+        {/* Logout Button */}
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            onPress={() => logout()}
+          >
+            <Text style={styles.logoutText}>Log Out</Text>
+          </TouchableOpacity>
+        </Animated.View>
       </View>
-
-      {/* Logout Button */}
-      <Animated.View style={{ opacity: fadeAnim }}>
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-          onPress={() => logout()}
-        >
-          <Text style={styles.logoutText}>Log Out</Text>
-        </TouchableOpacity>
-      </Animated.View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -114,6 +127,9 @@ const Card = ({ title, icon, subText, onPress }) => {
 };
 
 const styles = StyleSheet.create({
+  scrollContainer: {
+    flexGrow: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: "#F3F3F3",

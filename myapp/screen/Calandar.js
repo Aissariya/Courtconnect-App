@@ -9,7 +9,7 @@ import { doc, getDoc } from 'firebase/firestore';
 
 const BookingSection = ({ route }) => {
   const { court } = route.params || {};
-  const [date, setDate] = useState(new Date()); // เปลี่ยนจาก null เป็น new Date()
+  const [date, setDate] = useState(null); // เปลี่ยนจาก new Date() เป็น null
   
   // เพิ่ม console.log เพื่อตรวจสอบข้อมูลที่เข้ามา
   useEffect(() => {
@@ -161,7 +161,10 @@ const BookingSection = ({ route }) => {
 
   // แก้ไข onChange function เพื่อตรวจสอบการจองเมื่อเลือกวันที่
   const onChange = async (event, selectedDate) => {
-    if (selectedDate) {
+    if (event.type === "dismissed") {
+      setDate(null); // Reset date
+      setBookedSlots([]); // Clear booked slots
+    } else if (selectedDate) {
       setDate(selectedDate);
       fetchBookingsForDate(selectedDate);
     }
@@ -213,7 +216,7 @@ const BookingSection = ({ route }) => {
   };
 
   const renderBookedSlots = () => {
-    if (!bookedSlots.length) return null;
+    if (!date || !bookedSlots.length) return null; // เพิ่มการตรวจสอบ date
 
     const parseDateTime = (dateTimeStr) => {
       try {
@@ -405,7 +408,7 @@ const BookingSection = ({ route }) => {
 
       // แปลง 12-hour เป็น 24-hour format
       if (period === 'PM' && hours !== 12) hours += 12;
-      if (period === 'AM' && hours === 12) hours = 0;
+      if (period === 'AM' && hours === 12) hour = 0;
 
       return { hours, minutes };
     } catch (error) {
