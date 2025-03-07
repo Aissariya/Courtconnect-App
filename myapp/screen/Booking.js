@@ -71,6 +71,9 @@ const App = ({ navigation, route }) => {
       // สร้าง booking_id
       const booking_id = `BK${Date.now()}`;
 
+      // เก็บราคาที่คำนวณ
+      const calculatedPrice = totalPrice;
+
       // Create start time date object
       const startDate = new Date(date);
       startDate.setHours(parseInt(hourStart), parseInt(minuteStart));
@@ -107,9 +110,10 @@ const App = ({ navigation, route }) => {
         court_id: court.court_id,
         end_time: endTime,
         start_time: startTime,
-        status: "pending",
+        status: "booked", // เปลี่ยนจาก pending เป็น booked
         user_id: userData.user_id,
-        people: parseInt(numPeople)
+        people: parseInt(numPeople),
+        price: calculatedPrice // เพิ่มราคาที่คำนวณ
       });
 
       // เพิ่ม court_id และเวลาที่จองลงใน users collection
@@ -121,7 +125,9 @@ const App = ({ navigation, route }) => {
           booking_time: {
             start: startTime,
             end: endTime
-          }
+          },
+          status: "booked", // เพิ่ม status เป็น booked
+          price: calculatedPrice // เพิ่มราคาที่คำนวณ
         })
       });
 

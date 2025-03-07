@@ -51,6 +51,18 @@ export default function AlreadyBooked({ navigation, route }) {
     setShowReviewModal(true);
   };
 
+  const calculatePrice = (startTime, endTime) => {
+    try {
+      const start = new Date(startTime);
+      const end = new Date(endTime);
+      const diffHours = Math.ceil((end - start) / (1000 * 60 * 60));
+      return diffHours * 500;
+    } catch (error) {
+      console.error('Error calculating price:', error);
+      return 0;
+    }
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView style={styles.detailsContainer}>
@@ -68,30 +80,32 @@ export default function AlreadyBooked({ navigation, route }) {
 
             <View style={styles.priceBox}>
               <Text style={styles.priceText}>
-                {booking.status === 'pending' ? 'รอการยืนยัน' : 'ยืนยันแล้ว'}
+                {booking.status === 'booked' ? 'Booked' : 'Confirmed'}
               </Text>
             </View>
 
             <Text style={styles.detailsText}>
-              ประเภทสนาม: {booking.courtDetails.type}{"\n"}
-              วันที่จอง: {formatDateTime(booking.start_time).date}{"\n"}
-              เวลา: {formatDateTime(booking.start_time).time} - {formatDateTime(booking.end_time).time}{"\n"}
-              จำนวนคน: {booking.people} คน{"\n"}
-              สถานที่: {booking.courtDetails.address}{"\n"}
-              สิ่งอำนวยความสะดวก: ห้องล็อคเกอร์, ห้องอาบน้ำ{"\n"}
-              เวลาทำการ: เปิดทุกวัน 8:00 - 22:00{"\n"}
+              Court Type: {booking.courtDetails.type}{"\n"}
+              Booking Date: {formatDateTime(booking.start_time).date}{"\n"}
+              Time: {formatDateTime(booking.start_time).time} - {formatDateTime(booking.end_time).time}{"\n"}
+              Number of People: {booking.people} people{"\n"}
+              Location: {booking.courtDetails.address}{"\n"}
+              Facilities: Locker Room, Shower Room{"\n"}
+              Operating Hours: Open Daily 8:00 - 22:00{"\n"}
+              Total Price: {calculatePrice(booking.start_time, booking.end_time)} THB{"\n"}
             </Text>
 
             <View style={styles.scoreBar}>
               <Text style={styles.scoreText}>Score ★★★★★ (5.0)</Text>
               <TouchableOpacity onPress={() => navigation.navigate('CommentScreen')}>
-                <Text style={styles.scoreText2}>showmore</Text>
+                <Text style={styles.scoreText2}>Show more</Text>
               </TouchableOpacity>
             </View>
+
             <View style={styles.reviewContainer}>
               <View style={styles.reviewBox}>
                 <Text style={styles.reviewerName}>John Doe</Text>
-                <Text style={styles.reviewText}>สนามบาสดีมาก บรรยากาศเยี่ยม และการดูแลรักษาสนามดีเยี่ยม</Text>
+                <Text style={styles.reviewText}>Great basketball court with excellent atmosphere and well-maintained facilities.</Text>
                 <View style={styles.starContainer}>
                   {[...Array(5)].map((_, index) => (
                     <Text key={index} style={styles.star}>★</Text>
@@ -101,7 +115,7 @@ export default function AlreadyBooked({ navigation, route }) {
 
               <View style={styles.reviewBox}>
                 <Text style={styles.reviewerName}>Jane Smith</Text>
-                <Text style={styles.reviewText}>สนามบาสสะอาดและมีอุปกรณ์ครบครัน สะดวกสบายมากๆ</Text>
+                <Text style={styles.reviewText}>Clean court with complete equipment. Very convenient.</Text>
                 <View style={styles.starContainer}>
                   {[...Array(4)].map((_, index) => (
                     <Text key={index} style={styles.star}>★</Text>
@@ -156,17 +170,15 @@ export default function AlreadyBooked({ navigation, route }) {
             <Text style={styles.calanderText}>Calendar</Text>
           </TouchableOpacity>
 
-          {booking.status === 'pending' && (
-            <TouchableOpacity
-              style={styles.bookingButton}
-              onPress={() => setShowReason(true)}
-              activeOpacity={1}
-            >
-              <View style={styles.CancelView}>
-                <Text style={styles.CancelText}>Cancel Booking</Text>
-              </View>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.bookingButton}
+            onPress={() => setShowReason(true)}
+            activeOpacity={1}
+          >
+            <View style={styles.CancelView}>
+              <Text style={styles.CancelText}>Cancel Booking</Text>
+            </View>
+          </TouchableOpacity>
         </View>
       )}
 
