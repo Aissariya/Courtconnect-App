@@ -26,6 +26,7 @@ const App = ({ navigation, route }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [numPeople, setNumPeople] = useState("1"); // เปลี่ยนเป็น string
   const [showImageModal, setShowImageModal] = useState(false);
+  const { getAuth } = require('firebase/auth'); // เพิ่ม import getAuth
 
   const handleConfirm = () => {
     if (validateBooking()) {
@@ -36,6 +37,14 @@ const App = ({ navigation, route }) => {
   const handleFinalConfirm = async () => {
     try {
       setIsLoading(true);
+
+      // Get current user
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+      
+      if (!currentUser) {
+        throw new Error('No user logged in');
+      }
 
       // Generate booking ID
       const booking_id = `BK${Date.now()}`;
@@ -69,14 +78,15 @@ const App = ({ navigation, route }) => {
         timeZone: 'Asia/Bangkok'
       }) + ' UTC+7';
 
-      // Create booking data
+      // Create booking data with people count and user_id
       const bookingData = {
         booking_id: booking_id,
         court_id: court.court_id,
         end_time: endTime,
         start_time: startTime,
         status: "pending",
-        user_id: 'currentUserId' // Replace 'currentUserId' with actual user ID
+        user_id: currentUser.uid,
+        people: parseInt(numPeople) // เพิ่มจำนวนคน
       };
 
       // Add to Firestore Booking collection
