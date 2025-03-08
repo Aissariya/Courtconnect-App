@@ -1,13 +1,26 @@
-import React from 'react';
+import React, { useState, useEffect } from "react";
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import Database from '../Model/database';
+import DataComment from '../Model/database_c';
+import DataUser from '../Model/database_u';
+import { getAuth } from "firebase/auth";
+import { getFirestore, collection, addDoc, serverTimestamp, updateDoc, doc } from "firebase/firestore";
+import { AverageRating } from "../context/AverageRating";
+
 
 export default function Detail({ route, navigation }) {
+  const auth = getAuth();
+  const db = getFirestore();
   const courts = Database();
-
   const { court_id } = route.params || {};
+  const comments = DataComment(court_id);
+  const userNames = DataUser(comments);
+  const [text, setText] = useState("");
+  const [rating, setRating] = useState(0);
+
   console.log('court_id:', court_id);
+
 
   const item = courts.find(item => item.court_id === court_id);
   if (!item) {
@@ -17,7 +30,47 @@ export default function Detail({ route, navigation }) {
       </View>
     );
   }
-  console.log('item:', item);
+
+  const averageRating = AverageRating(comments);
+
+  const handleRating = (value) => {
+    setRating(value);
+  };
+
+  const handleSubmit = async () => {
+    if (!text.trim()) {
+      alert("Please enter a comment.");
+      return;
+    }
+
+    const userId = auth.currentUser ? auth.currentUser.uid : null;
+    if (userId) {
+      try {
+        const newComment = {
+          user_id: userId,
+          court_id: court_id,
+          rating: rating,
+          text: text,
+          timestamp: serverTimestamp(),
+        };
+
+        const commentRef = await addDoc(collection(db, "Comment"), newComment);
+
+        await updateDoc(doc(db, "Comment", commentRef.id), {
+          comment_id: commentRef.id,
+        });
+
+        alert("Comment submitted successfully!");
+        setText("");
+        setRating(0);
+      } catch (error) {
+        console.error("Error adding comment: ", error);
+        alert("Failed to submit comment.");
+      }
+    } else {
+      alert("User not authenticated.");
+    }
+  };
 
   const titlename = item ? item.field : "test";
   const mainImage = item ? { uri: item.image[0] } : require('../assets/pingpong.jpg');
@@ -38,7 +91,17 @@ export default function Detail({ route, navigation }) {
             ))}
           </View>
         </ScrollView>
-        <Text style={styles.detailsTitle}>{titlename} ★★★★★ (5.0)</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Text style={styles.detailsTitle}>{titlename}</Text>
+          <View style={{ flexDirection: 'row', marginLeft: 5, marginRight: 5 }}>
+            {[...Array(Math.round(averageRating))].map((_, index) => (
+              <Text key={index} style={styles.star1}>★</Text>
+            ))}
+          </View>
+          <Text style={styles.detailsTitle}>({averageRating})</Text>
+
+
+        </View>
         <View style={styles.priceBox}>
           <Text style={styles.priceText}>Price {price} per hour</Text>
         </View>
@@ -52,33 +115,89 @@ export default function Detail({ route, navigation }) {
           - Use of the field must be careful to ensure the safety of all players.{"\n"}
           Payment: Can pay through various channels
         </Text>
+
         <View style={styles.scoreBar}>
-          <Text style={styles.scoreText}>Score ★★★★★ (5.0)</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('CommentScreen')}>
+          <View style={{ flexDirection: 'row' }}>
+            <Text style={styles.scoreText}>
+              Score
+            </Text>
+            <Text style={styles.scoreIcon}>
+              {[...Array(Math.round(averageRating))].map((_, index) => (
+                <Text key={index} style={styles.star}>★</Text>
+              ))}
+            </Text>
+            <Text style={styles.averageRatingText}>({averageRating})</Text>
+          </View>
+          <TouchableOpacity onPress={() => navigation.navigate('CommentScreen', { court_id })}>
             <Text style={styles.scoreText2}>showmore</Text>
           </TouchableOpacity>
         </View>
-        <View style={styles.reviewContainer}>
-          <View style={styles.reviewBox}>
-            <Text style={styles.reviewerName}>John Doe</Text>
-            <Text style={styles.reviewText}>สนามบาสดีมาก บรรยากาศเยี่ยม และการดูแลรักษาสนามดีเยี่ยม</Text>
-            <View style={styles.starContainer}>
-              {[...Array(5)].map((_, index) => (
-                <Text key={index} style={styles.star}>★</Text>
-              ))}
-            </View>
+        <TextInput
+          placeholder="Comment..."
+          placeholderTextColor="black"
+          multiline={true}
+          maxLength={150}
+          value={text}
+          onChangeText={setText}
+          style={styles.input}
+        />
+        <View style={styles.ratingContainer}>
+          {/* Rating and Stars */}
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {[1, 2, 3, 4, 5].map((star) => (
+              <TouchableOpacity key={star} onPress={() => handleRating(star)}>
+                <MaterialCommunityIcons
+                  name={star <= rating ? 'star' : 'star-outline'}
+                  size={20}
+                  color="#FFFFF"
+                  style={{ marginTop: 5 }}
+                />
+              </TouchableOpacity>
+            ))}
+            <Text style={styles.rating}>Rating: {rating} / 5</Text>
+
           </View>
-          <View style={styles.reviewBox}>
-            <Text style={styles.reviewerName}>Jane Smith</Text>
-            <Text style={styles.reviewText}>สนามบาสสะอาดและมีอุปกรณ์ครบครัน สะดวกสบายมากๆ</Text>
-            <View style={styles.starContainer}>
-              {[...Array(4)].map((_, index) => (
-                <Text key={index} style={styles.star}>★</Text>
-              ))}
-            </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+            <Text style={styles.counter}>{text.length} / 150</Text>
+            <TouchableOpacity style={styles.submit} onPress={handleSubmit}>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: 'white' }}>
+                Submit
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
+        <View>
+          {comments.length > 0 ? (
+            comments.slice(0, 3).map((comment) => (
+              <View key={comment.id} style={styles.reviewBox}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={styles.reviewerName}>{userNames[comment.id] || "Loading..."}</Text>
+                  <View style={styles.starContainer}>
+                    {[...Array(comment.rating)].map((_, index) => (
+                      <Text key={index} style={styles.star}>★</Text>
+                    ))}
+                  </View>
+                  <Text style={styles.rateText}>({comment.rating}.0) </Text>
+                </View>
+                <Text style={styles.dateText}>
+                  {comment.timestamp ? new Date(comment.timestamp.seconds * 1000).toLocaleString('en-GB', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  }) : "No date"}
+                </Text>
+                <Text style={styles.reviewText}>{comment.text} </Text>
+                <View style={styles.separator} />
+              </View>
+            ))
+          ) : (
+            <View style={styles.box} />
+          )}
+        </View>
       </ScrollView>
+
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={styles.calanderButton}
@@ -124,6 +243,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 0,
   },
+  separator: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    marginTop: 10,
+  },
+  averageRatingText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+    paddingTop: 4,
+    paddingLeft: 10,
+  },
   loadcontainer: {
     backgroundColor: 'white',
     flex: 1,
@@ -132,10 +263,10 @@ const styles = StyleSheet.create({
   },
   mainImage: {
     width: '100%',
-    height: 250,  // ความสูงของรูป
+    height: 250,
     marginTop: 0,
-    marginLeft: 0, // ขอบซ้ายชิดขอบจอ
-    marginRight: 0, // ขอบขวาชิดขอบจอ
+    marginLeft: 0,
+    marginRight: 0,
   },
   smallImagesContainer: {
     flexDirection: 'row',
@@ -152,7 +283,7 @@ const styles = StyleSheet.create({
   detailsContainer: {
     width: '100%',
     paddingHorizontal: 10,
-    paddingTop: 10,  // เพิ่มช่องว่างเล็กน้อยหลังจาก ScrollView เริ่มต้น
+    paddingTop: 10,
     marginBottom: 70,
   },
   detailsTitle: {
@@ -160,7 +291,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'left',
-    width: '100%',
   },
   priceBox: {
     marginTop: 10,
@@ -170,7 +300,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    alignSelf: 'flex-start', // ชิดซ้าย
+    alignSelf: 'flex-start',
   },
   priceText: {
     color: '#A2F193',
@@ -197,6 +327,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     paddingLeft: 10, // เพิ่มช่องว่างซ้ายให้ชิดซ้าย
   },
+  scoreIcon: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+    paddingLeft: 5, // เพิ่มช่องว่างซ้ายให้ชิดซ้าย
+  },
   scoreText2: {
     color: 'white',
     fontSize: 14,
@@ -210,8 +346,7 @@ const styles = StyleSheet.create({
   },
   reviewBox: {
     backgroundColor: 'white',
-    padding: 15,
-    marginBottom: 15,
+    padding: 10,
     borderRadius: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -221,20 +356,35 @@ const styles = StyleSheet.create({
   reviewerName: {
     fontSize: 16,
     fontWeight: 'bold',
+    marginRight: 5
   },
   reviewText: {
     fontSize: 14,
     color: '#333',
     marginVertical: 5,
   },
+  rateText: {
+    fontSize: 14,
+    color: '#333',
+    marginLeft: 3,
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#333',
+  },
   starContainer: {
+    marginTop: -3,
     flexDirection: 'row',
-    alignItems: 'center',
   },
   star: {
-    color: '#FFD700', // สีดาวเป็นทอง
+    color: '#00000', // สีดาวเป็นทอง
     fontSize: 18,
-    marginRight: 3,
+    // marginRight: 1,
+  },
+  star1: {
+    color: '#00000', // สีดาวเป็นทอง
+    fontSize: 18,
+    marginTop: 5,
   },
   buttonContainer: {
     position: 'absolute',
@@ -280,4 +430,42 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
+  input: {
+    marginTop: 10,
+    borderWidth: 2,
+    borderColor: "gray",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    backgroundColor: "#fff",
+    color: "black",
+    height: 100,
+    textAlignVertical: "top",
+  },
+  counter: {
+    color: 'gray',
+    marginTop: -20,
+  },
+  submit: {
+    backgroundColor: 'black',
+    padding: 10,
+    borderRadius: 5,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginLeft: 5,
+    marginTop: -20,
+    // marginBottom: 20,
+  },
+  ratingContainer: {
+    width: '100%',
+    flexDirection: 'column',
+  },
+  rating: {
+    color: "gray",
+    marginLeft: 5,
+    marginTop: 5,
+  },
+  box: {
+    marginBottom: 15,
+  }
 });

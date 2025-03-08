@@ -2,8 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, ImageBackground, TouchableOpacity, FlatList } from 'react-native';
 import { windowWidth } from '../utils/Dimensions';
 import Database from '../Model/database';
+import DataComment from '../Model/database_c';
+import DataUser from '../Model/database_u';
+import { AverageRating } from "../context/AverageRating";
 
-export default function Home({ navigation }) {
+export default function Home({ navigation, route }) {
   const courts = Database();
 
   const sections = [

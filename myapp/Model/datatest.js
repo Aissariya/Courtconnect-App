@@ -11,7 +11,7 @@ export const recommendedFields = [
 ];
 
 export const TypeSport = [
-  { court_type: 1, title: 'Football' },
+  { typeId: 1, title: 'Football' },
   { typeId: 2, title: 'Basketball' },
   { typeId: 3, title: 'Badminton' },
   { typeId: 4, title: 'Ping Pong' },

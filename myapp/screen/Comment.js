@@ -1,84 +1,81 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import Database from '../Model/database';
+import DataComment from '../Model/database_c';
+import DataUser from '../Model/database_u';
+import { AverageRating } from "../context/AverageRating";
 
-const CommentScreen = () => {
+const CommentScreen = ({ route }) => {
+    const courts = Database();
+    const { court_id } = route.params || {};
+    const comments = DataComment(court_id);
+    const userNames = DataUser(comments);
+
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (Object.keys(userNames).length > 0) {
+            setIsLoading(false);  // ถ้ามีข้อมูล userNames แล้ว ให้หยุดโหลด
+        }
+    }, [userNames]);
+
+    if (isLoading) {
+        return (
+            <View style={styles.loadcontainer}>
+                <Text>Loading...</Text>
+            </View>
+        );
+    }
+
+    const averageRating = AverageRating(comments);
+
     return (
         <View style={styles.container}>
             {/* ใช้ ScrollView เพื่อให้สามารถเลื่อนขึ้นลงได้ */}
             <ScrollView style={styles.detailsContainer}>
                 {/* แถบสีดำที่มีคำว่า Score และ 5 ดาว */}
                 <View style={styles.scoreBar}>
-                    <Text style={styles.scoreText}>Score ★★★★★</Text>
+                    <Text style={styles.scoreText}>
+                        Score
+                    </Text>
+                    <Text style={styles.scoreIcon}>
+                        {[...Array(Math.round(averageRating))].map((_, index) => (
+                            <Text key={index} style={styles.star}>★</Text>
+                        ))}
+                    </Text>
+                    <Text style={styles.averageRatingText}>({averageRating})</Text>
                 </View>
 
                 {/* รีวิวสนาม */}
-                <View style={styles.reviewContainer}>
-                    {/* รีวิว 1 */}
-                    <View style={styles.reviewBox}>
-                        <Text style={styles.reviewerName}>John Doe</Text>
-                        <Text style={styles.reviewText}>สนามบาสดีมาก บรรยากาศเยี่ยม และการดูแลรักษาสนามดีเยี่ยม</Text>
-                        <View style={styles.starContainer}>
-                            {[...Array(5)].map((_, index) => (
-                                <Text key={index} style={styles.star}>★</Text>
-                            ))}
-                        </View>
-                    </View>
-
-                    {/* รีวิว 2 */}
-                    <View style={styles.reviewBox}>
-                        <Text style={styles.reviewerName}>Jane Smith</Text>
-                        <Text style={styles.reviewText}>สนามบาสสะอาดและมีอุปกรณ์ครบครัน สะดวกสบายมากๆ</Text>
-                        <View style={styles.starContainer}>
-                            {[...Array(4)].map((_, index) => (
-                                <Text key={index} style={styles.star}>★</Text>
-                            ))}
-                        </View>
-                    </View>
-                </View><View style={styles.reviewContainer}>
-                    {/* รีวิว 1 */}
-                    <View style={styles.reviewBox}>
-                        <Text style={styles.reviewerName}>John Doe</Text>
-                        <Text style={styles.reviewText}>สนามบาสดีมาก บรรยากาศเยี่ยม และการดูแลรักษาสนามดีเยี่ยม</Text>
-                        <View style={styles.starContainer}>
-                            {[...Array(5)].map((_, index) => (
-                                <Text key={index} style={styles.star}>★</Text>
-                            ))}
-                        </View>
-                    </View>
-
-                    {/* รีวิว 2 */}
-                    <View style={styles.reviewBox}>
-                        <Text style={styles.reviewerName}>Jane Smith</Text>
-                        <Text style={styles.reviewText}>สนามบาสสะอาดและมีอุปกรณ์ครบครัน สะดวกสบายมากๆ</Text>
-                        <View style={styles.starContainer}>
-                            {[...Array(4)].map((_, index) => (
-                                <Text key={index} style={styles.star}>★</Text>
-                            ))}
-                        </View>
-                    </View>
-                </View>
-                <View style={styles.reviewContainer}>
-                    {/* รีวิว 1 */}
-                    <View style={styles.reviewBox}>
-                        <Text style={styles.reviewerName}>John Doe</Text>
-                        <Text style={styles.reviewText}>สนามบาสดีมาก บรรยากาศเยี่ยม และการดูแลรักษาสนามดีเยี่ยม</Text>
-                        <View style={styles.starContainer}>
-                            {[...Array(5)].map((_, index) => (
-                                <Text key={index} style={styles.star}>★</Text>
-                            ))}
-                        </View>
-                    </View>
-
-                    {/* รีวิว 2 */}
-                    <View style={styles.reviewBox}>
-                        <Text style={styles.reviewerName}>Jane Smith</Text>
-                        <Text style={styles.reviewText}>สนามบาสสะอาดและมีอุปกรณ์ครบครัน สะดวกสบายมากๆ</Text>
-                        <View style={styles.starContainer}>
-                            {[...Array(4)].map((_, index) => (
-                                <Text key={index} style={styles.star}>★</Text>
-                            ))}
-                        </View>
-                    </View>
+                <View>
+                    {comments.length > 0 ? (
+                        comments.map((comment) => (
+                            <View key={comment.id} style={styles.reviewBox}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <Text style={styles.reviewerName}>{userNames[comment.id] || "Loading..."}</Text>
+                                    <View style={styles.starContainer}>
+                                        {[...Array(comment.rating)].map((_, index) => (
+                                            <Text key={index} style={styles.star}>★</Text>
+                                        ))}
+                                    </View>
+                                    <Text style={styles.rateText}>({comment.rating}.0) </Text>
+                                </View>
+                                <Text style={styles.dateText}>
+                                    {comment.timestamp ? new Date(comment.timestamp.seconds * 1000).toLocaleString('en-GB', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                    }) : "No date"}
+                                </Text>
+                                <Text style={styles.reviewText}>{comment.text} </Text>
+                                <View style={styles.separator} />
+                            </View>
+                        ))
+                    ) : (
+                        <View style={styles.box} />
+                    )}
                 </View>
             </ScrollView>
 
@@ -91,10 +88,10 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         paddingTop: 0,
+        backgroundColor: 'white',
     },
     detailsContainer: {
         width: '100%',
-
     },
     detailsTitle: {
         marginTop: 10,
@@ -123,13 +120,18 @@ const styles = StyleSheet.create({
         fontSize: 14,
         textAlign: 'left',
     },
+    rating: {
+        color: "gray",
+        marginLeft: 5,
+        marginTop: 5,
+    },
     scoreBar: {
         flexDirection: 'row',
         backgroundColor: 'black',
         width: '100%', // ชิดขอบจอทั้งสองฝั่ง
         paddingVertical: 10,
         alignItems: 'flex-start', // ชิดซ้าย
-        justifyContent: 'space-between',
+
 
     },
     scoreText: {
@@ -137,6 +139,12 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
         paddingLeft: 10, // เพิ่มช่องว่างซ้ายให้ชิดซ้าย
+    },
+    scoreIcon: {
+        color: 'white',
+        fontSize: 18,
+        fontWeight: 'bold',
+        paddingLeft: 5, // เพิ่มช่องว่างซ้ายให้ชิดซ้าย
     },
     scoreText2: {
         color: 'white',
@@ -150,9 +158,8 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     reviewBox: {
-        backgroundColor: '#f4f4f4',
+        backgroundColor: 'white',
         padding: 15,
-        marginBottom: 15,
         borderRadius: 10,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -172,10 +179,28 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
+    rateText: {
+        fontSize: 14,
+        color: '#333',
+        marginLeft: 3,
+    },
+    dateText: {
+        fontSize: 12,
+        color: '#333',
+    },
+    separator: {
+        borderBottomWidth: 1,
+        borderBottomColor: '#ddd',
+        marginTop: 10,
+    },
+    starContainer: {
+        marginTop: -3,
+        flexDirection: 'row',
+    },
     star: {
-        color: '#FFD700', // สีดาวเป็นทอง
+        color: '#00000', // สีดาวเป็นทอง
         fontSize: 18,
-        marginRight: 3,
+        // marginRight: 1,
     },
     buttonContainer: {
         position: 'absolute',
@@ -211,6 +236,19 @@ const styles = StyleSheet.create({
     bookingText: {
         color: 'white',
         fontWeight: 'bold',
+    },
+    loadcontainer: {
+        backgroundColor: 'white',
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    averageRatingText: {
+        color: 'white',
+        fontSize: 14,
+        fontWeight: 'bold',
+        paddingTop: 4,
+        paddingLeft: 10,
     },
 });
 export default CommentScreen
