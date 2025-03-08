@@ -101,13 +101,23 @@ export default function MyBook() {
 
   const formatDateTime = (timeStr) => {
     try {
-      // แยกส่วนวันที่และเวลา
-      const [datePart, timePart] = timeStr.split(' at ');
-      // ใช้วันที่โดยตรงจาก datePart
-      return {
-        date: datePart,  // เช่น "March 10, 2025"
-        time: timePart.split(' UTC')[0]  // เช่น "10:00 AM"
-      };
+      if (!timeStr) return { date: 'Invalid date', time: 'Invalid time' };
+      
+      // รองรับทั้งรูปแบบที่มี 'at' และไม่มี
+      if (timeStr.includes(' at ')) {
+        const [datePart, timePart] = timeStr.split(' at ');
+        return {
+          date: datePart,
+          time: timePart.split(' UTC')[0]
+        };
+      } else {
+        // รูปแบบใหม่: "March 9, 2025, 12:00 PM UTC+7"
+        const [datePart, timePart] = timeStr.split(', ').slice(-2);
+        return {
+          date: timeStr.split(', ').slice(0, -1).join(', '), // เอาส่วนวันที่ทั้งหมด
+          time: timePart.split(' UTC')[0] // เอาเฉพาะเวลา
+        };
+      }
     } catch (error) {
       console.error('Error parsing datetime:', error, 'for string:', timeStr);
       return { date: 'Invalid date', time: 'Invalid time' };
@@ -165,7 +175,7 @@ export default function MyBook() {
         />
       ) : (
         <View style={styles.centerContainer}>
-          <Text>ไม่พบการจองสนาม</Text>
+          <Text>Field reservation not found</Text>
         </View>
       )}
     </View>

@@ -7,7 +7,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { AntDesign } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import PropTypes from 'prop-types';
-import { collection, addDoc, getFirestore, doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { collection, addDoc, getFirestore, doc, getDoc, updateDoc, arrayUnion, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
 
 const App = ({ navigation, route }) => {
@@ -51,10 +51,224 @@ const App = ({ navigation, route }) => {
     fetchUserData();
   }, []);
 
-  const handleConfirm = () => {
-    if (validateBooking()) {
-      setShowConfirmModal(true);
+  const formatTo12Hour = (date24) => {
+    console.log('Converting date:', date24);
+    const date = new Date(date24);
+    return date.toLocaleString('th-TH', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true // บังคับให้แสดงเวลาในรูปแบบ 12 ชั่วโมง
+    });
+  };
+
+  const formatTimeTo12Hour = (date) => {
+    return date.toLocaleString('th-TH', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  const roundToHour = (date) => {
+    const roundedDate = new Date(date);
+    roundedDate.setMinutes(0);
+    roundedDate.setSeconds(0);
+    roundedDate.setMilliseconds(0);
+    return roundedDate;
+  };
+
+  const compareDates = (selectedStartDate, selectedEndDate, bookingStart, bookingEnd) => {
+    // แปลงเวลาให้เป็นชั่วโมงกลมๆ
+    const roundedSelectedStart = roundToHour(selectedStartDate);
+    const roundedSelectedEnd = roundToHour(selectedEndDate);
+    const roundedBookingStart = roundToHour(bookingStart);
+    const roundedBookingEnd = roundToHour(bookingEnd);
+
+    console.log('Comparing rounded times:', {
+      selectedStart: roundedSelectedStart.toLocaleString(),
+      selectedEnd: roundedSelectedEnd.toLocaleString(),
+      bookingStart: roundedBookingStart.toLocaleString(),
+      bookingEnd: roundedBookingEnd.toLocaleString()
+    });
+
+    // ตรวจสอบการซ้อนทับของช่วงเวลา
+    return (
+      (roundedSelectedStart.getTime() >= roundedBookingStart.getTime() && 
+       roundedSelectedStart.getTime() < roundedBookingEnd.getTime()) || 
+      (roundedSelectedEnd.getTime() > roundedBookingStart.getTime() && 
+       roundedSelectedEnd.getTime() <= roundedBookingEnd.getTime()) ||
+      (roundedSelectedStart.getTime() <= roundedBookingStart.getTime() && 
+       roundedSelectedEnd.getTime() >= roundedBookingEnd.getTime())
+    );
+  };
+
+  // เพิ่มฟังก์ชันตรวจสอบการจองซ้ำ
+  const checkBookingConflict = async () => {
+    console.log('=== Starting Booking Conflict Check ===');
+    console.log('Checking for:', {
+      court_id: court?.court_id,
+      selected_date: date,
+      start_time: `${hourStart}:${minuteStart}`,
+      end_time: `${hourEnd}:${minuteEnd}`
+    });
+
+    if (!court?.court_id || !date) {
+      console.log('Missing required data for checking');
+      return false;
     }
+
+    try {
+      // สร้างวันที่และเวลาที่เลือก
+      const selectedStartDate = new Date(date);
+      selectedStartDate.setHours(parseInt(hourStart), parseInt(minuteStart));
+      
+      const selectedEndDate = new Date(date);
+      selectedEndDate.setHours(parseInt(hourEnd), parseInt(minuteEnd));
+
+      console.log('Selected time range:', {
+        start: formatTo12Hour(selectedStartDate),
+        end: formatTo12Hour(selectedEndDate)
+      });
+
+      // ดึงข้อมูลการจองทั้งหมดของสนามนี้
+      const bookingRef = collection(db, 'Booking');
+      const bookingsSnapshot = await getDocs(
+        query(bookingRef, where('court_id', '==', court.court_id))
+      );
+
+      console.log(`Found ${bookingsSnapshot.size} existing bookings for this court`);
+
+      // ตรวจสอบการจองที่ซ้ำซ้อน
+      for (const doc of bookingsSnapshot.docs) {
+        const booking = doc.data();
+        
+        // แปลงสตริงวันที่เวลาเป็น Date object
+        const parseBookingTime = (timeStr) => {
+          try {
+            // แยกวันที่และเวลา
+            const [monthDay, yearTime] = timeStr.split(', ');
+            const [year, timeStr2] = yearTime.split(' at ');
+            const [time, period] = timeStr2.split(' UTC')[0].split(' ');
+            const [month, day] = monthDay.split(' ');
+            
+            // แปลงชื่อเดือนเป็นตัวเลข
+            const months = {
+              January: 0, February: 1, March: 2, April: 3, May: 4, June: 5,
+              July: 6, August: 7, September: 8, October: 9, November: 10, December: 11
+            };
+            
+            // แยกชั่วโมงและนาที
+            const [hours, minutes] = time.split(':');
+            let hour = parseInt(hours);
+            
+            // แปลงเป็น 24 ชั่วโมง
+            if (period === 'PM' && hour !== 12) hour += 12;
+            if (period === 'AM' && hour === 12) hour = 0;
+            
+            return new Date(parseInt(year), months[month], parseInt(day), hour, parseInt(minutes));
+          } catch (error) {
+            console.error('Error parsing time:', error, timeStr);
+            return null;
+          }
+        };
+
+        const bookingStart = parseBookingTime(booking.start_time);
+        const bookingEnd = parseBookingTime(booking.end_time);
+
+        if (!bookingStart || !bookingEnd) continue;
+
+        console.log('Comparing bookings:', {
+          selected: {
+            start: formatTimeTo12Hour(selectedStartDate),
+            end: formatTimeTo12Hour(selectedEndDate)
+          },
+          existing: {
+            start: formatTimeTo12Hour(bookingStart),
+            end: formatTimeTo12Hour(bookingEnd)
+          }
+        });
+
+        if (compareDates(selectedStartDate, selectedEndDate, bookingStart, bookingEnd)) {
+          console.log('⚠️ Booking conflict found!');
+          return {
+            hasConflict: true,
+            conflictTime: `${formatTimeTo12Hour(bookingStart)} - ${formatTimeTo12Hour(bookingEnd)}`
+          };
+        }
+      }
+
+      console.log('✅ No booking conflicts found');
+      return { hasConflict: false };
+
+    } catch (error) {
+      console.error('Error checking booking conflicts:', error);
+      return { hasConflict: false };
+    }
+  };
+
+  // แก้ไขฟังก์ชัน handleConfirm
+  const handleConfirm = async () => {
+    console.log('=== Starting Booking Process ===');
+    
+    if (!validateBooking()) {
+      console.log('❌ Booking validation failed');
+      return;
+    }
+
+    try {
+      console.log('Checking for booking conflicts...');
+      const { hasConflict, conflictTime } = await checkBookingConflict();
+      
+      if (hasConflict) {
+        console.log('❌ Booking conflict detected');
+        alert(`This time slot is already booked!\nBooked time: ${conflictTime}\n\nPlease select a different time.`);
+        return;
+      }
+
+      console.log('✅ No conflicts found, proceeding with booking');
+      setShowConfirmModal(true);
+      
+    } catch (error) {
+      console.error('Error in handleConfirm:', error);
+      alert('An error occurred while checking the booking availability.');
+    }
+  };
+
+  const convertTo12Hour = (hour24, minute) => {
+    console.log('Converting time:', { hour24, minute });
+    const hour = parseInt(hour24);
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    
+    console.log('Converted to:', {
+      hour12,
+      period,
+      formatted: `${String(hour12).padStart(2, '0')}:${minute} ${period}`
+    });
+    
+    return `${String(hour12).padStart(2, '0')}:${minute} ${period}`;
+  };
+
+  const formatTimeForDB = (date, hour24, minute) => {
+    // Format date part
+    const formattedDate = date.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+
+    // Convert time to 12-hour format with AM/PM
+    const formattedTime = convertTo12Hour(hour24, minute);
+
+    const result = `${formattedDate} at ${formattedTime} UTC+7`;
+    console.log('Formatted datetime for DB:', result);
+    return result;
   };
 
   const handleFinalConfirm = async () => {
@@ -82,26 +296,14 @@ const App = ({ navigation, route }) => {
       const endDate = new Date(date);
       endDate.setHours(parseInt(hourEnd), parseInt(minuteEnd));
 
-      // Format the times without seconds
-      const startTime = startDate.toLocaleString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-        timeZone: 'Asia/Bangkok'
-      }) + ' UTC+7';
+      // Format times in 12-hour format for database
+      const startTime = formatTimeForDB(date, hourStart, minuteStart);
+      const endTime = formatTimeForDB(date, hourEnd, minuteEnd);
 
-      const endTime = endDate.toLocaleString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-        timeZone: 'Asia/Bangkok'
-      }) + ' UTC+7';
+      console.log('Formatted times for DB:', {
+        start: startTime,
+        end: endTime
+      });
 
       // เพิ่มข้อมูลลงใน Booking collection เท่านั้น
       const bookingRef = collection(db, 'Booking');
@@ -176,6 +378,25 @@ const App = ({ navigation, route }) => {
     if (!date) {
       alert('Please select a date');
       return false;
+    }
+
+    const now = new Date();
+    const selectedDate = new Date(date);
+    const selectedTime = new Date(date);
+    selectedTime.setHours(parseInt(hourStart), parseInt(minuteStart), 0, 0);
+
+    // เช็คว่าเป็นวันในอดีตหรือไม่
+    if (selectedDate.setHours(0,0,0,0) < now.setHours(0,0,0,0)) {
+      alert('Cannot select past dates. Please select a future date.');
+      return false;
+    }
+
+    // เช็คว่าเป็นเวลาในอดีตหรือไม่ (สำหรับวันนี้)
+    if (selectedDate.setHours(0,0,0,0) === now.setHours(0,0,0,0)) {
+      if (selectedTime < new Date()) {
+        alert('Cannot select past time. Please select a future time.');
+        return false;
+      }
     }
 
     const startTime = parseInt(hourStart) * 60 + parseInt(minuteStart);
