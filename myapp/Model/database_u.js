@@ -7,21 +7,28 @@ const DataUser = (comments) => {
 
     useEffect(() => {
         const fetchUserNames = async () => {
-            const newNames = {};
+            if (!comments || comments.length === 0) return;
+
+            const newUserData = {};
             for (const comment of comments) {
                 if (comment.user_id) {
                     try {
                         const userRef = doc(db, 'users', comment.user_id);
                         const userDoc = await getDoc(userRef);
                         if (userDoc.exists()) {
-                            newNames[comment.id] = userDoc.data().name; // Assuming 'name' field exists
+                            const user = userDoc.data();
+                            newUserData[comment.id] = {
+                                name: user.name || 'Unknown',
+                                profileImage: user.profileImage || null,
+                            };
                         }
                     } catch (error) {
                         console.error('Error fetching user name: ', error);
                     }
                 }
             }
-            setUserNames(newNames);
+            console.log('Fetched user names:', newUserData);
+            setUserNames(newUserData);
         };
 
         if (comments.length > 0) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, Image, FlatList, StyleSheet, TouchableOpacity } from "react-native";
-import { AntDesign } from '@expo/vector-icons'; 
+import { AntDesign } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
@@ -10,7 +10,7 @@ import { doc, getDoc } from 'firebase/firestore';
 const BookingSection = ({ route }) => {
   const { court } = route.params || {};
   const [date, setDate] = useState(null); // เปลี่ยนจาก new Date() เป็น null
-  
+
   // เพิ่ม console.log เพื่อตรวจสอบข้อมูลที่เข้ามา
   useEffect(() => {
     console.log('=================== Calendar Screen Data ===================');
@@ -26,7 +26,7 @@ const BookingSection = ({ route }) => {
   useEffect(() => {
     console.log('Full route params:', route.params);
     console.log('Court data received:', court);
-    
+
     if (!court) {
       console.error('No court data received');
     } else if (!court.court_id) {
@@ -50,7 +50,7 @@ const BookingSection = ({ route }) => {
 
       try {
         console.log('Fetching bookings for court:', court.court_id);
-        
+
         const bookingsRef = collection(db, 'Booking');
         const q = query(
           bookingsRef,
@@ -130,7 +130,7 @@ const BookingSection = ({ route }) => {
     }
 
     console.log(`Checking bookings for ${timeSlot} on ${date.toLocaleDateString()}`);
-    
+
     const currentDate = new Date(date);
     currentDate.setHours(0, 0, 0, 0);
 
@@ -180,7 +180,7 @@ const BookingSection = ({ route }) => {
       const bookingsRef = collection(db, 'Booking');
       const q = query(bookingsRef, where('court_id', '==', court.court_id));
       const querySnapshot = await getDocs(q);
-      
+
       // กรองข้อมูลตามวันที่
       const todayBookings = [];
       querySnapshot.forEach((doc) => {
@@ -226,20 +226,20 @@ const BookingSection = ({ route }) => {
         const [year, timeStr] = yearTime.split(' at ');
         const [time, period, timezone] = timeStr.split(' ');
         const [month, day] = monthDay.split(' ');
-        
+
         // Convert month name to month number (0-11)
         const months = {
           January: 0, February: 1, March: 2, April: 3, May: 4, June: 5,
           July: 6, August: 7, September: 8, October: 9, November: 10, December: 11
         };
-        
+
         const [hours, minutes] = time.split(':');
         let hour = parseInt(hours);
-        
+
         // Convert to 24 hour format
         if (period === 'PM' && hour !== 12) hour += 12;
         if (period === 'AM' && hour === 12) hour = 0;
-        
+
         const date = new Date(
           parseInt(year),
           months[month],
@@ -262,7 +262,7 @@ const BookingSection = ({ route }) => {
         {bookedSlots.map((slot) => {
           const startDate = parseDateTime(slot.start_time);
           const endDate = parseDateTime(slot.end_time);
-          
+
           if (!startDate || !endDate) {
             console.error('Invalid date found:', slot);
             return null;
@@ -281,16 +281,16 @@ const BookingSection = ({ route }) => {
                   })}
                 </Text>
                 <Text style={styles.bookedSlotTime}>
-                  {startDate.toLocaleTimeString('th-TH', { 
-                    hour: '2-digit', 
+                  {startDate.toLocaleTimeString('th-TH', {
+                    hour: '2-digit',
                     minute: '2-digit',
-                    hour12: true 
+                    hour12: true
                   })}
                   {' - '}
-                  {endDate.toLocaleTimeString('th-TH', { 
-                    hour: '2-digit', 
+                  {endDate.toLocaleTimeString('th-TH', {
+                    hour: '2-digit',
                     minute: '2-digit',
-                    hour12: true 
+                    hour12: true
                   })}
                 </Text>
               </View>
@@ -313,17 +313,17 @@ const BookingSection = ({ route }) => {
         const [year, timeStr] = yearTime.split(' at ');
         const [time, period, timezone] = timeStr.split(' ');
         const [month, day] = monthDay.split(' ');
-        
+
         const months = {
           January: 0, February: 1, March: 2, April: 3, May: 4, June: 5,
           July: 6, August: 7, September: 8, October: 9, November: 10, December: 11
         };
-        
+
         const [hours, minutes] = time.split(':');
         let hour = parseInt(hours);
         if (period === 'PM' && hour !== 12) hour += 12;
         if (period === 'AM' && hour === 12) hour = 0;
-        
+
         const date = new Date(
           parseInt(year),
           months[month],
@@ -364,16 +364,16 @@ const BookingSection = ({ route }) => {
                   })}
                 </Text>
                 <Text style={styles.userBookingTime}>
-                  {startDate.toLocaleTimeString('th-TH', { 
-                    hour: '2-digit', 
+                  {startDate.toLocaleTimeString('th-TH', {
+                    hour: '2-digit',
                     minute: '2-digit',
-                    hour12: true 
+                    hour12: true
                   })}
                   {' - '}
-                  {endDate.toLocaleTimeString('th-TH', { 
-                    hour: '2-digit', 
+                  {endDate.toLocaleTimeString('th-TH', {
+                    hour: '2-digit',
                     minute: '2-digit',
-                    hour12: true 
+                    hour12: true
                   })}
                 </Text>
               </View>
@@ -427,17 +427,17 @@ const BookingSection = ({ route }) => {
         // แยกเวลาออกจาก start_time และ end_time
         const startTimePart = booking.start_time.split(' at ')[1];
         const endTimePart = booking.end_time.split(' at ')[1];
-        
+
         // แปลงเวลาเป็นชั่วโมง
         const startHour = parseInt(startTimePart.split(':')[0]);
         const endHour = parseInt(endTimePart.split(':')[0]);
-        
+
         // ปรับค่าชั่วโมงตาม AM/PM
-        const adjustedStartHour = startTimePart.includes('PM') && startHour !== 12 
-          ? startHour + 12 
+        const adjustedStartHour = startTimePart.includes('PM') && startHour !== 12
+          ? startHour + 12
           : startHour;
-        const adjustedEndHour = endTimePart.includes('PM') && endHour !== 12 
-          ? endHour + 12 
+        const adjustedEndHour = endTimePart.includes('PM') && endHour !== 12
+          ? endHour + 12
           : endHour;
 
         console.log('Checking time slot:', {
@@ -491,19 +491,19 @@ const BookingSection = ({ route }) => {
 
         {timeSlots.map(({ hour, display }) => {
           const { isBooked, isUserBooking, timeRange } = checkTimeSlotAvailability(hour);
-          
+
           return (
             <View key={hour} style={styles.timeSlotRow}>
               <Text style={styles.timeDisplay}>{display}</Text>
               <View style={[
                 styles.statusIndicator,
-                isBooked ? 
-                  (isUserBooking ? styles.userBookedSlot : styles.bookedSlot) 
+                isBooked ?
+                  (isUserBooking ? styles.userBookedSlot : styles.bookedSlot)
                   : styles.availableSlot
               ]}>
                 <Text style={styles.statusText}>
-                  {isBooked ? 
-                    (isUserBooking ? 'การจองของคุณ' : 'ไม่ว่าง') 
+                  {isBooked ?
+                    (isUserBooking ? 'การจองของคุณ' : 'ไม่ว่าง')
                     : 'ว่าง'}
                 </Text>
                 {timeRange && <Text style={styles.timeRangeText}>{timeRange}</Text>}
@@ -568,9 +568,9 @@ const BookingSection = ({ route }) => {
           {/* Court Card - similar to Booking screen */}
           <View style={styles.card}>
             {court && (
-              <Image 
-                source={{ uri: court.image[0] }} 
-                style={styles.courtImage} 
+              <Image
+                source={{ uri: court.image[0] }}
+                style={styles.courtImage}
                 resizeMode="cover"
               />
             )}
@@ -589,11 +589,11 @@ const BookingSection = ({ route }) => {
             <View style={styles.dateInputContainer}>
               <AntDesign name="calendar" size={18} color="black" style={styles.calendarIcon} />
               <TouchableOpacity onPress={showDatepicker} style={{ flex: 1 }}>
-                <TextInput 
-                  style={styles.dateInput} 
-                  placeholder="Select date" 
-                  value={date ? date.toLocaleDateString() : ''} 
-                  editable={false} 
+                <TextInput
+                  style={styles.dateInput}
+                  placeholder="Select date"
+                  value={date ? date.toLocaleDateString() : ''}
+                  editable={false}
                   pointerEvents="none"
                 />
               </TouchableOpacity>
@@ -821,7 +821,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 15,
     borderWidth: 1,
     borderColor: '#FFFFFF', // เส้นกรอบสีขาว
-    borderRadius: 10, 
+    borderRadius: 10,
   },
   userBookingsTitle: {
     fontSize: 18,

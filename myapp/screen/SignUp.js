@@ -15,7 +15,7 @@ const SignUp = ({ navigation }) => {
   const [isCustomer, setIsCustomer] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+
   // เก็บ error ของ input แต่ละช่อง
   const [errors, setErrors] = useState({});
 
@@ -59,7 +59,7 @@ const SignUp = ({ navigation }) => {
 
   const validateInputs = () => {
     let newErrors = {};
-    
+
     newErrors.email = validateField("email", email);
     newErrors.password = validateField("password", password);
     newErrors.confirmPassword = validateField("confirmPassword", confirmPassword);
@@ -75,16 +75,16 @@ const SignUp = ({ navigation }) => {
       const usersRef = collection(db, "users");
       const q = query(usersRef, orderBy("user_id", "desc"), limit(1));
       const querySnapshot = await getDocs(q);
-  
+
       let nextId = "USR0001"; // Default first ID
-  
+
       if (!querySnapshot.empty) {
         const latestUser = querySnapshot.docs[0].data();
         const latestId = latestUser.user_id;
         const num = parseInt(latestId.substring(3)) + 1;
         nextId = `USR${num.toString().padStart(4, '0')}`;
       }
-  
+
       return nextId;
     } catch (error) {
       console.error("Error generating user ID:", error);
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
   statusButton: {
     backgroundColor: '#000',
     borderRadius: 10,
-    paddingVertical:8,
+    paddingVertical: 8,
     width: '100%',
     alignItems: 'center',
     marginBottom: 10,

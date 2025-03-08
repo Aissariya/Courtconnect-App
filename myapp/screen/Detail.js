@@ -15,7 +15,7 @@ export default function Detail({ route, navigation }) {
   const courts = Database();
   const { court_id } = route.params || {};
   const comments = DataComment(court_id);
-  const userNames = DataUser(comments);
+  const userData = DataUser(comments);
   const [text, setText] = useState("");
   const [rating, setRating] = useState(0);
 
@@ -99,8 +99,6 @@ export default function Detail({ route, navigation }) {
             ))}
           </View>
           <Text style={styles.detailsTitle}>({averageRating})</Text>
-
-
         </View>
         <View style={styles.priceBox}>
           <Text style={styles.priceText}>Price {price} per hour</Text>
@@ -171,7 +169,15 @@ export default function Detail({ route, navigation }) {
             comments.slice(0, 3).map((comment) => (
               <View key={comment.id} style={styles.reviewBox}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={styles.reviewerName}>{userNames[comment.id] || "Loading..."}</Text>
+                  <Image
+                    source={
+                      userData[comment.id]?.profileImage
+                        ? { uri: userData[comment.id].profileImage }
+                        : require("../assets/profile-user.png")
+                    }
+                    style={styles.profileImage}
+                  />
+                  <Text style={styles.reviewerName}>{userData[comment.id]?.name || "Loading..."}</Text>
                   <View style={styles.starContainer}>
                     {[...Array(comment.rating)].map((_, index) => (
                       <Text key={index} style={styles.star}>★</Text>
@@ -467,5 +473,12 @@ const styles = StyleSheet.create({
   },
   box: {
     marginBottom: 15,
-  }
+  },
+  profileImage: {
+    width: 20,
+    height: 20,
+    borderRadius: 50,
+    backgroundColor: "#ddd",
+    marginRight: 5,
+  },
 });
