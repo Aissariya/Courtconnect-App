@@ -1,53 +1,124 @@
-import React from "react";
-import { View, Text, StyleSheet, FlatList } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from "react-native";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from "@react-navigation/native";
+import { getAuth } from 'firebase/auth';
+import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
+import { db } from '../FirebaseConfig';
 
 export default function Notification() {
-  const notifications = [
-    {
-      id: '1',
-      title: 'Booking Confirmed',
-      message: 'สนามบาสหนองงูเห่า - Court A',
-      time: '13:45',
-      date: 'Today',
-      status: 'success'
-    },
-    {
-      id: '2',
-      title: 'Cancellation Under Review',
-      message: 'สนามฟุตบอล - Field B',
-      time: '10:30',
-      date: 'Yesterday',
-      status: 'review'
-    },
-    {
-      id: '3',
-      title: 'Refund Successful',
-      message: 'Refund for booking at สนามบาสหนองงูเห่า - Court A',
-      time: '09:00',
-      date: 'Yesterday',
-      status: 'refundSuccess'
-    },
-    {
-      id: '4',
-      title: 'Cancellation Rejected',
-      message: 'Cancellation for booking at สนามฟุตบอล - Field B',
-      time: '08:00',
-      date: 'Yesterday',
-      status: 'rejected'
-    },
-    {
-      id: '5',
-      title: 'Refund Failed',
-      message: 'Refund for booking at สนามบาสหนองงูเห่า - Court A',
-      time: '07:00',
-      date: 'Yesterday',
-      status: 'refundFailed'
-    }
-  ];
+  const navigation = useNavigation();
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        setLoading(true);
+        const auth = getAuth();
+        const currentUser = auth.currentUser;
+        
+        if (!currentUser) return;
+
+        // 1. ดึง booking_id จาก users collection
+        const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+        if (!userDoc.exists()) return;
+
+        const bookedIds = userDoc.data().booked_courts || [];
+        console.log('Found booked courts:', bookedIds);
+
+        // 2. ดึงข้อมูลการจองจาก Booking collection
+        const bookingRef = collection(db, 'Booking');
+        const bookingsSnapshot = await getDocs(bookingRef);
+        const bookings = {};
+        
+        bookingsSnapshot.forEach(doc => {
+          const bookingData = doc.data();
+          if (bookedIds.includes(bookingData.booking_id)) {
+            bookings[bookingData.booking_id] = bookingData;
+          }
+        });
+
+        // 3. ดึงข้อมูลสนามจาก Court collection
+        const courtRef = collection(db, 'Court');
+        const courtSnapshot = await getDocs(courtRef);
+        const courts = {};
+        
+        courtSnapshot.forEach(doc => {
+          const courtData = doc.data();
+          courts[courtData.court_id] = courtData;
+        });
+
+        // 4. สร้างการแจ้งเตือน
+        const notificationsList = await Promise.all(
+          Object.values(bookings)
+            .filter(booking => booking.status === 'booked')
+            .map(async (booking) => {
+              const courtData = courts[booking.court_id];
+
+              // แปลงวันที่และเวลาจากรูปแบบ "March 7, 2024 at 10:00 AM UTC+7"
+              const parseDateTime = (timeStr) => {
+                try {
+                  const [datePart, timePart] = timeStr.split(' at ');
+                  const [time, period] = timePart.split(' UTC')[0].split(' ');
+                  
+                  return {
+                    date: datePart, // เก็บวันที่ในรูปแบบเดิม
+                    time: `${time} ${period}` // เก็บเวลาพร้อม AM/PM
+                  };
+                } catch (error) {
+                  console.error('Error parsing datetime:', error);
+                  return { date: '', time: '' };
+                }
+              };
+
+              const dateTime = parseDateTime(booking.start_time);
+              
+              return {
+                id: booking.booking_id,
+                title: 'Booking Confirmed',
+                message: `${courtData?.field || 'Unknown Court'}`,
+                time: dateTime.time,
+                date: dateTime.date,
+                status: 'success'
+              };
+            })
+        );
+
+        console.log('Generated notifications:', notificationsList);
+        setNotifications(notificationsList);
+
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNotifications();
+  }, []);
 
   const renderNotification = ({ item }) => (
-    <View style={styles.notificationItem}>
+    <TouchableOpacity 
+      style={styles.notificationItem}
+      onPress={() => {
+        // ส่งข้อมูลการจองไปยังหน้า AlreadyBooked
+        navigation.navigate('AlreadyBooked', { 
+          booking: {
+            id: item.id,
+            start_time: item.date + ' at ' + item.time + ' UTC+7',
+            end_time: item.date + ' at ' + item.time + ' UTC+7',
+            status: 'booked',
+            courtDetails: {
+              name: item.message,
+              image: '', // จะถูกเติมจากการดึงข้อมูลสนาม
+              type: '',  // จะถูกเติมจากการดึงข้อมูลสนาม
+              address: '' // จะถูกเติมจากการดึงข้อมูลสนาม
+            }
+          }
+        });
+      }}
+    >
       <View style={styles.notificationHeader}>
         <View style={styles.iconContainer}>
           <MaterialCommunityIcons
@@ -83,8 +154,16 @@ export default function Notification() {
         item.status === 'rejected' ? styles.statusRejected :
         styles.statusRefundFailed
       ]} />
-    </View>
+    </TouchableOpacity>
   );
+
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#A2F193" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -186,5 +265,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: '#666',
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F3F3F3',
   },
 });
