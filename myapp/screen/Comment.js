@@ -4,6 +4,8 @@ import Database from '../Model/database';
 import DataComment from '../Model/database_c';
 import DataUser from '../Model/database_u';
 import { AverageRating } from "../context/AverageRating";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../FirebaseConfig";
 
 const CommentScreen = ({ route }) => {
     const courts = Database();

@@ -18,11 +18,13 @@ import { useNavigation } from "@react-navigation/native";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../FirebaseConfig";
 import { getAuth, reauthenticateWithCredential, EmailAuthProvider, updatePassword } from "firebase/auth";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const MyAccount = () => {
   const navigation = useNavigation();
   const auth = getAuth();
   const userAuth = auth.currentUser;
+  const storage = getStorage();
 
   const [isEditable, setIsEditable] = useState(false);
   const [user, setUser] = useState({
@@ -178,8 +180,18 @@ const MyAccount = () => {
     });
 
     if (!result.canceled) {
-      setUser((prevState) => ({ ...prevState, profileImage: result.assets[0].uri }));
+      const uri = result.assets[0].uri;
+      const imageUrl = await uploadImageToStorage(uri);
+      setUser((prevState) => ({ ...prevState, profileImage: imageUrl }));
     }
+  };
+
+  const uploadImageToStorage = async (uri) => {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    const imageRef = ref(storage, `profileImages/${userAuth.uid}.jpg`);
+    await uploadBytes(imageRef, blob);
+    return await getDownloadURL(imageRef);
   };
 
   return (
