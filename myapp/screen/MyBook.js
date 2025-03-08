@@ -120,13 +120,48 @@ export default function MyBook() {
     }
   };
 
+  const calculateBookingPrice = (startTime, endTime) => {
+    try {
+      // แยกเวลาออกจาก timestamp
+      const parseTime = (timeStr) => {
+        const [, timePart] = timeStr.split(' at ');
+        const [time, period] = timePart.split(' UTC')[0].split(' ');
+        const [hours, minutes] = time.split(':');
+        let hour = parseInt(hours);
+        
+        // แปลงเวลาเป็น 24 ชั่วโมง
+        if (period === 'PM' && hour !== 12) hour += 12;
+        if (period === 'AM' && hour === 12) hour = 0;
+        
+        return { hour, minutes: parseInt(minutes) };
+      };
+
+      const start = parseTime(startTime);
+      const end = parseTime(endTime);
+
+      // คำนวณจำนวนชั่วโมง
+      let hours = end.hour - start.hour;
+      if (end.minutes < start.minutes) {
+        hours--;
+      }
+
+      // ราคาต่อชั่วโมง
+      const pricePerHour = 500;
+      return hours * pricePerHour;
+    } catch (error) {
+      console.error('Error calculating price:', error);
+      return 500; // ค่าเริ่มต้นถ้าคำนวณไม่ได้
+    }
+  };
+
   const renderBookingCard = ({ item }) => (
     <TouchableOpacity 
       onPress={() => navigation.navigate("AlreadyBooked", { 
         booking: {
           ...item,
           status: "booked",
-          people: 5
+          // ใช้ราคาที่ได้จาก Booking collection โดยตรง
+          price: item.price || 0
         }
       })} 
       style={styles.card}
@@ -139,7 +174,7 @@ export default function MyBook() {
         <Text style={styles.title}>{item.courtDetails.name}</Text>
         <Text style={styles.text}>Date: {formatDateTime(item.start_time).date}</Text>
         <Text style={styles.text}>Time: {formatDateTime(item.start_time).time} - {formatDateTime(item.end_time).time}</Text>
-        <Text style={styles.price}>Price: {item.price || '500'} THB</Text>
+        <Text style={styles.price}>Price: {item.price} THB</Text>
       </View>
     </TouchableOpacity>
   );

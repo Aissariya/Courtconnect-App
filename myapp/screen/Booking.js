@@ -285,7 +285,7 @@ const App = ({ navigation, route }) => {
       const startTime = formatTimeForDB(date, hourStart, minuteStart);
       const endTime = formatTimeForDB(date, hourEnd, minuteEnd);
 
-      // เพิ่มข้อมูลลงใน Booking collection (ไม่รวม price)
+      // เพิ่ม totalPrice ที่คำนวณได้เข้าไปใน Booking collection
       const bookingRef = collection(db, 'Booking');
       await addDoc(bookingRef, {
         booking_id,
@@ -293,7 +293,8 @@ const App = ({ navigation, route }) => {
         end_time: endTime,
         start_time: startTime,
         status: "booked",
-        user_id: userData.user_id
+        user_id: userData.user_id,
+        price: totalPrice // เพิ่ม price ที่คำนวณไว้แล้ว
       });
 
       // ส่งเฉพาะ booking_id ไปที่ users collection
