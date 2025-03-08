@@ -18,7 +18,7 @@ export default function AlreadyBooked({ navigation, route }) {
   const formatDateTime = (timeStr) => {
     try {
       if (!timeStr) return { date: 'Invalid date', time: 'Invalid time' };
-      
+
       // รองรับทั้งรูปแบบที่มี 'at' และไม่มี
       if (timeStr.includes(' at ')) {
         const [datePart, timePart] = timeStr.split(' at ');
@@ -131,15 +131,22 @@ export default function AlreadyBooked({ navigation, route }) {
         {showReason && (
           <View style={styles.reasonContainer}>
             <Text style={styles.reasonTitle}>Select a reason for cancellation</Text>
-            <Picker
-              selectedValue={selectedReason}
-              style={styles.picker}
-              onValueChange={(itemValue) => setSelectedReason(itemValue)}
-            >
+
+            <View style={styles.reasonsListContainer}>
               {reasons.map((reason, index) => (
-                <Picker.Item key={index} label={reason} value={reason} />
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.reasonItem,
+                    selectedReason === reason ? styles.selectedReason : null
+                  ]}
+                  onPress={() => setSelectedReason(reason)}
+                >
+                  <Text style={styles.reasonText}>{reason}</Text>
+                </TouchableOpacity>
               ))}
-            </Picker>
+            </View>
+
             <TouchableOpacity
               style={styles.confirmButton}
               onPress={handleCancel}
@@ -148,6 +155,7 @@ export default function AlreadyBooked({ navigation, route }) {
             </TouchableOpacity>
           </View>
         )}
+
       </ScrollView>
 
       {!showReason && booking && (
@@ -160,7 +168,7 @@ export default function AlreadyBooked({ navigation, route }) {
             <MaterialCommunityIcons name='home' size={20} color='#000' />
             <Text style={styles.calanderText}>Home</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={styles.calanderButton}
             onPress={() => navigation.navigate('CalanderScreen')}
@@ -373,10 +381,29 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
+  
   reasonTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 10,
+  },
+  reasonsListContainer: {
+    marginVertical: 10,
+  },
+  reasonItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderColor: '#ddd',
+    backgroundColor: 'white',
+  },
+  selectedReason: {
+    backgroundColor: '#A2F193',
+    borderRadius: 5,
+  },
+  reasonText: {
+    fontSize: 16,
+    color: '#333',
   },
   picker: {
     height: 50,
@@ -426,10 +453,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: '10'
   },
- CancelText: {
+  CancelText: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize:15,
+    fontSize: 15,
   },
   modalContainer: {
     flex: 1,
@@ -456,6 +483,7 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 10,
   },
+  
   modalLabel: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -470,7 +498,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
     color: '#555',
-    marginTop : 10,
+    marginTop: 10,
   },
   modalButtons: {
     flexDirection: 'row',
