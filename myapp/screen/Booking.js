@@ -285,7 +285,7 @@ const App = ({ navigation, route }) => {
       const startTime = formatTimeForDB(date, hourStart, minuteStart);
       const endTime = formatTimeForDB(date, hourEnd, minuteEnd);
 
-      // เพิ่มข้อมูลลงใน Booking collection (ไม่รวม people และ price)
+      // เพิ่มข้อมูลลงใน Booking collection (ไม่รวม price)
       const bookingRef = collection(db, 'Booking');
       await addDoc(bookingRef, {
         booking_id,
