@@ -5,11 +5,51 @@ import { doc, getDoc, getDocs, collection } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
 import { getAuth } from 'firebase/auth';
 
-export default function MyBook() {
+const MyBook = () => {
   const navigation = useNavigation();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const calculateBookingPrice = (startTime, endTime, courtPrice) => {
+    try {
+      // แยกเวลาออกจาก timestamp
+      const parseTime = (timeStr) => {
+        const [datePart, timePart] = timeStr.split(' at ');
+        const [time, period] = timePart.split(' UTC')[0].split(' ');
+        const [hours, minutes] = time.split(':');
+        let hour = parseInt(hours);
+        
+        // แปลงเวลาเป็น 24 ชั่วโมง
+        if (period === 'PM' && hour !== 12) hour += 12;
+        if (period === 'AM' && hour === 12) hour = 0;
+        
+        return { hour, minutes: parseInt(minutes) };
+      };
+
+      const start = parseTime(startTime);
+      const end = parseTime(endTime);
+
+      // คำนวณจำนวนชั่วโมง
+      let totalHours;
+      if (end.hour < start.hour) {
+        totalHours = (24 - start.hour) + end.hour;
+      } else {
+        totalHours = end.hour - start.hour;
+      }
+
+      // ปรับลดหากมีเศษนาที
+      if (end.minutes < start.minutes) {
+        totalHours--;
+      }
+
+      // ใช้ราคาต่อชั่วโมงจาก Court (priceslot)
+      return totalHours * courtPrice;
+    } catch (error) {
+      console.error('Error calculating price:', error);
+      return 0;
+    }
+  };
 
   const fetchUserBookings = async () => {
     try {
@@ -42,17 +82,20 @@ export default function MyBook() {
 
       console.log('Matched bookings:', allBookings);
 
-      // 3. ดึงข้อมูลสนามจาก Court collection
+      // 3. ดึงข้อมูลสนามจาก Court collection และเก็บ priceslot
       const courtRef = collection(db, 'Court');
       const courtSnapshot = await getDocs(courtRef);
       const courts = {};
       
       courtSnapshot.forEach(doc => {
         const courtData = doc.data();
-        courts[courtData.court_id] = courtData;
+        courts[courtData.court_id] = {
+          ...courtData,
+          priceslot: courtData.priceslot || 500 // ใช้ค่าเริ่มต้น 500 ถ้าไม่มี priceslot
+        };
       });
 
-      // 4. รวมข้อมูลทั้งหมด
+      // 4. รวมข้อมูลทั้งหมดพร้อมคำนวณราคา
       const bookingsWithDetails = bookedIds.map(bookingId => {
         const bookingData = allBookings[bookingId];
         if (!bookingData) return null;
@@ -60,11 +103,17 @@ export default function MyBook() {
         const courtData = courts[bookingData.court_id];
         if (!courtData) return null;
 
+        const calculatedPrice = calculateBookingPrice(
+          bookingData.start_time, 
+          bookingData.end_time, 
+          courtData.priceslot
+        );
+
         return {
           id: bookingId,
           start_time: bookingData.start_time,
           end_time: bookingData.end_time,
-          price: bookingData.price,
+          price: calculatedPrice,
           status: bookingData.status,
           people: bookingData.people,
           courtDetails: {
@@ -120,48 +169,13 @@ export default function MyBook() {
     }
   };
 
-  const calculateBookingPrice = (startTime, endTime) => {
-    try {
-      // แยกเวลาออกจาก timestamp
-      const parseTime = (timeStr) => {
-        const [, timePart] = timeStr.split(' at ');
-        const [time, period] = timePart.split(' UTC')[0].split(' ');
-        const [hours, minutes] = time.split(':');
-        let hour = parseInt(hours);
-        
-        // แปลงเวลาเป็น 24 ชั่วโมง
-        if (period === 'PM' && hour !== 12) hour += 12;
-        if (period === 'AM' && hour === 12) hour = 0;
-        
-        return { hour, minutes: parseInt(minutes) };
-      };
-
-      const start = parseTime(startTime);
-      const end = parseTime(endTime);
-
-      // คำนวณจำนวนชั่วโมง
-      let hours = end.hour - start.hour;
-      if (end.minutes < start.minutes) {
-        hours--;
-      }
-
-      // ราคาต่อชั่วโมง
-      const pricePerHour = 500;
-      return hours * pricePerHour;
-    } catch (error) {
-      console.error('Error calculating price:', error);
-      return 500; // ค่าเริ่มต้นถ้าคำนวณไม่ได้
-    }
-  };
-
   const renderBookingCard = ({ item }) => (
     <TouchableOpacity 
       onPress={() => navigation.navigate("AlreadyBooked", { 
         booking: {
           ...item,
           status: "booked",
-          // ใช้ราคาที่ได้จาก Booking collection โดยตรง
-          price: item.price || 0
+          calculatedPrice: item.price // ส่งราคาที่คำนวณแล้วไปยัง AlreadyBooked
         }
       })} 
       style={styles.card}
@@ -284,3 +298,5 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
 });
+
+export default MyBook;
