@@ -148,21 +148,15 @@ const MyBook = () => {
     try {
       if (!timeStr) return { date: 'Invalid date', time: 'Invalid time' };
       
-      // รองรับทั้งรูปแบบที่มี 'at' และไม่มี
-      if (timeStr.includes(' at ')) {
-        const [datePart, timePart] = timeStr.split(' at ');
-        return {
-          date: datePart,
-          time: timePart.split(' UTC')[0]
-        };
-      } else {
-        // รูปแบบใหม่: "March 9, 2025, 12:00 PM UTC+7"
-        const [datePart, timePart] = timeStr.split(', ').slice(-2);
-        return {
-          date: timeStr.split(', ').slice(0, -1).join(', '), // เอาส่วนวันที่ทั้งหมด
-          time: timePart.split(' UTC')[0] // เอาเฉพาะเวลา
-        };
-      }
+      // แยกวันและเวลา เช่น "March 7, 2024 at 10:00 AM UTC+7"
+      const [monthDay, yearAndTime] = timeStr.split(', ');
+      const [year, timeWithZone] = yearAndTime.split(' at ');
+      const [time, period] = timeWithZone.split(' UTC')[0].split(' ');
+
+      return {
+        date: `${monthDay}, ${year}`,
+        time: `${time} ${period}`
+      };
     } catch (error) {
       console.error('Error parsing datetime:', error, 'for string:', timeStr);
       return { date: 'Invalid date', time: 'Invalid time' };
