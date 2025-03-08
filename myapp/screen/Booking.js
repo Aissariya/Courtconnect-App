@@ -274,7 +274,6 @@ const App = ({ navigation, route }) => {
   const handleFinalConfirm = async () => {
     try {
       setIsLoading(true);
-
       const auth = getAuth();
       const currentUser = auth.currentUser;
       
@@ -282,55 +281,27 @@ const App = ({ navigation, route }) => {
         throw new Error('No user data available');
       }
 
-      // สร้าง booking_id
       const booking_id = `BK${Date.now()}`;
-
-      // เก็บราคาที่คำนวณ
-      const calculatedPrice = totalPrice;
-
-      // Create start time date object
-      const startDate = new Date(date);
-      startDate.setHours(parseInt(hourStart), parseInt(minuteStart));
-      
-      // Create end time date object
-      const endDate = new Date(date);
-      endDate.setHours(parseInt(hourEnd), parseInt(minuteEnd));
-
-      // Format times in 12-hour format for database
       const startTime = formatTimeForDB(date, hourStart, minuteStart);
       const endTime = formatTimeForDB(date, hourEnd, minuteEnd);
 
-      console.log('Formatted times for DB:', {
-        start: startTime,
-        end: endTime
-      });
-
-      // เพิ่มข้อมูลลงใน Booking collection เท่านั้น
+      // เพิ่มข้อมูลลงใน Booking collection (แบบเดิม)
       const bookingRef = collection(db, 'Booking');
       await addDoc(bookingRef, {
         booking_id,
         court_id: court.court_id,
         end_time: endTime,
         start_time: startTime,
-        status: "booked", // เปลี่ยนจาก pending เป็น booked
+        status: "booked",
         user_id: userData.user_id,
         people: parseInt(numPeople),
-        price: calculatedPrice // เพิ่มราคาที่คำนวณ
+        price: totalPrice
       });
 
-      // เพิ่ม court_id และเวลาที่จองลงใน users collection
+      // ส่งเฉพาะ booking_id ไปที่ users collection
       const userRef = doc(db, 'users', currentUser.uid);
       await updateDoc(userRef, {
-        booked_courts: arrayUnion({
-          court_id: court.court_id,
-          booked_at: new Date().toISOString(),
-          booking_time: {
-            start: startTime,
-            end: endTime
-          },
-          status: "booked", // เพิ่ม status เป็น booked
-          price: calculatedPrice // เพิ่มราคาที่คำนวณ
-        })
+        booked_courts: arrayUnion(booking_id)
       });
 
       setShowConfirmModal(false);
