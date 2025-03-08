@@ -577,7 +577,6 @@ const BookingSection = ({ route }) => {
             <View style={styles.courtDetails}>
             <Text style={styles.courtTitle}>{court ? court.field : 'Loading...'}</Text>
                <Text style={styles.courtSubtitle}>{court ? court.address : 'Loading...'}</Text>
-               <Text style={[styles.fieldName, { textAlign: 'center' }]}>สนามบาสหนองงูเห่า</Text>
                <Text style={[styles.fieldText, { textAlign: 'center' }]}>Player : 6-15 people/court</Text>
                <Text style={[styles.fieldText, { textAlign: 'center' }]}>Time : 8:00 - 14:00</Text>
                <Text style={[styles.fieldText, { textAlign: 'center' }]}>Price : 1 Hour/ 500 Bath</Text>
