@@ -106,7 +106,7 @@ export default function Account({ navigation }) {
 
         {/* Logout Confirmation Modal */}
         <Modal
-          animationType="slide"
+          animationType="fade" // Change animationType to "fade"
           transparent={true}
           visible={modalVisible}
           onRequestClose={() => setModalVisible(false)}
