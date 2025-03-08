@@ -2,43 +2,40 @@ import React, { useState, useEffect } from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, Alert } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import DataComment from '../Model/database_c';
-import DataUser from '../Model/database_u';
-import { AverageRating } from "../context/AverageRating";
 
 export default function AlreadyBooked({ navigation, route }) {
   const [showReason, setShowReason] = useState(false);
   const [selectedReason, setSelectedReason] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const [images, setImages] = useState([]);
+
   const { booking } = route.params || {};
 
   useEffect(() => {
     console.log('Received booking data:', booking);
-    console.log('Received image data:', booking.courtDetails.image);
   }, [booking]);
 
-  const comments = DataComment(booking.id);
-  const userData = DataUser(comments);
-  const averageRating = AverageRating(comments);
-  // เก็บภาพเข้า Array
-  useEffect(() => {
-    if (booking && booking.courtDetails && booking.courtDetails.image) {
-      setImages((prevImages) => [...prevImages, booking.courtDetails.image]);
-      console.log('Images Array:', images);
-    }
-  }, [booking]);
-
-  const formatDateTime = (dateTimeStr) => {
+  const formatDateTime = (timeStr) => {
     try {
-      const [datePart, timePart] = dateTimeStr.split(' at ');
-      return {
-        date: datePart,
-        time: timePart.split(' UTC')[0]
-      };
+      if (!timeStr) return { date: 'Invalid date', time: 'Invalid time' };
+      
+      // รองรับทั้งรูปแบบที่มี 'at' และไม่มี
+      if (timeStr.includes(' at ')) {
+        const [datePart, timePart] = timeStr.split(' at ');
+        return {
+          date: datePart,
+          time: timePart.split(' UTC')[0]
+        };
+      } else {
+        // รูปแบบใหม่: "March 9, 2025, 12:00 PM UTC+7"
+        const [datePart, timePart] = timeStr.split(', ').slice(-2);
+        return {
+          date: timeStr.split(', ').slice(0, -1).join(', '), // เอาส่วนวันที่ทั้งหมด
+          time: timePart.split(' UTC')[0] // เอาเฉพาะเวลา
+        };
+      }
     } catch (error) {
-      console.error('Error parsing datetime:', error);
+      console.error('Error parsing datetime:', error, 'for string:', timeStr);
       return { date: 'Invalid date', time: 'Invalid time' };
     }
   };
@@ -66,18 +63,6 @@ export default function AlreadyBooked({ navigation, route }) {
     setShowReviewModal(true);
   };
 
-  const calculatePrice = (startTime, endTime) => {
-    try {
-      const start = new Date(startTime);
-      const end = new Date(endTime);
-      const diffHours = Math.ceil((end - start) / (1000 * 60 * 60));
-      return diffHours * 500;
-    } catch (error) {
-      console.error('Error calculating price:', error);
-      return 0;
-    }
-  };
-
   return (
     <View style={styles.container}>
       <ScrollView style={styles.detailsContainer}>
@@ -88,15 +73,11 @@ export default function AlreadyBooked({ navigation, route }) {
               style={styles.mainImage}
               resizeMode="cover"
             />
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={styles.detailsTitle}>{booking.courtDetails.name}</Text>
-              <View style={{ flexDirection: 'row', marginLeft: 5, marginRight: 5 }}>
-                {[...Array(Math.round(averageRating))].map((_, index) => (
-                  <Text key={index} style={styles.star1}>★</Text>
-                ))}
-              </View>
-              <Text style={styles.detailsTitle}>({averageRating})</Text>
-            </View>
+
+            <Text style={styles.detailsTitle}>
+              {booking.courtDetails.name} ★★★★★ (5.0)
+            </Text>
+
             <View style={styles.priceBox}>
               <Text style={styles.priceText}>
                 {booking.status === 'booked' ? 'Booked' : 'Confirmed'}
@@ -111,62 +92,36 @@ export default function AlreadyBooked({ navigation, route }) {
               Location: {booking.courtDetails.address}{"\n"}
               Facilities: Locker Room, Shower Room{"\n"}
               Operating Hours: Open Daily 8:00 - 22:00{"\n"}
-              Total Price: {calculatePrice(booking.start_time, booking.end_time)} THB{"\n"}
+              Total Price: {booking.price} THB{"\n"} {/* ใช้ราคาที่ส่งมาจาก MyBook */}
             </Text>
 
             <View style={styles.scoreBar}>
-              <View style={{ flexDirection: 'row' }}>
-                <Text style={styles.scoreText}>
-                  Score
-                </Text>
-                <Text style={styles.scoreIcon}>
-                  {[...Array(Math.round(averageRating))].map((_, index) => (
-                    <Text key={index} style={styles.star}>★</Text>
-                  ))}
-                </Text>
-                <Text style={styles.averageRatingText}>({averageRating})</Text>
-              </View>
-              <TouchableOpacity onPress={() => navigation.navigate('CommentScreen', { court_id: booking.id })}>
-                <Text style={styles.scoreText2}>showmore</Text>
+              <Text style={styles.scoreText}>Score ★★★★★ (5.0)</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('CommentScreen')}>
+                <Text style={styles.scoreText2}>Show more</Text>
               </TouchableOpacity>
             </View>
-            <View>
-              {comments.length > 0 ? (
-                comments.slice(0, 3).map((comment) => (
-                  <View key={comment.id} style={styles.reviewBox}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Image
-                        source={
-                          userData[comment.id]?.profileImage
-                            ? { uri: userData[comment.id].profileImage }
-                            : require("../assets/profile-user.png")
-                        }
-                        style={styles.profileImage}
-                      />
-                      <Text style={styles.reviewerName}>{userData[comment.id]?.name || "Loading..."}</Text>
-                      <View style={styles.starContainer}>
-                        {[...Array(comment.rating)].map((_, index) => (
-                          <Text key={index} style={styles.star}>★</Text>
-                        ))}
-                      </View>
-                      <Text style={styles.rateText}>({comment.rating}.0) </Text>
-                    </View>
-                    <Text style={styles.dateText}>
-                      {comment.timestamp ? new Date(comment.timestamp.seconds * 1000).toLocaleString('en-GB', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      }) : "No date"}
-                    </Text>
-                    <Text style={styles.reviewText}>{comment.text} </Text>
-                    <View style={styles.separator} />
-                  </View>
-                ))
-              ) : (
-                <View style={styles.box} />
-              )}
+
+            <View style={styles.reviewContainer}>
+              <View style={styles.reviewBox}>
+                <Text style={styles.reviewerName}>John Doe</Text>
+                <Text style={styles.reviewText}>Great basketball court with excellent atmosphere and well-maintained facilities.</Text>
+                <View style={styles.starContainer}>
+                  {[...Array(5)].map((_, index) => (
+                    <Text key={index} style={styles.star}>★</Text>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.reviewBox}>
+                <Text style={styles.reviewerName}>Jane Smith</Text>
+                <Text style={styles.reviewText}>Clean court with complete equipment. Very convenient.</Text>
+                <View style={styles.starContainer}>
+                  {[...Array(4)].map((_, index) => (
+                    <Text key={index} style={styles.star}>★</Text>
+                  ))}
+                </View>
+              </View>
             </View>
           </>
         ) : (
@@ -205,17 +160,10 @@ export default function AlreadyBooked({ navigation, route }) {
             <MaterialCommunityIcons name='home' size={20} color='#000' />
             <Text style={styles.calanderText}>Home</Text>
           </TouchableOpacity>
-
+          
           <TouchableOpacity
             style={styles.calanderButton}
-            onPress={() => navigation.navigate('CalanderScreen', {
-              court: {
-                court_id: booking.id,
-                field: booking.courtDetails.name,
-                image: images,
-                address: booking.courtDetails.address
-              }
-            })}
+            onPress={() => navigation.navigate('CalanderScreen')}
             activeOpacity={1}
           >
             <MaterialCommunityIcons name='calendar-outline' size={20} color='#000' />
@@ -338,6 +286,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'left',
+    width: '100%',
   },
   priceBox: {
     marginTop: 10,
@@ -374,12 +323,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     paddingLeft: 10,
   },
-  scoreIcon: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-    paddingLeft: 5,
-  },
   scoreText2: {
     color: 'white',
     fontSize: 14,
@@ -415,22 +358,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   star: {
-    color: '#00000',
+    color: '#FFD700',
     fontSize: 18,
-  },
-  star1: {
-    color: '#00000',
-    fontSize: 18,
-    marginTop: 5,
-  },
-  rateText: {
-    fontSize: 14,
-    color: '#333',
-    marginLeft: 3,
-  },
-  dateText: {
-    fontSize: 12,
-    color: '#333',
+    marginRight: 3,
   },
   reasonContainer: {
     marginTop: 20,
@@ -496,10 +426,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: '10'
   },
-  CancelText: {
+ CancelText: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: 15,
+    fontSize:15,
   },
   modalContainer: {
     flex: 1,
@@ -540,7 +470,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
     color: '#555',
-    marginTop: 10,
+    marginTop : 10,
   },
   modalButtons: {
     flexDirection: 'row',
@@ -586,24 +516,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
     color: '#666'
-  },
-  profileImage: {
-    width: 20,
-    height: 20,
-    borderRadius: 50,
-    backgroundColor: "#ddd",
-    marginRight: 5,
-  },
-  separator: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-    marginTop: 10,
-  },
-  averageRatingText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold',
-    paddingTop: 4,
-    paddingLeft: 10,
-  },
+  }
 });
