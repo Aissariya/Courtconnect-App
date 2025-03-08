@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect, useCallback } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Animated, ScrollView, RefreshControl } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Animated, ScrollView, RefreshControl, Modal } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthContext } from "../context/AuthContext";
 import { getAuth } from "firebase/auth";
@@ -11,6 +11,7 @@ export default function Account({ navigation }) {
   const [fadeAnim] = useState(new Animated.Value(1));
   const [walletAmount, setWalletAmount] = useState("0.00");
   const [refreshing, setRefreshing] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
 
   const auth = getAuth();
   const userAuth = auth.currentUser;
@@ -59,6 +60,15 @@ export default function Account({ navigation }) {
     }).start();
   };
 
+  const handleLogout = () => {
+    setModalVisible(true);
+  };
+
+  const confirmLogout = () => {
+    setModalVisible(false);
+    logout();
+  };
+
   return (
     <ScrollView
       contentContainerStyle={styles.scrollContainer}
@@ -88,11 +98,40 @@ export default function Account({ navigation }) {
             style={styles.logoutButton}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
-            onPress={() => logout()}
+            onPress={handleLogout}
           >
             <Text style={styles.logoutText}>Log Out</Text>
           </TouchableOpacity>
         </Animated.View>
+
+        {/* Logout Confirmation Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalView}>
+              <Text style={styles.modalText}>Are you sure</Text>
+              <Text style={styles.modalText}>You want to log out?</Text>
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity
+                  style={[styles.button, styles.cancelButton]}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.button, styles.confirmButton]}
+                  onPress={confirmLogout}
+                >
+                  <Text style={styles.buttonText}>Confirm</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </ScrollView>
   );
@@ -190,5 +229,54 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  modalView: {
+    width: 300,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 20,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalText: {
+    marginBottom: 15,
+    textAlign: "center",
+    fontSize: 18,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  button: {
+    borderRadius: 10,
+    padding: 10,
+    elevation: 2,
+    width: "45%",
+    alignItems: "center",
+  },
+  cancelButton: {
+    backgroundColor: "black",
+  },
+  confirmButton: {
+    backgroundColor: "green",
+  },
+  buttonText: {
+    color: "white",
+    fontWeight: "bold",
+    textAlign: "center",
   },
 });
