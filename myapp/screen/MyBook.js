@@ -20,68 +20,64 @@ export default function MyBook() {
       if (!currentUser) return;
 
       console.log('=== Fetching User Booking Data ===');
-      console.log('Current User ID:', currentUser.uid);
 
-      // ดึงข้อมูลผู้ใช้
+      // 1. ดึงข้อมูล booking_id จาก users collection
       const userDoc = await getDoc(doc(db, "users", currentUser.uid));
       if (!userDoc.exists()) return;
 
-      const userData = userDoc.data();
-      const bookedCourts = userData.booked_courts || [];
+      const bookedIds = userDoc.data().booked_courts || [];
+      console.log('Found booked_courts:', bookedIds);
+
+      // 2. ดึงข้อมูลการจองจาก Booking collection
+      const bookingRef = collection(db, 'Booking');
+      const bookingsSnapshot = await getDocs(bookingRef);
+      const allBookings = {};
       
-      console.log('User Data:', {
-        user_id: userData.user_id,
-        name: userData.name,
-        total_bookings: bookedCourts.length
+      bookingsSnapshot.forEach(doc => {
+        const bookingData = doc.data();
+        if (bookedIds.includes(bookingData.booking_id)) {
+          allBookings[bookingData.booking_id] = bookingData;
+        }
       });
+
+      console.log('Matched bookings:', allBookings);
+
+      // 3. ดึงข้อมูลสนามจาก Court collection
+      const courtRef = collection(db, 'Court');
+      const courtSnapshot = await getDocs(courtRef);
+      const courts = {};
       
-      console.log('Booked Courts:', bookedCourts);
+      courtSnapshot.forEach(doc => {
+        const courtData = doc.data();
+        courts[courtData.court_id] = courtData;
+      });
 
-      // ปรับวิธีการดึงข้อมูลสนาม
-      const bookingsWithDetails = await Promise.all(
-        bookedCourts.map(async (booking) => {
-          try {
-            // ใช้ court_id โดยตรงในการดึงข้อมูล
-            const courtSnapshot = await getDocs(collection(db, 'Court'));
-            const courtDoc = courtSnapshot.docs.find(doc => 
-              doc.data().court_id === booking.court_id
-            );
+      // 4. รวมข้อมูลทั้งหมด
+      const bookingsWithDetails = bookedIds.map(bookingId => {
+        const bookingData = allBookings[bookingId];
+        if (!bookingData) return null;
 
-            if (courtDoc) {
-              const courtData = courtDoc.data();
-              console.log('Found court:', {
-                court_id: booking.court_id,
-                name: courtData.field,
-                type: courtData.court_type,
-                booking_time: booking.booking_time
-              });
-              return {
-                id: booking.court_id,
-                start_time: booking.booking_time.start,
-                end_time: booking.booking_time.end,
-                booked_at: booking.booked_at,
-                price: booking.price, // เพิ่มการดึงราคาจาก booked_courts
-                courtDetails: {
-                  name: courtData.field,
-                  image: courtData.image[0],
-                  type: courtData.court_type,
-                  address: courtData.address
-                }
-              };
-            }
-            console.log('Court not found for ID:', booking.court_id);
-            return null;
-          } catch (error) {
-            console.error('Error fetching court details:', error);
-            return null;
+        const courtData = courts[bookingData.court_id];
+        if (!courtData) return null;
+
+        return {
+          id: bookingId,
+          start_time: bookingData.start_time,
+          end_time: bookingData.end_time,
+          price: bookingData.price,
+          status: bookingData.status,
+          people: bookingData.people,
+          courtDetails: {
+            name: courtData.field,
+            image: courtData.image[0],
+            type: courtData.court_type,
+            address: courtData.address
           }
-        })
-      );
+        };
+      }).filter(booking => booking !== null);
 
-      const validBookings = bookingsWithDetails.filter(booking => booking !== null);
-      console.log('Total valid bookings:', validBookings.length);
-      console.log('Valid bookings:', validBookings);
-      setBookings(validBookings);
+      console.log('Final processed bookings:', bookingsWithDetails);
+      setBookings(bookingsWithDetails);
 
     } catch (error) {
       console.error('Error fetching bookings:', error);

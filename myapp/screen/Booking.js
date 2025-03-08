@@ -285,7 +285,7 @@ const App = ({ navigation, route }) => {
       const startTime = formatTimeForDB(date, hourStart, minuteStart);
       const endTime = formatTimeForDB(date, hourEnd, minuteEnd);
 
-      // เพิ่มข้อมูลลงใน Booking collection (แบบเดิม)
+      // เพิ่มข้อมูลลงใน Booking collection (ไม่รวม people และ price)
       const bookingRef = collection(db, 'Booking');
       await addDoc(bookingRef, {
         booking_id,
@@ -293,9 +293,7 @@ const App = ({ navigation, route }) => {
         end_time: endTime,
         start_time: startTime,
         status: "booked",
-        user_id: userData.user_id,
-        people: parseInt(numPeople),
-        price: totalPrice
+        user_id: userData.user_id
       });
 
       // ส่งเฉพาะ booking_id ไปที่ users collection
@@ -477,14 +475,6 @@ const App = ({ navigation, route }) => {
             </Picker>
             <Picker selectedValue={minuteEnd} onValueChange={(itemValue) => setMinuteEnd(itemValue)} style={styles.picker}>
               {[...Array(60).keys()].map(i => <Picker.Item key={i} label={String(i).padStart(2, '0')} value={String(i).padStart(2, '0')} />)}
-            </Picker>
-          </View>
-
-          {/* จำนวนคน */}
-          <Text style={styles.label}>Number of People</Text>
-          <View style={styles.numPeopleContainer}>
-            <Picker selectedValue={numPeople} onValueChange={(itemValue) => setNumPeople(String(itemValue))} style={styles.picker}>
-              {[...Array(15).keys()].map(i => <Picker.Item key={i} label={String(i + 1)} value={String(i + 1)} />)}
             </Picker>
           </View>
 
