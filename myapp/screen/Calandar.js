@@ -575,15 +575,14 @@ const BookingSection = ({ route }) => {
               />
             )}
             <View style={styles.courtDetails}>
-              <Text style={styles.courtTitle}>{court ? court.field : 'Loading...'}</Text>
-              <Text style={styles.courtSubtitle}>{court ? court.address : 'Loading...'}</Text>
-              <Text style={[styles.fieldName, { textAlign: 'center' }]}>สนามบาสหนองงูเห่า</Text>
-              <Text style={[styles.fieldText, { textAlign: 'center' }]}>Player : 6-15 people/court</Text>
-              <Text style={[styles.fieldText, { textAlign: 'center' }]}>Time : 8:00 - 14:00</Text>
-              <Text style={[styles.fieldText, { textAlign: 'center' }]}>Price : 1 Hour/ 500 Bath</Text>
+              <Text style={[styles.courtTitle, styles.courtTitleBorder, { textAlign: 'center' }]}>{court ? court.field : 'Loading...'}</Text>
+              <Text style={[styles.courtSubtitle, { fontWeight: 'bold' }]}>{court ? court.address : 'Loading...'}</Text>
+              <Text style={[styles.fieldText, { textAlign: 'center', fontWeight: 'bold' }]}>Player : 6-15 people/court</Text>
+              <Text style={[styles.fieldText, { textAlign: 'center', fontWeight: 'bold' }]}>Time : 8:00 - 14:00</Text>
+              <Text style={[styles.fieldText, { textAlign: 'center', fontWeight: 'bold' }]}>Price : 1 Hour/ 500 Bath</Text>
             </View>
           </View>
-
+          {renderTimeSlots()}
           <View style={styles.timeContainer}>
             <Text style={styles.timeLabel}>Time</Text>
             <View style={styles.dateInputContainer}>
@@ -759,6 +758,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#009900',
+  },
+  courtTitleBorder: {
+    borderWidth: 2,
+    borderColor: '#000',
+    backgroundColor: '#000',
+    color: '#fff',
+    padding: 5,
+    borderRadius: 5,
   },
   courtSubtitle: {
     fontSize: 14,
