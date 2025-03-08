@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, Alert } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import { doc, getDoc, getDocs, collection , addDoc } from 'firebase/firestore';
+import { db } from '../FirebaseConfig';
+import { getAuth } from 'firebase/auth';
 
 export default function AlreadyBooked({ navigation, route }) {
   const [showReason, setShowReason] = useState(false);
@@ -57,10 +60,74 @@ export default function AlreadyBooked({ navigation, route }) {
     }
   };
 
-  const confirmCancellation = () => {
-    setShowConfirmModal(false);
-    setShowReason(false);
-    setShowReviewModal(true);
+  const confirmCancellation = async () => {
+    try {
+      console.log('Full booking object:', booking);
+  
+      if (!booking) {
+        throw new Error('No booking data available');
+      }
+  
+      const booking_id = booking.booking_id || booking.id;
+      if (!booking_id) {
+        throw new Error('No booking ID found');
+      }
+  
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        throw new Error('No authenticated user found');
+      }
+  
+      const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+      if (!userDoc.exists()) {
+        throw new Error('User document not found');
+      }
+      const userData = userDoc.data();
+      const user_id = userData.user_id;
+  
+      if (!user_id) {
+        throw new Error('user_id not found in user document');
+      }
+  
+      // Format datetime string as "YYYY-MM-DD HH:mm:ss"
+      const now = new Date();
+      const datetime_refund = now.getFullYear() + "-" + 
+                            String(now.getMonth() + 1).padStart(2, '0') + "-" +
+                            String(now.getDate()).padStart(2, '0') + " " +
+                            String(now.getHours()).padStart(2, '0') + ":" +
+                            String(now.getMinutes()).padStart(2, '0') + ":" +
+                            String(now.getSeconds()).padStart(2, '0');
+  
+      const refundData = {
+        booking_id: booking_id,
+        user_id: user_id,
+        status: 'Need Action',
+        reason: selectedReason,
+        datetime_refund: datetime_refund // Use formatted datetime string
+      };
+  
+      if (booking.courtDetails && booking.courtDetails.court_id) {
+        refundData.court_id = booking.courtDetails.court_id;
+      }
+  
+      console.log('Creating refund request with data:', refundData);
+  
+      const refundRef = collection(db, 'Refund');
+      await addDoc(refundRef, refundData);
+  
+      console.log('Refund request created successfully');
+      setShowConfirmModal(false);
+      setShowReason(false);
+      setShowReviewModal(true);
+    } catch (error) {
+      console.error('Error processing refund:', error);
+      Alert.alert(
+        'Error',
+        'Failed to process refund request. Please check your data and try again.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   return (
