@@ -102,8 +102,9 @@ export default function AlreadyBooked({ navigation, route }) {
       const refundData = {
         booking_id: booking_id,
         user_id: user_id,
+      
         status: 'Need Action',
-        reason: selectedReason,
+        reason_refund: selectedReason,
         datetime_refund: datetime_refund // Use formatted datetime string
       };
   
