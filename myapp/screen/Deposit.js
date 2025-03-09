@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Image, Alert } from "react-native";
 import { FontAwesome5 } from "@expo/vector-icons";
-// นำเข้า Firebase อย่างถูกต้อง
-import { getFirestore, collection, doc, getDoc, updateDoc, addDoc, Timestamp } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
-import { initializeApp, getApp } from 'firebase/app';
 
 export default function Deposit() {
   const [amount, setAmount] = useState("0");
@@ -12,7 +10,6 @@ export default function Deposit() {
   const [currentBalance, setCurrentBalance] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
-  // ใช้ Firebase SDK v9 syntax
   const auth = getAuth();
   const firestore = getFirestore();
 
@@ -23,8 +20,8 @@ export default function Deposit() {
 
   const fetchUserBalance = async () => {
     try {
-      if (auth.currentUser) {
-        const userId = auth.currentUser.uid;
+      if (auth.currentUser ) {
+        const userId = auth.currentUser .uid; // Define userId here
         const userDocRef = doc(firestore, 'Wallet', userId);
         const userDocSnap = await getDoc(userDocRef);
         
@@ -34,7 +31,7 @@ export default function Deposit() {
           // Create wallet document if it doesn't exist
           await updateDoc(userDocRef, {
             balance: 0,
-            lastUpdated: Timestamp.now()
+            createAt: Timestamp.now(),
           });
           setCurrentBalance(0);
         }
@@ -46,14 +43,10 @@ export default function Deposit() {
   };
 
   const handleAmountChange = (text) => {
-    // Remove non-numeric characters except decimal point
     const cleanedText = text.replace(/[^0-9.]/g, '');
-    
-    // Check if it's a valid number
     if (!cleanedText || isNaN(parseFloat(cleanedText))) {
       setAmount("0");
     } else {
-      // Limit to 2 decimal places
       const numericValue = parseFloat(cleanedText);
       setAmount(numericValue.toString());
     }
@@ -67,59 +60,43 @@ export default function Deposit() {
   const handleDeposit = async () => {
     setIsLoading(true);
     try {
-      if (auth.currentUser) {
-        const userId = auth.currentUser.uid;
+      if (auth.currentUser ) {
+        const userId = auth.currentUser .uid; // Define userId here
         const depositAmount = parseFloat(amount) || 0;
-        
+
         if (depositAmount <= 0) {
           Alert.alert("Error", "Please enter a valid amount greater than 0");
           setIsLoading(false);
           return;
         }
 
-        // 1. Add transaction record to Wallet collection
-        const transactionRef = collection(firestore, 'Wallet');
-        await addDoc(transactionRef, {
-          userId: userId,
-          amount: depositAmount,
-          status: 'transfer_in',
-          timestamp: Timestamp.now(),
-          type: 'deposit'
-        });
-
-        // 2. Update user balance
         const userWalletRef = doc(firestore, 'Wallet', userId);
         const userDocSnap = await getDoc(userWalletRef);
-        
-        let newBalance = depositAmount;
+
         if (userDocSnap.exists()) {
           const currentBalanceFromDB = userDocSnap.data().balance || 0;
-          newBalance = currentBalanceFromDB + depositAmount;
-          
+          const newBalance = currentBalanceFromDB + depositAmount;
+
           await updateDoc(userWalletRef, {
             balance: newBalance,
-            lastUpdated: Timestamp.now()
-          });
-        } else {
-          // If user wallet document doesn't exist, create it
-          await updateDoc(userWalletRef, {
-            balance: depositAmount,
-            lastUpdated: Timestamp.now()
-          });
-        }
+            createAt: Timestamp.now(),
+              amount: depositAmount,
+              status: 'transfer_in',
+            },
 
-        // 3. Update local state
-        setCurrentBalance(newBalance);
-        
-        // 4. Close modal and reset amount
-        setShowQRModal(false);
-        setAmount("0");
-        
-        // 5. Show success message
-        Alert.alert(
-          "Deposit Successful",
-          `฿${depositAmount.toFixed(2)} has been added to your wallet. New balance: ฿${newBalance.toFixed(2)}`
-        );
+          );
+
+          setCurrentBalance(newBalance);
+          Alert.alert(
+            "Deposit Successful",
+            `฿${depositAmount.toFixed(2)} has been added to your wallet. New balance: ฿${newBalance.toFixed(2)}`
+          );
+
+          setAmount("0");
+          setShowQRModal(false);
+        } else {
+          Alert.alert("Error", "No wallet found for the user.");
+        }
       } else {
         Alert.alert("Error", "You must be logged in to make a deposit");
       }
