@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated, ScrollView, Refresh
 import { Ionicons } from "@expo/vector-icons";
 import { AuthContext } from "../context/AuthContext";
 import { getAuth } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
 import { db } from "../FirebaseConfig";
+import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore"; // ✅ เพิ่ม import ที่หายไป
 
 export default function Account({ navigation }) {
   const { logout } = useContext(AuthContext);
@@ -22,23 +22,57 @@ export default function Account({ navigation }) {
       return;
     }
 
-    try {
-      const userDoc = await getDoc(doc(db, "users", userAuth.uid));
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        setWalletAmount(userData.wallet ? userData.wallet.toFixed(2) : "0.00");
-      } else {
-        console.error("User data not found in Firestore");
-      }
-    } catch (error) {
-      console.error("Error fetching wallet amount:", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchWalletAmount();
-  }, [userAuth]);
-
+     try {
+       // 1️⃣ ดึง wallet_id จาก Users collection
+       const userRef = doc(db, "users", userAuth.uid);
+       const userDoc = await getDoc(userRef);
+ 
+       if (!userDoc.exists()) {
+         console.error("User document not found in Firestore");
+         return;
+       }
+ 
+       const userData = userDoc.data();
+       const walletId = userData.wallet_id || null; // ✅ ป้องกัน wallet_id เป็น undefined
+ 
+       console.log("User wallet_id:", walletId); // Debugging
+ 
+       if (!walletId) {
+         console.error("wallet_id not found for user");
+         return;
+       }
+ 
+       // 2️⃣ ค้นหา document ที่มี field "wallet_id" ใน Wallet collection
+       const walletQuery = query(collection(db, "Wallet"), where("wallet_id", "==", walletId));
+       const walletSnapshot = await getDocs(walletQuery);
+ 
+       if (walletSnapshot.empty) {
+         console.error(`No wallet found with wallet_id: ${walletId}`);
+         return;
+       }
+ 
+       // 3️⃣ ดึงข้อมูล balance
+       let walletData = null;
+       walletSnapshot.forEach((doc) => {
+         walletData = doc.data();
+       });
+ 
+       if (walletData && walletData.balance !== undefined) {
+         setWalletAmount(walletData.balance.toFixed(2)); // ✅ ป้องกัน null และ format ให้เป็นทศนิยม 2 ตำแหน่ง
+         console.log("Wallet Balance:", walletData.balance);
+       } else {
+         console.error("Balance not found in Wallet document");
+       }
+ 
+     } catch (error) {
+       console.error("Error fetching wallet balance:", error);
+     }
+   };
+ 
+   useEffect(() => {
+     fetchWalletAmount();
+   }, [userAuth]);
+ 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchWalletAmount().then(() => setRefreshing(false));

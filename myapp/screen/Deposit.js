@@ -1,11 +1,49 @@
-
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Image } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Image, Alert } from "react-native";
 import { FontAwesome5 } from "@expo/vector-icons";
+// นำเข้า Firebase อย่างถูกต้อง
+import { getFirestore, collection, doc, getDoc, updateDoc, addDoc, Timestamp } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import { initializeApp, getApp } from 'firebase/app';
 
 export default function Deposit() {
   const [amount, setAmount] = useState("0");
   const [showQRModal, setShowQRModal] = useState(false);
+  const [currentBalance, setCurrentBalance] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // ใช้ Firebase SDK v9 syntax
+  const auth = getAuth();
+  const firestore = getFirestore();
+
+  // Fetch current user balance on component mount
+  useEffect(() => {
+    fetchUserBalance();
+  }, []);
+
+  const fetchUserBalance = async () => {
+    try {
+      if (auth.currentUser) {
+        const userId = auth.currentUser.uid;
+        const userDocRef = doc(firestore, 'Wallet', userId);
+        const userDocSnap = await getDoc(userDocRef);
+        
+        if (userDocSnap.exists()) {
+          setCurrentBalance(userDocSnap.data().balance || 0);
+        } else {
+          // Create wallet document if it doesn't exist
+          await updateDoc(userDocRef, {
+            balance: 0,
+            lastUpdated: Timestamp.now()
+          });
+          setCurrentBalance(0);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching balance:", error);
+      Alert.alert("Error", "Failed to fetch your current balance");
+    }
+  };
 
   const handleAmountChange = (text) => {
     // Remove non-numeric characters except decimal point
@@ -26,8 +64,81 @@ export default function Deposit() {
     return isNaN(numericValue) ? "0.00" : numericValue.toFixed(2);
   };
 
+  const handleDeposit = async () => {
+    setIsLoading(true);
+    try {
+      if (auth.currentUser) {
+        const userId = auth.currentUser.uid;
+        const depositAmount = parseFloat(amount) || 0;
+        
+        if (depositAmount <= 0) {
+          Alert.alert("Error", "Please enter a valid amount greater than 0");
+          setIsLoading(false);
+          return;
+        }
+
+        // 1. Add transaction record to Wallet collection
+        const transactionRef = collection(firestore, 'Wallet');
+        await addDoc(transactionRef, {
+          userId: userId,
+          amount: depositAmount,
+          status: 'transfer_in',
+          timestamp: Timestamp.now(),
+          type: 'deposit'
+        });
+
+        // 2. Update user balance
+        const userWalletRef = doc(firestore, 'Wallet', userId);
+        const userDocSnap = await getDoc(userWalletRef);
+        
+        let newBalance = depositAmount;
+        if (userDocSnap.exists()) {
+          const currentBalanceFromDB = userDocSnap.data().balance || 0;
+          newBalance = currentBalanceFromDB + depositAmount;
+          
+          await updateDoc(userWalletRef, {
+            balance: newBalance,
+            lastUpdated: Timestamp.now()
+          });
+        } else {
+          // If user wallet document doesn't exist, create it
+          await updateDoc(userWalletRef, {
+            balance: depositAmount,
+            lastUpdated: Timestamp.now()
+          });
+        }
+
+        // 3. Update local state
+        setCurrentBalance(newBalance);
+        
+        // 4. Close modal and reset amount
+        setShowQRModal(false);
+        setAmount("0");
+        
+        // 5. Show success message
+        Alert.alert(
+          "Deposit Successful",
+          `฿${depositAmount.toFixed(2)} has been added to your wallet. New balance: ฿${newBalance.toFixed(2)}`
+        );
+      } else {
+        Alert.alert("Error", "You must be logged in to make a deposit");
+      }
+    } catch (error) {
+      console.error("Error processing deposit:", error);
+      Alert.alert("Error", "Failed to process your deposit. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
+      {/* Current Balance Display */}
+      <View style={styles.balanceContainer}>
+        <Text style={styles.balanceLabel}>Current Balance</Text>
+        <Text style={styles.balanceAmount}>฿ {currentBalance.toFixed(2)}</Text>
+      </View>
+
       {/* Deposit Card */}
       <View style={styles.card}>
         <Text style={styles.label}>Specify the amount :</Text>
@@ -55,10 +166,13 @@ export default function Deposit() {
 
       {/* Confirm Button */}
       <TouchableOpacity 
-        style={styles.confirmButton}
+        style={[styles.confirmButton, isLoading && styles.disabledButton]}
         onPress={() => setShowQRModal(true)}
+        disabled={isLoading}
       >
-        <Text style={styles.confirmText}>CONFIRM</Text>
+        <Text style={styles.confirmText}>
+          {isLoading ? "PROCESSING..." : "CONFIRM"}
+        </Text>
       </TouchableOpacity>
 
       {/* QR Code Modal */}
@@ -78,9 +192,12 @@ export default function Deposit() {
             />
             <TouchableOpacity
               style={styles.closeButton}
-              onPress={() => setShowQRModal(false)}
+              onPress={handleDeposit}
+              disabled={isLoading}
             >
-              <Text style={styles.closeButtonText}>OK</Text>
+              <Text style={styles.closeButtonText}>
+                {isLoading ? "PROCESSING..." : "OK"}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -95,6 +212,23 @@ const styles = StyleSheet.create({
     backgroundColor: "#F3F3F3",
     alignItems: "center",
     paddingTop: 20,
+  },
+  balanceContainer: {
+    backgroundColor: "#4A90E2",
+    width: "90%",
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  balanceLabel: {
+    color: "white",
+    fontSize: 16,
+  },
+  balanceAmount: {
+    color: "white",
+    fontSize: 24,
+    fontWeight: "bold",
+    marginTop: 5,
   },
   card: {
     backgroundColor: "white",
@@ -162,6 +296,9 @@ const styles = StyleSheet.create({
     marginTop: 30,
     width: "90%",
     alignItems: "center",
+  },
+  disabledButton: {
+    backgroundColor: "#D3D3D3",
   },
   confirmText: {
     fontSize: 16,
