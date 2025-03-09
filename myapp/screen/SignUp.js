@@ -116,7 +116,7 @@ const SignUp = ({ navigation }) => {
         amount :0,
         balance:0,
         wallet_id: `w${nextUserId.substring(3).padStart(2, '0')}`, 
-        createdAt: serverTimestamp(),
+
         status:"",
       });
 
