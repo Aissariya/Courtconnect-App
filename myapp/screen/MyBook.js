@@ -73,11 +73,14 @@ const MyBook = () => {
         getDocs(collection(db, 'Court'))
       ]);
 
-      // เก็บข้อมูล courts
+      // เก็บข้อมูล courts พร้อม priceslot
       const courts = {};
       courtSnapshot.forEach(doc => {
         const courtData = doc.data();
-        courts[courtData.court_id] = courtData;
+        courts[courtData.court_id] = {
+          ...courtData,
+          priceslot: courtData.priceslot || 500 // ใช้ค่าเริ่มต้น 500 ถ้าไม่มี priceslot
+        };
       });
 
       // เก็บข้อมูล refund ที่มีสถานะ Need Action
@@ -97,17 +100,26 @@ const MyBook = () => {
         
         if (court) {
           const refundData = refundMap.get(booking.booking_id);
+          // คำนวณราคาจาก priceslot ของ court
+          const calculatedPrice = calculateBookingPrice(
+            booking.start_time, 
+            booking.end_time, 
+            court.priceslot
+          );
+
           processedBookings.push({
             id: booking.booking_id,
             start_time: booking.start_time,
             end_time: booking.end_time,
             status: refundData ? 'Need Action' : booking.status,
+            price: calculatedPrice, // เพิ่มราคาที่คำนวณแล้ว
             courtDetails: {
               name: court.field,
               image: court.image[0],
               type: court.court_type,
               address: court.address,
-              court_id: court.court_id
+              court_id: court.court_id,
+              priceslot: court.priceslot
             }
           });
         }
