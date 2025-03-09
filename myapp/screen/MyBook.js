@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList, ActivityIndicator, RefreshControl } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { doc, getDoc, getDocs, collection } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, updateDoc, arrayRemove } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
 import { getAuth } from 'firebase/auth';
 
@@ -65,24 +65,40 @@ const MyBook = () => {
       const userDoc = await getDoc(doc(db, "users", currentUser.uid));
       if (!userDoc.exists()) return;
 
-      const bookedIds = userDoc.data().booked_courts || [];
+      let bookedIds = userDoc.data().booked_courts || [];
       console.log('Found booked_courts:', bookedIds);
 
-      // 2. ดึงข้อมูลการจองจาก Booking collection
+      // 2. ดึงข้อมูลการจองทั้งหมดจาก Booking collection
       const bookingRef = collection(db, 'Booking');
       const bookingsSnapshot = await getDocs(bookingRef);
       const allBookings = {};
+      const validBookingIds = new Set();
       
       bookingsSnapshot.forEach(doc => {
         const bookingData = doc.data();
-        if (bookedIds.includes(bookingData.booking_id)) {
-          allBookings[bookingData.booking_id] = bookingData;
-        }
+        allBookings[bookingData.booking_id] = bookingData;
+        validBookingIds.add(bookingData.booking_id);
       });
 
-      console.log('Matched bookings:', allBookings);
+      // 3. ตรวจสอบและลบ booking_id ที่ไม่มีอยู่จริง
+      const invalidBookingIds = bookedIds.filter(id => !validBookingIds.has(id));
+      if (invalidBookingIds.length > 0) {
+        console.log('Found invalid booking IDs:', invalidBookingIds);
+        
+        // ลบ booking_id ที่ไม่มีอยู่จริงออกจาก users collection
+        const userRef = doc(db, "users", currentUser.uid);
+        for (const invalidId of invalidBookingIds) {
+          await updateDoc(userRef, {
+            booked_courts: arrayRemove(invalidId)
+          });
+          console.log('Removed invalid booking ID:', invalidId);
+        }
+        
+        // อัพเดต bookedIds หลังจากลบ
+        bookedIds = bookedIds.filter(id => validBookingIds.has(id));
+      }
 
-      // 3. ดึงข้อมูลสนามจาก Court collection และเก็บ priceslot
+      // 4. ดึงข้อมูลสนามจาก Court collection และเก็บ priceslot
       const courtRef = collection(db, 'Court');
       const courtSnapshot = await getDocs(courtRef);
       const courts = {};
@@ -95,7 +111,7 @@ const MyBook = () => {
         };
       });
 
-      // 4. รวมข้อมูลทั้งหมดพร้อมคำนวณราคา
+      // 5. รวมข้อมูลทั้งหมดพร้อมคำนวณราคา
       const bookingsWithDetails = bookedIds.map(bookingId => {
         const bookingData = allBookings[bookingId];
         if (!bookingData) return null;
