@@ -168,14 +168,21 @@ const MyBook = () => {
       onPress={() => navigation.navigate("AlreadyBooked", { 
         booking: {
           ...item,
-          status: "booked",
-          calculatedPrice: item.price // ส่งราคาที่คำนวณแล้วไปยัง AlreadyBooked
+          calculatedPrice: item.price
         }
       })} 
       style={styles.card}
     >
-      <View style={styles.statusBadge}>
-        <Text style={styles.statusText}>Booked</Text>
+      <View style={[
+        styles.statusBadge,
+        { backgroundColor: item.status === 'Need Action' ? '#FF6B6B' : '#A2F193' }
+      ]}>
+        <Text style={[
+          styles.statusText,
+          { color: item.status === 'Need Action' ? 'white' : 'black' }
+        ]}>
+          {item.status === 'Need Action' ? 'Cancel' : 'Booked'}
+        </Text>
       </View>
       <Image source={{ uri: item.courtDetails.image }} style={styles.image} />
       <View style={styles.cardContent}>
@@ -247,7 +254,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 10,
     right: 10,
-    backgroundColor: "#A2F193", // เปลี่ยนจาก #FFA726 เป็น #A2F193
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: 6,
@@ -255,7 +261,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: "bold",
-    color: "black", // เปลี่ยนจาก white เป็น black เพื่อให้เห็นชัดบนพื้นสีเขียว
   },
   image: {
     width: 90,

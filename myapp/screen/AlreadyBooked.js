@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, Alert } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { doc, getDoc, getDocs, collection , addDoc } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection , addDoc, serverTimestamp, query, where, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
 import { getAuth } from 'firebase/auth';
 
@@ -62,72 +62,87 @@ export default function AlreadyBooked({ navigation, route }) {
 
   const confirmCancellation = async () => {
     try {
-      console.log('Full booking object:', booking);
-  
       if (!booking) {
         throw new Error('No booking data available');
       }
   
       const booking_id = booking.booking_id || booking.id;
-      if (!booking_id) {
-        throw new Error('No booking ID found');
-      }
-  
       const auth = getAuth();
       const currentUser = auth.currentUser;
-      if (!currentUser) {
-        throw new Error('No authenticated user found');
+      
+      if (!currentUser || !booking_id) {
+        throw new Error('Missing required data');
+      }
+  
+      // 1. ค้นหาและอัพเดทข้อมูลใน Booking collection
+      const bookingRef = collection(db, 'Booking');
+      const bookingQuery = query(bookingRef, where('booking_id', '==', booking_id));
+      const bookingSnapshot = await getDocs(bookingQuery);
+      
+      let court_id;
+      if (!bookingSnapshot.empty) {
+        const bookingDoc = bookingSnapshot.docs[0];
+        court_id = bookingDoc.data().court_id;
+        
+        // อัพเดทสถานะเป็น Need Action
+        await updateDoc(bookingDoc.ref, {
+          status: 'Need Action'
+        });
+        console.log('Updated booking status to Need Action');
+      } else {
+        throw new Error('Cannot find booking record');
       }
   
       const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-      if (!userDoc.exists()) {
-        throw new Error('User document not found');
-      }
       const userData = userDoc.data();
       const user_id = userData.user_id;
   
-      if (!user_id) {
-        throw new Error('user_id not found in user document');
+      // 2. บันทึก timestamp
+      const timestampRef = collection(db, 'TimeStamp');
+      await addDoc(timestampRef, {
+        booking_id,
+        user_id,
+        datetime_booking: serverTimestamp(),
+        action: 'Need Action',
+        court_id: court_id
+      });
+  
+      // 3. ลบ timestamp เก่า
+      const timestampQuery = query(timestampRef, where('booking_id', '==', booking_id));
+      const timestampSnapshot = await getDocs(timestampQuery);
+      const deletePromises = [];
+      timestampSnapshot.forEach(doc => {
+        const timestampData = doc.data();
+        if (timestampData.action !== 'Need Action') {
+          deletePromises.push(deleteDoc(doc.ref));
+        }
+      });
+  
+      if (deletePromises.length > 0) {
+        await Promise.all(deletePromises);
+        console.log(`Deleted ${deletePromises.length} old timestamp records`);
       }
   
-      // Format datetime string as "YYYY-MM-DD HH:mm:ss"
-      const now = new Date();
-      const datetime_refund = now.getFullYear() + "-" + 
-                            String(now.getMonth() + 1).padStart(2, '0') + "-" +
-                            String(now.getDate()).padStart(2, '0') + " " +
-                            String(now.getHours()).padStart(2, '0') + ":" +
-                            String(now.getMinutes()).padStart(2, '0') + ":" +
-                            String(now.getSeconds()).padStart(2, '0');
-  
+      // 4. บันทึกข้อมูล refund
       const refundData = {
-        booking_id: booking_id,
-        user_id: user_id,
-      
+        booking_id,
+        user_id,
         status: 'Need Action',
         reason_refund: selectedReason,
-        datetime_refund: datetime_refund // Use formatted datetime string
+        datetime_refund: new Date().toISOString(),
+        court_id: court_id
       };
-  
-      if (booking.courtDetails && booking.courtDetails.court_id) {
-        refundData.court_id = booking.courtDetails.court_id;
-      }
-  
-      console.log('Creating refund request with data:', refundData);
   
       const refundRef = collection(db, 'Refund');
       await addDoc(refundRef, refundData);
   
-      console.log('Refund request created successfully');
       setShowConfirmModal(false);
       setShowReason(false);
       setShowReviewModal(true);
+  
     } catch (error) {
       console.error('Error processing refund:', error);
-      Alert.alert(
-        'Error',
-        'Failed to process refund request. Please check your data and try again.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Error', 'Failed to process refund request: ' + error.message);
     }
   };
 

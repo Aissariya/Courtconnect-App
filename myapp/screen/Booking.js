@@ -7,7 +7,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { AntDesign } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import PropTypes from 'prop-types';
-import { collection, addDoc, getFirestore, doc, getDoc, updateDoc, arrayUnion, getDocs, query, where } from 'firebase/firestore';
+import { collection, addDoc, getFirestore, doc, getDoc, updateDoc, arrayUnion, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
 
 const App = ({ navigation, route }) => {
@@ -285,7 +285,7 @@ const App = ({ navigation, route }) => {
       const startTime = formatTimeForDB(date, hourStart, minuteStart);
       const endTime = formatTimeForDB(date, hourEnd, minuteEnd);
 
-      // เพิ่ม totalPrice ที่คำนวณได้เข้าไปใน Booking collection
+      // บันทึกการจองใน Booking collection (ไม่รวม price)
       const bookingRef = collection(db, 'Booking');
       await addDoc(bookingRef, {
         booking_id,
@@ -293,11 +293,20 @@ const App = ({ navigation, route }) => {
         end_time: endTime,
         start_time: startTime,
         status: "booked",
-        user_id: userData.user_id,
-        price: totalPrice // เพิ่ม price ที่คำนวณไว้แล้ว
+        user_id: userData.user_id
       });
 
-      // ส่งเฉพาะ booking_id ไปที่ users collection
+      // บันทึกเวลาที่จองแยกใน TimeStamp collection
+      const timestampRef = collection(db, 'TimeStamp');
+      await addDoc(timestampRef, {
+        booking_id,
+        user_id: userData.user_id,
+        datetime_booking: serverTimestamp(),
+        action: 'booking',
+        court_id: court.court_id
+      });
+
+      // อัพเดท booked_courts ใน users collection
       const userRef = doc(db, 'users', currentUser.uid);
       await updateDoc(userRef, {
         booked_courts: arrayUnion(booking_id)
@@ -312,7 +321,7 @@ const App = ({ navigation, route }) => {
       }, 2000);
 
     } catch (error) {
-      console.error('Error adding booking:', error);
+      console.error('Error in booking process:', error);
       alert('Failed to create booking: ' + error.message);
     } finally {
       setIsLoading(false);

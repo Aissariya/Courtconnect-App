@@ -17,21 +17,33 @@ export default function Notification() {
         setLoading(true);
         const auth = getAuth();
         const currentUser = auth.currentUser;
-        
         if (!currentUser) return;
 
-        // 1. ดึง booking_id จาก users collection
         const userDoc = await getDoc(doc(db, "users", currentUser.uid));
         if (!userDoc.exists()) return;
+        const userData = userDoc.data();
+        const user_id = userData.user_id;
+        const bookedIds = userData.booked_courts || [];
 
-        const bookedIds = userDoc.data().booked_courts || [];
-        console.log('Found booked courts:', bookedIds);
+        // Fetch courts data
+        const courtRef = collection(db, 'Court');
+        const courtSnapshot = await getDocs(courtRef);
+        const courts = {};
+        courtSnapshot.forEach(doc => {
+          const courtData = doc.data();
+          courts[courtData.court_id] = courtData;
+        });
 
-        // 2. ดึงข้อมูลการจองจาก Booking collection
+        // Fetch bookings and refunds data
         const bookingRef = collection(db, 'Booking');
-        const bookingsSnapshot = await getDocs(bookingRef);
+        const refundRef = collection(db, 'Refund');
+        const [bookingsSnapshot, refundsSnapshot] = await Promise.all([
+          getDocs(bookingRef),
+          getDocs(refundRef)
+        ]);
+
+        // Process bookings
         const bookings = {};
-        
         bookingsSnapshot.forEach(doc => {
           const bookingData = doc.data();
           if (bookedIds.includes(bookingData.booking_id)) {
@@ -39,54 +51,67 @@ export default function Notification() {
           }
         });
 
-        // 3. ดึงข้อมูลสนามจาก Court collection
-        const courtRef = collection(db, 'Court');
-        const courtSnapshot = await getDocs(courtRef);
-        const courts = {};
-        
-        courtSnapshot.forEach(doc => {
-          const courtData = doc.data();
-          courts[courtData.court_id] = courtData;
+        // Create booking notifications (excluding refunded bookings)
+        const refundedBookingIds = new Set();
+        refundsSnapshot.forEach(doc => {
+          const refundData = doc.data();
+          if (refundData.status === 'Need Action') {
+            refundedBookingIds.add(refundData.booking_id);
+          }
         });
 
-        // 4. สร้างการแจ้งเตือน
-        const notificationsList = await Promise.all(
-          Object.values(bookings)
-            .filter(booking => booking.status === 'booked')
-            .map(async (booking) => {
+        const bookingNotifications = Object.values(bookings)
+          .filter(booking => 
+            booking.status === 'booked' && 
+            !refundedBookingIds.has(booking.booking_id)
+          )
+          .map(booking => {
+            const courtData = courts[booking.court_id];
+            return {
+              id: booking.booking_id,
+              title: 'Booking Confirmed',
+              message: `${courtData?.field || 'Unknown Court'}`,
+              time: formatTime(booking.start_time),
+              date: formatDate(booking.start_time),
+              status: 'success',
+              timestamp: new Date(booking.start_time).getTime(),
+              bookingDetails: {
+                ...booking,
+                courtData
+              }
+            };
+          });
+
+        // Process refund notifications
+        const refundNotifications = [];
+        refundsSnapshot.forEach(doc => {
+          const refundData = doc.data();
+          if (refundData.user_id === user_id && refundData.status === 'Need Action') {
+            const booking = bookings[refundData.booking_id];
+            if (booking) {
               const courtData = courts[booking.court_id];
-
-              // แปลงวันที่และเวลาจากรูปแบบ "March 7, 2024 at 10:00 AM UTC+7"
-              const parseDateTime = (timeStr) => {
-                try {
-                  const [datePart, timePart] = timeStr.split(' at ');
-                  const [time, period] = timePart.split(' UTC')[0].split(' ');
-                  
-                  return {
-                    date: datePart, // เก็บวันที่ในรูปแบบเดิม
-                    time: `${time} ${period}` // เก็บเวลาพร้อม AM/PM
-                  };
-                } catch (error) {
-                  console.error('Error parsing datetime:', error);
-                  return { date: '', time: '' };
-                }
-              };
-
-              const dateTime = parseDateTime(booking.start_time);
-              
-              return {
-                id: booking.booking_id,
-                title: 'Booking Confirmed',
+              refundNotifications.push({
+                id: `${refundData.booking_id}_refund`,
+                title: 'Cancellation Under Review',
                 message: `${courtData?.field || 'Unknown Court'}`,
-                time: dateTime.time,
-                date: dateTime.date,
-                status: 'success'
-              };
-            })
-        );
+                time: formatTime(booking.start_time),
+                date: formatDate(booking.start_time),
+                status: 'review',
+                timestamp: new Date().getTime(),
+                bookingDetails: {
+                  ...booking,
+                  courtData
+                }
+              });
+            }
+          }
+        });
 
-        console.log('Generated notifications:', notificationsList);
-        setNotifications(notificationsList);
+        // Combine and sort notifications
+        const allNotifications = [...bookingNotifications, ...refundNotifications]
+          .sort((a, b) => b.timestamp - a.timestamp);
+
+        setNotifications(allNotifications);
 
       } catch (error) {
         console.error('Error fetching notifications:', error);
@@ -97,6 +122,35 @@ export default function Notification() {
 
     fetchNotifications();
   }, []);
+
+  // Add helper functions for formatting
+  const formatTime = (timeStr) => {
+    if (!timeStr) return '';
+    const [hours, minutes] = timeStr.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${minutes} ${ampm}`;
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const parseDateTime = (timeStr) => {
+    if (!timeStr) return { date: '', time: '' };
+    const [datePart, timePart] = timeStr.split(' ');
+    return {
+      date: formatDate(datePart),
+      time: formatTime(timePart)
+    };
+  };
 
   const renderNotification = ({ item }) => (
     <TouchableOpacity 
