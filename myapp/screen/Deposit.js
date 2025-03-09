@@ -20,18 +20,18 @@ export default function Deposit() {
 
   const fetchUserBalance = async () => {
     try {
-      if (auth.currentUser ) {
-        const userId = auth.currentUser .uid; // Define userId here
+      if (auth.currentUser) {
+        const userId = auth.currentUser.uid; // Define userId here
         const userDocRef = doc(firestore, 'Wallet', userId);
         const userDocSnap = await getDoc(userDocRef);
-        
+
         if (userDocSnap.exists()) {
           setCurrentBalance(userDocSnap.data().balance || 0);
         } else {
           // Create wallet document if it doesn't exist
           await updateDoc(userDocRef, {
             balance: 0,
-            createAt: Timestamp.now(),
+            create_at: Timestamp.now(),
           });
           setCurrentBalance(0);
         }
@@ -60,8 +60,8 @@ export default function Deposit() {
   const handleDeposit = async () => {
     setIsLoading(true);
     try {
-      if (auth.currentUser ) {
-        const userId = auth.currentUser .uid; // Define userId here
+      if (auth.currentUser) {
+        const userId = auth.currentUser.uid; // Define userId here
         const depositAmount = parseFloat(amount) || 0;
 
         if (depositAmount <= 0) {
@@ -79,10 +79,10 @@ export default function Deposit() {
 
           await updateDoc(userWalletRef, {
             balance: newBalance,
-            createAt: Timestamp.now(),
-              amount: depositAmount,
-              status: 'tranfer_in',
-            },
+            create_at: Timestamp.now(),
+            amount: depositAmount,
+            status: 'tranfer_in',
+          },
 
           );
 
@@ -142,7 +142,7 @@ export default function Deposit() {
       </View>
 
       {/* Confirm Button */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[styles.confirmButton, isLoading && styles.disabledButton]}
         onPress={() => setShowQRModal(true)}
         disabled={isLoading}
@@ -191,18 +191,18 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   balanceContainer: {
-    backgroundColor: "#4A90E2",
+    backgroundColor: "#A2F193",
     width: "90%",
     padding: 15,
     borderRadius: 10,
     alignItems: "center",
   },
   balanceLabel: {
-    color: "white",
+    color: "black",
     fontSize: 16,
   },
   balanceAmount: {
-    color: "white",
+    color: "black",
     fontSize: 24,
     fontWeight: "bold",
     marginTop: 5,
