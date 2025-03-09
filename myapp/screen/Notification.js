@@ -25,33 +25,43 @@ export default function Notification() {
         const user_id = userData.user_id;
         const bookedIds = userData.booked_courts || [];
 
-        // Fetch courts data
-        const courtRef = collection(db, 'Court');
-        const courtSnapshot = await getDocs(courtRef);
+        // Fetch courts, bookings, timestamps and refunds data
+        const [courtSnapshot, bookingsSnapshot, timestampsSnapshot, refundsSnapshot] = await Promise.all([
+          getDocs(collection(db, 'Court')),
+          getDocs(collection(db, 'Booking')),
+          getDocs(collection(db, 'TimeStamp')),
+          getDocs(collection(db, 'Refund'))
+        ]);
+
+        // Process courts
         const courts = {};
         courtSnapshot.forEach(doc => {
           const courtData = doc.data();
           courts[courtData.court_id] = courtData;
         });
 
-        // Fetch bookings and refunds data
-        const bookingRef = collection(db, 'Booking');
-        const refundRef = collection(db, 'Refund');
-        const [bookingsSnapshot, refundsSnapshot] = await Promise.all([
-          getDocs(bookingRef),
-          getDocs(refundRef)
-        ]);
+        // Process timestamps
+        const timestamps = {};
+        timestampsSnapshot.forEach(doc => {
+          const timestampData = doc.data();
+          if (!timestamps[timestampData.booking_id]) {
+            timestamps[timestampData.booking_id] = timestampData;
+          }
+        });
 
         // Process bookings
         const bookings = {};
         bookingsSnapshot.forEach(doc => {
           const bookingData = doc.data();
           if (bookedIds.includes(bookingData.booking_id)) {
-            bookings[bookingData.booking_id] = bookingData;
+            bookings[bookingData.booking_id] = {
+              ...bookingData,
+              timestamp: timestamps[bookingData.booking_id]?.datetime_booking
+            };
           }
         });
 
-        // Create booking notifications (excluding refunded bookings)
+        // Process notifications for confirmed bookings
         const refundedBookingIds = new Set();
         refundsSnapshot.forEach(doc => {
           const refundData = doc.data();
@@ -67,14 +77,16 @@ export default function Notification() {
           )
           .map(booking => {
             const courtData = courts[booking.court_id];
+            const timestamp = booking.timestamp;
+            
             return {
               id: booking.booking_id,
               title: 'Booking Confirmed',
               message: `${courtData?.field || 'Unknown Court'}`,
-              time: formatTime(booking.start_time),
-              date: formatDate(booking.start_time),
+              time: timestamp ? new Date(timestamp.seconds * 1000).toLocaleTimeString() : '',
+              date: timestamp ? new Date(timestamp.seconds * 1000).toLocaleDateString() : '',
               status: 'success',
-              timestamp: new Date(booking.start_time).getTime(),
+              timestamp: timestamp ? timestamp.seconds * 1000 : Date.now(),
               bookingDetails: {
                 ...booking,
                 courtData
@@ -88,16 +100,18 @@ export default function Notification() {
           const refundData = doc.data();
           if (refundData.user_id === user_id && refundData.status === 'Need Action') {
             const booking = bookings[refundData.booking_id];
-            if (booking) {
+            const timestamp = timestamps[refundData.booking_id]?.datetime_booking;
+            
+            if (booking && timestamp) {
               const courtData = courts[booking.court_id];
               refundNotifications.push({
                 id: `${refundData.booking_id}_refund`,
                 title: 'Cancellation Under Review',
                 message: `${courtData?.field || 'Unknown Court'}`,
-                time: formatTime(booking.start_time),
-                date: formatDate(booking.start_time),
+                time: new Date(timestamp.seconds * 1000).toLocaleTimeString(),
+                date: new Date(timestamp.seconds * 1000).toLocaleDateString(),
                 status: 'review',
-                timestamp: new Date().getTime(),
+                timestamp: timestamp.seconds * 1000,
                 bookingDetails: {
                   ...booking,
                   courtData
@@ -153,26 +167,7 @@ export default function Notification() {
   };
 
   const renderNotification = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.notificationItem}
-      onPress={() => {
-        // ส่งข้อมูลการจองไปยังหน้า AlreadyBooked
-        navigation.navigate('AlreadyBooked', { 
-          booking: {
-            id: item.id,
-            start_time: item.date + ' at ' + item.time + ' UTC+7',
-            end_time: item.date + ' at ' + item.time + ' UTC+7',
-            status: 'booked',
-            courtDetails: {
-              name: item.message,
-              image: '', // จะถูกเติมจากการดึงข้อมูลสนาม
-              type: '',  // จะถูกเติมจากการดึงข้อมูลสนาม
-              address: '' // จะถูกเติมจากการดึงข้อมูลสนาม
-            }
-          }
-        });
-      }}
-    >
+    <View style={styles.notificationItem}>
       <View style={styles.notificationHeader}>
         <View style={styles.iconContainer}>
           <MaterialCommunityIcons
@@ -208,7 +203,7 @@ export default function Notification() {
         item.status === 'rejected' ? styles.statusRejected :
         styles.statusRefundFailed
       ]} />
-    </TouchableOpacity>
+    </View>
   );
 
   if (loading) {

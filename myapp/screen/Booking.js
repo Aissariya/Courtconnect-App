@@ -285,7 +285,7 @@ const App = ({ navigation, route }) => {
       const startTime = formatTimeForDB(date, hourStart, minuteStart);
       const endTime = formatTimeForDB(date, hourEnd, minuteEnd);
 
-      // บันทึกการจองใน Booking collection (ไม่รวม price)
+      // บันทึกการจองใน Booking collection (ไม่มี timestamp)
       const bookingRef = collection(db, 'Booking');
       await addDoc(bookingRef, {
         booking_id,
@@ -296,18 +296,19 @@ const App = ({ navigation, route }) => {
         user_id: userData.user_id
       });
 
-      // บันทึกเวลาที่จองแยกใน TimeStamp collection
+      // บันทึกเวลาในตาราง TimeStamp แทน
       const timestampRef = collection(db, 'TimeStamp');
       await addDoc(timestampRef, {
         booking_id,
         user_id: userData.user_id,
         datetime_booking: serverTimestamp(),
         action: 'booking',
-        court_id: court.court_id
+        court_id: court.court_id,
+        timestamp: serverTimestamp() // เพิ่ม timestamp ที่นี่
       });
 
       // อัพเดท booked_courts ใน users collection
-      const userRef = doc(db, 'users', currentUser.uid);
+      const userRef = doc(db, "users", currentUser.uid);
       await updateDoc(userRef, {
         booked_courts: arrayUnion(booking_id)
       });
