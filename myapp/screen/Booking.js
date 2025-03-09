@@ -7,7 +7,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { AntDesign } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import PropTypes from 'prop-types';
-import { collection, addDoc, getFirestore, doc, getDoc, updateDoc, arrayUnion, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, getFirestore, doc, getDoc, updateDoc, arrayUnion, getDocs, query, where, serverTimestamp,Timestamp } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
 
 const App = ({ navigation, route }) => {
@@ -313,48 +313,79 @@ const App = ({ navigation, route }) => {
 
   const handleFinalConfirm = async () => {
     try {
-      setIsLoading(true);
-      const auth = getAuth();
-      const currentUser = auth.currentUser;
-      
-      if (!currentUser || !userData) {
-        throw new Error('No user data available');
-      }
+        setIsLoading(true);
+        const auth = getAuth();
+        const currentUser = auth.currentUser;
 
-      // สร้าง ID และข้อมูลเวลา
-      const booking_id = `BK${Date.now()}`;
-      const startTime = formatTimeForDB(date, hourStart, minuteStart);
-      const endTime = formatTimeForDB(date, hourEnd, minuteEnd);
-      const currentTimestamp = serverTimestamp();
+        if (!currentUser || !userData) {
+            throw new Error('No user data available');
+        }
 
-      // ข้อมูลที่จะส่งไปยัง Booking collection
-      const bookingRef = collection(db, 'Booking');
-      await addDoc(bookingRef, {
-        booking_id,                    // ID การจอง
-        court_id: court.court_id,      // ID ของสนาม
-        end_time: endTime,             // เวลาสิ้นสุดการจอง
-        start_time: startTime,         // เวลาเริ่มการจอง
-        status: "successful",          // สถานะการจอง
-        user_id: userData.user_id,     // ID ของผู้จอง
-        //datetime_booking: currentTimestamp,  // เวลาที่ทำการจอง
-        timestamp: currentTimestamp         // timestamp สำหรับการเรียงลำดับ
-      });
+        // ตรวจสอบว่าเงินใน Wallet เพียงพอหรือไม่
+        if (walletBalance < totalPrice) {
+            alert("Insufficient balance. Please top up your wallet.");
+            setShowConfirmModal(false);
+            setIsLoading(false);
+            return;
+        }
 
-      setShowConfirmModal(false);
-      setShowSuccess(true);
+        // คำนวณยอดเงินใหม่
+        const newBalance = walletBalance - totalPrice;
 
-      setTimeout(() => {
-        setShowSuccess(false);
-        navigation.navigate('MainTab');
-      }, 2000);
+        // หา Wallet Document ID จาก wallet_id
+        const q = query(collection(db, "Wallet"), where("wallet_id", "==", userData.wallet_id));
+        const walletSnapshot = await getDocs(q);
+
+        if (!walletSnapshot.empty) {
+            const walletDocRef = walletSnapshot.docs[0].ref; // อ้างอิง Document ID
+
+            // อัปเดตค่า balance และเพิ่ม transaction log
+            await updateDoc(walletDocRef, {
+                balance: newBalance, // อัปเดตยอดเงินคงเหลือ
+                amount: totalPrice,  // บันทึกจำนวนเงินที่ใช้
+                status: "tranfer_out", // สถานะเป็นหักเงินออก
+                create_at: Timestamp.now(),
+            });
+
+            console.log("✅ Wallet updated successfully!");
+        } else {
+            console.error("❌ Wallet document not found!");
+            throw new Error("Wallet not found");
+        }
+
+        // บันทึกการจองใน Booking Collection
+        const booking_id = `BK${Date.now()}`;
+        const startTime = formatTimeForDB(date, hourStart, minuteStart);
+        const endTime = formatTimeForDB(date, hourEnd, minuteEnd);
+        const currentTimestamp = serverTimestamp();
+
+        const bookingRef = collection(db, 'Booking');
+        await addDoc(bookingRef, {
+            booking_id,
+            court_id: court.court_id,
+            end_time: endTime,
+            start_time: startTime,
+            status: "successful",
+            user_id: userData.user_id,
+            timestamp: currentTimestamp
+        });
+
+        setWalletBalance(newBalance); // อัปเดต UI ทันที
+        setShowConfirmModal(false);
+        setShowSuccess(true);
+
+        setTimeout(() => {
+            setShowSuccess(false);
+            navigation.navigate('MainTab');
+        }, 2000);
 
     } catch (error) {
-      console.error('Error in booking process:', error);
-      alert('Failed to create booking: ' + error.message);
+        console.error('Error in booking process:', error);
+        alert('Failed to create booking: ' + error.message);
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
-  };
+};
 
   const handleSuccessPress = () => {
     setShowSuccess(false);
