@@ -11,11 +11,13 @@ export default function AlreadyBooked({ navigation, route }) {
   const [selectedReason, setSelectedReason] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [isRefunded, setIsRefunded] = useState(false);
 
   const { booking } = route.params || {};
 
   useEffect(() => {
     console.log('Received booking data:', booking);
+    checkRefundStatus();
   }, [booking]);
 
   const formatDateTime = (timeStr) => {
@@ -114,6 +116,27 @@ export default function AlreadyBooked({ navigation, route }) {
     }
   };
 
+  // เพิ่มฟังก์ชันตรวจสอบสถานะการยกเลิก
+  const checkRefundStatus = async () => {
+    if (!booking?.id && !booking?.booking_id) return;
+
+    try {
+      const bookingId = booking.booking_id || booking.id;
+      const refundsRef = collection(db, 'Refund');
+      const q = query(refundsRef, 
+        where('booking_id', '==', bookingId),
+        where('status', '==', 'Need Action')
+      );
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        setIsRefunded(true);
+      }
+    } catch (error) {
+      console.error('Error checking refund status:', error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView style={styles.detailsContainer}>
@@ -129,9 +152,15 @@ export default function AlreadyBooked({ navigation, route }) {
               {booking.courtDetails.name} ★★★★★ (5.0)
             </Text>
 
-            <View style={styles.priceBox}>
-              <Text style={styles.priceText}>
-                {booking.status === 'booked' ? 'Booked' : 'Confirmed'}
+            <View style={[
+              styles.priceBox,
+              isRefunded && styles.cancelBox // เพิ่มสไตล์สำหรับกรณียกเลิก
+            ]}>
+              <Text style={[
+                styles.priceText,
+                isRefunded && styles.cancelText // เพิ่มสไตล์ข้อความสำหรับกรณียกเลิก
+              ]}>
+                {isRefunded ? 'Cancel' : 'Confirmed'}
               </Text>
             </View>
 
@@ -595,5 +624,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
     color: '#666'
-  }
+  },
+  cancelBox: {
+    backgroundColor: '#FF6B6B', // สีแดงสำหรับสถานะยกเลิก
+  },
+  cancelText: {
+    color: 'white', // สีข้อความเมื่อยกเลิก
+  },
 });
