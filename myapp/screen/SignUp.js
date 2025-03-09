@@ -108,7 +108,8 @@ const SignUp = ({ navigation }) => {
         name: name,
         surname: surname,
         isCustomer: isCustomer,
-        wallet_id: `w${nextUserId.substring(3).padStart(2, '0')}`, // Update wallet_id
+        wallet: 0,
+        wallet_id: `w${nextUserId.substring(3).padStart(2, '0')}`, 
         createdAt: serverTimestamp(),
       });
 
