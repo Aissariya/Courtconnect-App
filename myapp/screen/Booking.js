@@ -281,36 +281,23 @@ const App = ({ navigation, route }) => {
         throw new Error('No user data available');
       }
 
+      // สร้าง ID และข้อมูลเวลา
       const booking_id = `BK${Date.now()}`;
       const startTime = formatTimeForDB(date, hourStart, minuteStart);
       const endTime = formatTimeForDB(date, hourEnd, minuteEnd);
+      const currentTimestamp = serverTimestamp();
 
-      // บันทึกการจองใน Booking collection (ไม่มี timestamp)
+      // ข้อมูลที่จะส่งไปยัง Booking collection
       const bookingRef = collection(db, 'Booking');
       await addDoc(bookingRef, {
-        booking_id,
-        court_id: court.court_id,
-        end_time: endTime,
-        start_time: startTime,
-        status: "booked",
-        user_id: userData.user_id
-      });
-
-      // บันทึกเวลาในตาราง TimeStamp แทน
-      const timestampRef = collection(db, 'TimeStamp');
-      await addDoc(timestampRef, {
-        booking_id,
-        user_id: userData.user_id,
-        datetime_booking: serverTimestamp(),
-        action: 'booking',
-        court_id: court.court_id,
-        timestamp: serverTimestamp() // เพิ่ม timestamp ที่นี่
-      });
-
-      // อัพเดท booked_courts ใน users collection
-      const userRef = doc(db, "users", currentUser.uid);
-      await updateDoc(userRef, {
-        booked_courts: arrayUnion(booking_id)
+        booking_id,                    // ID การจอง
+        court_id: court.court_id,      // ID ของสนาม
+        end_time: endTime,             // เวลาสิ้นสุดการจอง
+        start_time: startTime,         // เวลาเริ่มการจอง
+        status: "successful",          // สถานะการจอง
+        user_id: userData.user_id,     // ID ของผู้จอง
+        //datetime_booking: currentTimestamp,  // เวลาที่ทำการจอง
+        timestamp: currentTimestamp         // timestamp สำหรับการเรียงลำดับ
       });
 
       setShowConfirmModal(false);

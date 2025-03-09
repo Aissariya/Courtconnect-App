@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList, ActivityIndicator, RefreshControl } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { doc, getDoc, getDocs, collection, updateDoc, arrayRemove } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, updateDoc, arrayRemove, query, where } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
 import { getAuth } from 'firebase/auth';
 
@@ -59,90 +59,62 @@ const MyBook = () => {
       
       if (!currentUser) return;
 
-      console.log('=== Fetching User Booking Data ===');
+      console.log('=== Fetching Booking Data ===');
 
-      // 1. ดึงข้อมูล booking_id จาก users collection
+      // ดึงข้อมูล user_id
       const userDoc = await getDoc(doc(db, "users", currentUser.uid));
       if (!userDoc.exists()) return;
+      const user_id = userDoc.data().user_id;
 
-      let bookedIds = userDoc.data().booked_courts || [];
-      console.log('Found booked_courts:', bookedIds);
+      // ดึงข้อมูลการจองและข้อมูล refund พร้อมกัน
+      const [bookingSnapshot, refundSnapshot, courtSnapshot] = await Promise.all([
+        getDocs(query(collection(db, 'Booking'), where('user_id', '==', user_id))),
+        getDocs(query(collection(db, 'Refund'), where('user_id', '==', user_id))),
+        getDocs(collection(db, 'Court'))
+      ]);
 
-      // 2. ดึงข้อมูลการจองทั้งหมดจาก Booking collection
-      const bookingRef = collection(db, 'Booking');
-      const bookingsSnapshot = await getDocs(bookingRef);
-      const allBookings = {};
-      const validBookingIds = new Set();
-      
-      bookingsSnapshot.forEach(doc => {
-        const bookingData = doc.data();
-        allBookings[bookingData.booking_id] = bookingData;
-        validBookingIds.add(bookingData.booking_id);
-      });
-
-      // 3. ตรวจสอบและลบ booking_id ที่ไม่มีอยู่จริง
-      const invalidBookingIds = bookedIds.filter(id => !validBookingIds.has(id));
-      if (invalidBookingIds.length > 0) {
-        console.log('Found invalid booking IDs:', invalidBookingIds);
-        
-        // ลบ booking_id ที่ไม่มีอยู่จริงออกจาก users collection
-        const userRef = doc(db, "users", currentUser.uid);
-        for (const invalidId of invalidBookingIds) {
-          await updateDoc(userRef, {
-            booked_courts: arrayRemove(invalidId)
-          });
-          console.log('Removed invalid booking ID:', invalidId);
-        }
-        
-        // อัพเดต bookedIds หลังจากลบ
-        bookedIds = bookedIds.filter(id => validBookingIds.has(id));
-      }
-
-      // 4. ดึงข้อมูลสนามจาก Court collection และเก็บ priceslot
-      const courtRef = collection(db, 'Court');
-      const courtSnapshot = await getDocs(courtRef);
+      // เก็บข้อมูล courts
       const courts = {};
-      
       courtSnapshot.forEach(doc => {
         const courtData = doc.data();
-        courts[courtData.court_id] = {
-          ...courtData,
-          priceslot: courtData.priceslot || 500 // ใช้ค่าเริ่มต้น 500 ถ้าไม่มี priceslot
-        };
+        courts[courtData.court_id] = courtData;
       });
 
-      // 5. รวมข้อมูลทั้งหมดพร้อมคำนวณราคา
-      const bookingsWithDetails = bookedIds.map(bookingId => {
-        const bookingData = allBookings[bookingId];
-        if (!bookingData) return null;
+      // เก็บข้อมูล refund ที่มีสถานะ Need Action
+      const refundMap = new Map();
+      refundSnapshot.forEach(doc => {
+        const refundData = doc.data();
+        if (refundData.status === 'Need Action') {
+          refundMap.set(refundData.booking_id, refundData);
+        }
+      });
 
-        const courtData = courts[bookingData.court_id];
-        if (!courtData) return null;
+      // แปลงข้อมูล bookings และตรวจสอบกับ refund
+      const processedBookings = [];
+      bookingSnapshot.forEach(doc => {
+        const booking = doc.data();
+        const court = courts[booking.court_id];
+        
+        if (court) {
+          const refundData = refundMap.get(booking.booking_id);
+          processedBookings.push({
+            id: booking.booking_id,
+            start_time: booking.start_time,
+            end_time: booking.end_time,
+            status: refundData ? 'Need Action' : booking.status,
+            courtDetails: {
+              name: court.field,
+              image: court.image[0],
+              type: court.court_type,
+              address: court.address,
+              court_id: court.court_id
+            }
+          });
+        }
+      });
 
-        const calculatedPrice = calculateBookingPrice(
-          bookingData.start_time, 
-          bookingData.end_time, 
-          courtData.priceslot
-        );
-
-        return {
-          id: bookingId,
-          start_time: bookingData.start_time,
-          end_time: bookingData.end_time,
-          price: calculatedPrice,
-          status: bookingData.status,
-          people: bookingData.people,
-          courtDetails: {
-            name: courtData.field,
-            image: courtData.image[0],
-            type: courtData.court_type,
-            address: courtData.address
-          }
-        };
-      }).filter(booking => booking !== null);
-
-      console.log('Final processed bookings:', bookingsWithDetails);
-      setBookings(bookingsWithDetails);
+      console.log('Processed bookings:', processedBookings);
+      setBookings(processedBookings);
 
     } catch (error) {
       console.error('Error fetching bookings:', error);

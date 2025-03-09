@@ -23,109 +23,45 @@ export default function Notification() {
         if (!userDoc.exists()) return;
         const userData = userDoc.data();
         const user_id = userData.user_id;
-        const bookedIds = userData.booked_courts || [];
 
-        // Fetch courts, bookings, timestamps and refunds data
-        const [courtSnapshot, bookingsSnapshot, timestampsSnapshot, refundsSnapshot] = await Promise.all([
+        // ดึงข้อมูลที่จำเป็น
+        const [courtSnapshot, refundsSnapshot] = await Promise.all([
           getDocs(collection(db, 'Court')),
-          getDocs(collection(db, 'Booking')),
-          getDocs(collection(db, 'TimeStamp')),
           getDocs(collection(db, 'Refund'))
         ]);
 
-        // Process courts
+        // เก็บข้อมูลสนาม
         const courts = {};
         courtSnapshot.forEach(doc => {
           const courtData = doc.data();
           courts[courtData.court_id] = courtData;
         });
 
-        // Process timestamps
-        const timestamps = {};
-        timestampsSnapshot.forEach(doc => {
-          const timestampData = doc.data();
-          if (!timestamps[timestampData.booking_id]) {
-            timestamps[timestampData.booking_id] = timestampData;
-          }
-        });
-
-        // Process bookings
-        const bookings = {};
-        bookingsSnapshot.forEach(doc => {
-          const bookingData = doc.data();
-          if (bookedIds.includes(bookingData.booking_id)) {
-            bookings[bookingData.booking_id] = {
-              ...bookingData,
-              timestamp: timestamps[bookingData.booking_id]?.datetime_booking
-            };
-          }
-        });
-
-        // Process notifications for confirmed bookings
-        const refundedBookingIds = new Set();
+        // สร้าง notifications จาก Refund โดยใช้เวลาจาก datetime_refund
+        const notifications = [];
         refundsSnapshot.forEach(doc => {
           const refundData = doc.data();
-          if (refundData.status === 'Need Action') {
-            refundedBookingIds.add(refundData.booking_id);
-          }
-        });
-
-        const bookingNotifications = Object.values(bookings)
-          .filter(booking => 
-            booking.status === 'booked' && 
-            !refundedBookingIds.has(booking.booking_id)
-          )
-          .map(booking => {
-            const courtData = courts[booking.court_id];
-            const timestamp = booking.timestamp;
-            
-            return {
-              id: booking.booking_id,
-              title: 'Booking Confirmed',
-              message: `${courtData?.field || 'Unknown Court'}`,
-              time: timestamp ? new Date(timestamp.seconds * 1000).toLocaleTimeString() : '',
-              date: timestamp ? new Date(timestamp.seconds * 1000).toLocaleDateString() : '',
-              status: 'success',
-              timestamp: timestamp ? timestamp.seconds * 1000 : Date.now(),
-              bookingDetails: {
-                ...booking,
-                courtData
-              }
-            };
-          });
-
-        // Process refund notifications
-        const refundNotifications = [];
-        refundsSnapshot.forEach(doc => {
-          const refundData = doc.data();
-          if (refundData.user_id === user_id && refundData.status === 'Need Action') {
-            const booking = bookings[refundData.booking_id];
-            const timestamp = timestamps[refundData.booking_id]?.datetime_booking;
-            
-            if (booking && timestamp) {
-              const courtData = courts[booking.court_id];
-              refundNotifications.push({
-                id: `${refundData.booking_id}_refund`,
+          if (refundData.user_id === user_id) {
+            const court = courts[refundData.court_id];
+            if (court) {
+              const refundTime = new Date(refundData.datetime_refund);
+              notifications.push({
+                id: refundData.booking_id,
                 title: 'Cancellation Under Review',
-                message: `${courtData?.field || 'Unknown Court'}`,
-                time: new Date(timestamp.seconds * 1000).toLocaleTimeString(),
-                date: new Date(timestamp.seconds * 1000).toLocaleDateString(),
+                message: `${court.field || 'Unknown Court'}`,
+                time: refundTime.toLocaleTimeString(),
+                date: refundTime.toLocaleDateString(),
                 status: 'review',
-                timestamp: timestamp.seconds * 1000,
-                bookingDetails: {
-                  ...booking,
-                  courtData
-                }
+                timestamp: refundTime.getTime(),
+                reason: refundData.reason_refund
               });
             }
           }
         });
 
-        // Combine and sort notifications
-        const allNotifications = [...bookingNotifications, ...refundNotifications]
-          .sort((a, b) => b.timestamp - a.timestamp);
-
-        setNotifications(allNotifications);
+        // เรียงตามเวลาล่าสุด
+        notifications.sort((a, b) => b.timestamp - a.timestamp);
+        setNotifications(notifications);
 
       } catch (error) {
         console.error('Error fetching notifications:', error);

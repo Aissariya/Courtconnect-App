@@ -74,7 +74,7 @@ export default function AlreadyBooked({ navigation, route }) {
         throw new Error('Missing required data');
       }
   
-      // 1. ค้นหาและอัพเดทข้อมูลใน Booking collection
+      // ดึง court_id จาก booking data
       const bookingRef = collection(db, 'Booking');
       const bookingQuery = query(bookingRef, where('booking_id', '==', booking_id));
       const bookingSnapshot = await getDocs(bookingQuery);
@@ -83,12 +83,6 @@ export default function AlreadyBooked({ navigation, route }) {
       if (!bookingSnapshot.empty) {
         const bookingDoc = bookingSnapshot.docs[0];
         court_id = bookingDoc.data().court_id;
-        
-        // อัพเดทสถานะเป็น Need Action
-        await updateDoc(bookingDoc.ref, {
-          status: 'Need Action'
-        });
-        console.log('Updated booking status to Need Action');
       } else {
         throw new Error('Cannot find booking record');
       }
@@ -97,33 +91,7 @@ export default function AlreadyBooked({ navigation, route }) {
       const userData = userDoc.data();
       const user_id = userData.user_id;
   
-      // 2. บันทึก timestamp
-      const timestampRef = collection(db, 'TimeStamp');
-      await addDoc(timestampRef, {
-        booking_id,
-        user_id,
-        datetime_booking: serverTimestamp(),
-        action: 'Need Action',
-        court_id: court_id
-      });
-  
-      // 3. ลบ timestamp เก่า
-      const timestampQuery = query(timestampRef, where('booking_id', '==', booking_id));
-      const timestampSnapshot = await getDocs(timestampQuery);
-      const deletePromises = [];
-      timestampSnapshot.forEach(doc => {
-        const timestampData = doc.data();
-        if (timestampData.action !== 'Need Action') {
-          deletePromises.push(deleteDoc(doc.ref));
-        }
-      });
-  
-      if (deletePromises.length > 0) {
-        await Promise.all(deletePromises);
-        console.log(`Deleted ${deletePromises.length} old timestamp records`);
-      }
-  
-      // 4. บันทึกข้อมูล refund
+      // บันทึกข้อมูล refund อย่างเดียว
       const refundData = {
         booking_id,
         user_id,
