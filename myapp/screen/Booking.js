@@ -28,6 +28,8 @@ const App = ({ navigation, route }) => {
   const [showImageModal, setShowImageModal] = useState(false);
   const { getAuth } = require('firebase/auth'); // เพิ่ม import getAuth
   const [userData, setUserData] = useState(null);
+  const [walletBalance, setWalletBalance] = useState(0);
+
 
   // เพิ่ม useEffect เพื่อดึงข้อมูล user
   useEffect(() => {
@@ -49,6 +51,44 @@ const App = ({ navigation, route }) => {
     };
 
     fetchUserData();
+  }, []);
+
+
+  useEffect(() => {
+    const fetchWalletBalance = async () => {
+      try {
+        const auth = getAuth();
+        const currentUser = auth.currentUser;
+        
+        if (currentUser) {
+          const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            console.log("User's wallet_id:", userData.wallet_id);
+  
+            if (userData.wallet_id) {
+              const q = query(collection(db, "Wallet"), where("wallet_id", "==", userData.wallet_id));
+              const walletSnapshot = await getDocs(q);
+  
+              if (!walletSnapshot.empty) {
+                // ดึงเอกสารแรกที่ตรงกัน
+                const walletData = walletSnapshot.docs[0].data();
+                setWalletBalance(walletData.balance);
+                console.log("Fetched Wallet Data:", walletData);
+              } else {
+                console.error("❌ Wallet not found in Wallet collection!");
+              }
+            } else {
+              console.error("❌ User does not have a wallet_id!");
+            }
+          }
+        }
+      } catch (error) {
+        console.error("❌ Error fetching wallet balance:", error);
+      }
+    };
+  
+    fetchWalletBalance();
   }, []);
 
   const formatTo12Hour = (date24) => {
@@ -499,7 +539,7 @@ const App = ({ navigation, route }) => {
               <Ionicons name="wallet-outline" size={32} color="black" />
               <View>
                 <Text style={styles.walletText}>My Wallet</Text>
-                <Text style={styles.walletBalance}>0.00 Bath</Text>
+                <Text style={styles.walletBalance}>{walletBalance.toFixed(2)} Bath</Text>
               </View>
             </View>
           </View>
