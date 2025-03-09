@@ -1,9 +1,30 @@
+
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Image } from "react-native";
 import { FontAwesome5 } from "@expo/vector-icons";
 
 export default function Deposit() {
   const [amount, setAmount] = useState("0");
+  const [showQRModal, setShowQRModal] = useState(false);
+
+  const handleAmountChange = (text) => {
+    // Remove non-numeric characters except decimal point
+    const cleanedText = text.replace(/[^0-9.]/g, '');
+    
+    // Check if it's a valid number
+    if (!cleanedText || isNaN(parseFloat(cleanedText))) {
+      setAmount("0");
+    } else {
+      // Limit to 2 decimal places
+      const numericValue = parseFloat(cleanedText);
+      setAmount(numericValue.toString());
+    }
+  };
+
+  const getFormattedAmount = () => {
+    const numericValue = parseFloat(amount);
+    return isNaN(numericValue) ? "0.00" : numericValue.toFixed(2);
+  };
 
   return (
     <View style={styles.container}>
@@ -16,7 +37,7 @@ export default function Deposit() {
             style={styles.amountInput}
             keyboardType="numeric"
             value={amount}
-            onChangeText={setAmount}
+            onChangeText={handleAmountChange}
           />
         </View>
 
@@ -28,14 +49,42 @@ export default function Deposit() {
 
         <View style={styles.paymentAmount}>
           <Text>Payment amount</Text>
-          <Text style={styles.paymentAmountText}>฿ {parseFloat(amount).toFixed(2)}</Text>
+          <Text style={styles.paymentAmountText}>฿ {getFormattedAmount()}</Text>
         </View>
       </View>
 
       {/* Confirm Button */}
-      <TouchableOpacity style={styles.confirmButton}>
+      <TouchableOpacity 
+        style={styles.confirmButton}
+        onPress={() => setShowQRModal(true)}
+      >
         <Text style={styles.confirmText}>CONFIRM</Text>
       </TouchableOpacity>
+
+      {/* QR Code Modal */}
+      <Modal
+        visible={showQRModal}
+        transparent={true}
+        animationType="slide"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Scan QR Code to Pay</Text>
+            <Text style={styles.modalAmount}>Amount: ฿{(parseFloat(amount) || 0).toFixed(2)}</Text>
+            <Image
+              source={require('../assets/Qrcode.jpg')}
+              style={styles.qrImage}
+              resizeMode="contain"
+            />
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowQRModal(false)}
+            >
+              <Text style={styles.closeButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -119,4 +168,45 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "black",
   },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    width: '90%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#333',
+  },
+  modalAmount: {
+    fontSize: 18,
+    marginBottom: 20,
+    color: '#555',
+  },
+  qrImage: {
+    width: 250,
+    height: 250,
+    marginVertical: 20,
+  },
+  closeButton: {
+    backgroundColor: '#A2F193',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+    marginTop: 10,
+  },
+  closeButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'black',
+  }
 });

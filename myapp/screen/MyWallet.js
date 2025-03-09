@@ -77,15 +77,7 @@ const MyWallet = () => {
             <FontAwesome5 name="university" size={24} color={depositPressed ? "#1E7D32" : "black"} />
             <Text style={[styles.buttonText, depositPressed && { color: "#1E7D32" }]}>Deposit</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.button}
-            onPressIn={() => setTransferPressed(true)}
-            onPressOut={() => setTransferPressed(false)}
-            onPress={() => navigation.navigate("Transfer")}
-          >
-            <FontAwesome5 name="exchange-alt" size={24} color={transferPressed ? "#1E7D32" : "black"} />
-            <Text style={[styles.buttonText, transferPressed && { color: "#1E7D32" }]}>Transfer</Text>
-          </TouchableOpacity>
+          
         </View>
       </View>
     </ScrollView>
