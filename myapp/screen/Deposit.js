@@ -81,7 +81,7 @@ export default function Deposit() {
             balance: newBalance,
             createAt: Timestamp.now(),
               amount: depositAmount,
-              status: 'transfer_in',
+              status: 'tranfer_in',
             },
 
           );
