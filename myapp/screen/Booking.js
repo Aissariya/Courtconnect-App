@@ -367,7 +367,9 @@ const App = ({ navigation, route }) => {
             start_time: startTime,
             status: "successful",
             user_id: userData.user_id,
-            timestamp: currentTimestamp
+            timestamp: currentTimestamp,
+            price_per_hour: court.priceslot || 500, // บันทึกราคาต่อชั่วโมงที่ใช้
+            total_price: totalPrice // บันทึกราคารวม
         });
 
         setWalletBalance(newBalance); // อัปเดต UI ทันที
@@ -396,16 +398,19 @@ const App = ({ navigation, route }) => {
   const calculatePrice = (hStart, mStart, hEnd, mEnd) => {
     const startMinutes = parseInt(hStart) * 60 + parseInt(mStart);
     const endMinutes = parseInt(hEnd) * 60 + parseInt(mEnd);
-
+  
     if (endMinutes <= startMinutes) {
       alert('End time must be after start time');
       setTotalPrice(0);
       return;
     }
-
+  
     const diffMinutes = endMinutes - startMinutes;
     const hours = Math.ceil(diffMinutes / 60); // Always round up to nearest hour
-    const price = hours * 500;
+    
+    // ใช้ราคาจาก court.priceslot
+    const pricePerHour = court?.priceslot || 500; // ใช้ 500 เป็นค่าเริ่มต้นถ้าไม่มี priceslot
+    const price = hours * pricePerHour;
     
     setTotalPrice(price);
     return price;

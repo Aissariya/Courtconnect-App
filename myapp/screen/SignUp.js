@@ -76,13 +76,13 @@ const SignUp = ({ navigation }) => {
       const q = query(usersRef, orderBy("user_id", "desc"), limit(1));
       const querySnapshot = await getDocs(q);
 
-      let nextId = "USR0001"; // Default first ID
+      let nextId = "COS0001"; // Default first ID
 
       if (!querySnapshot.empty) {
         const latestUser = querySnapshot.docs[0].data();
         const latestId = latestUser.user_id;
         const num = parseInt(latestId.substring(3)) + 1;
-        nextId = `USR${num.toString().padStart(4, '0')}`;
+        nextId = `COS${num.toString().padStart(4, '0')}`;
       }
 
       return nextId;

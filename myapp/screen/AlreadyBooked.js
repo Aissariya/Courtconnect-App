@@ -94,26 +94,14 @@ export default function AlreadyBooked({ navigation, route }) {
       const user_id = userData.user_id;
   
       // บันทึกข้อมูล refund อย่างเดียว
- const formatDate = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
-  const seconds = String(now.getSeconds()).padStart(2, "0");
-
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-};
-
-const refundData = {
-  booking_id,
-  user_id,
-  status: "Need Action",
-  reason_refund: selectedReason,
-  datetime_refund: formatDate(),
-  court_id,
-};
+      const refundData = {
+        booking_id,
+        user_id,
+        status: 'Need Action',
+        reason_refund: selectedReason,
+        datetime_refund: new Date().toISOString(),
+        court_id: court_id
+      };
   
       const refundRef = collection(db, 'Refund');
       await addDoc(refundRef, refundData);
@@ -250,7 +238,8 @@ const refundData = {
 
       </ScrollView>
 
-      {!showReason && booking && (
+      {/* แก้ไขเงื่อนไขการแสดงปุ่มด้านล่าง */}
+      {!showReason && booking && !isRefunded && (
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={styles.calanderButton}
