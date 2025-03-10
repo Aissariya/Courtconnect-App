@@ -313,81 +313,113 @@ const App = ({ navigation, route }) => {
 
   const handleFinalConfirm = async () => {
     try {
-        setIsLoading(true);
-        const auth = getAuth();
-        const currentUser = auth.currentUser;
+      setIsLoading(true);
+      console.log('=== Starting Payment Process ===');
 
-        if (!currentUser || !userData) {
-            throw new Error('No user data available');
-        }
+      // 1. ดึงข้อมูล user wallet ที่จะจ่ายเงิน
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+      if (!currentUser || !userData) {
+        throw new Error('No user data available');
+      }
 
-        // ตรวจสอบว่าเงินใน Wallet เพียงพอหรือไม่
-        if (walletBalance < totalPrice) {
-            alert("Insufficient balance. Please top up your wallet.");
-            setShowConfirmModal(false);
-            setIsLoading(false);
-            return;
-        }
+      // 2. ดึงข้อมูลจาก Court collection เพื่อหา user_id ของเจ้าของสนาม
+      const courtsRef = collection(db, 'Court');
+      const courtQuery = query(courtsRef, where('court_id', '==', court.court_id));
+      const courtSnapshot = await getDocs(courtQuery);
 
-        // คำนวณยอดเงินใหม่
-        const newBalance = walletBalance - totalPrice;
+      if (courtSnapshot.empty) {
+        throw new Error('Court not found');
+      }
 
-        // หา Wallet Document ID จาก wallet_id
-        const q = query(collection(db, "Wallet"), where("wallet_id", "==", userData.wallet_id));
-        const walletSnapshot = await getDocs(q);
+      const courtData = courtSnapshot.docs[0].data();
+      const courtOwnerId = courtData.user_id;
+      console.log('Court owner ID:', courtOwnerId);
 
-        if (!walletSnapshot.empty) {
-            const walletDocRef = walletSnapshot.docs[0].ref; // อ้างอิง Document ID
+      // 3. ดึง wallet_id ของเจ้าของสนามจาก users collection
+      const usersRef = collection(db, 'users');
+      const courtOwnerQuery = query(usersRef, where('user_id', '==', courtOwnerId));
+      const userSnapshot = await getDocs(courtOwnerQuery);
 
-            // อัปเดตค่า balance และเพิ่ม transaction log
-            await updateDoc(walletDocRef, {
-                balance: newBalance, // อัปเดตยอดเงินคงเหลือ
-                amount: totalPrice,  // บันทึกจำนวนเงินที่ใช้
-                status: "tranfer_out", // สถานะเป็นหักเงินออก
-                create_at: Timestamp.now(),
-            });
+      if (userSnapshot.empty) {
+        throw new Error('Court owner not found');
+      }
 
-            console.log("✅ Wallet updated successfully!");
-        } else {
-            console.error("❌ Wallet document not found!");
-            throw new Error("Wallet not found");
-        }
+      const courtOwnerData = userSnapshot.docs[0].data();
+      const courtOwnerWalletId = courtOwnerData.wallet_id;
+      console.log('Court owner wallet ID:', courtOwnerWalletId);
 
-        // บันทึกการจองใน Booking Collection
-        const booking_id = `BK${Date.now()}`;
-        const startTime = formatTimeForDB(date, hourStart, minuteStart);
-        const endTime = formatTimeForDB(date, hourEnd, minuteEnd);
-        const currentTimestamp = serverTimestamp();
+      // 4. ดึงข้อมูล wallet ของทั้งสองฝ่าย
+      const walletsRef = collection(db, 'Wallet');
+      const [payerWalletSnapshot, receiverWalletSnapshot] = await Promise.all([
+        getDocs(query(walletsRef, where('wallet_id', '==', userData.wallet_id))),
+        getDocs(query(walletsRef, where('wallet_id', '==', courtOwnerWalletId)))
+      ]);
 
-        const bookingRef = collection(db, 'Booking');
-        await addDoc(bookingRef, {
-            booking_id,
-            court_id: court.court_id,
-            end_time: endTime,
-            start_time: startTime,
-            status: "successful",
-            user_id: userData.user_id,
-            timestamp: currentTimestamp,
-            price_per_hour: court.priceslot || 500, // บันทึกราคาต่อชั่วโมงที่ใช้
-            total_price: totalPrice // บันทึกราคารวม
-        });
+      if (payerWalletSnapshot.empty || receiverWalletSnapshot.empty) {
+        throw new Error('Wallet information not found');
+      }
 
-        setWalletBalance(newBalance); // อัปเดต UI ทันที
-        setShowConfirmModal(false);
-        setShowSuccess(true);
+      const payerWalletDoc = payerWalletSnapshot.docs[0];
+      const receiverWalletDoc = receiverWalletSnapshot.docs[0];
+      const payerBalance = payerWalletDoc.data().balance;
+      const receiverBalance = receiverWalletDoc.data().balance;
 
-        setTimeout(() => {
-            setShowSuccess(false);
-            navigation.navigate('MainTab');
-        }, 2000);
+      // 5. ตรวจสอบยอดเงินและทำการโอน
+      if (payerBalance < totalPrice) {
+        throw new Error('Insufficient balance');
+      }
+
+      // 6. อัพเดตยอดเงินทั้งสองฝ่าย
+      await Promise.all([
+        updateDoc(payerWalletDoc.ref, {
+          balance: payerBalance - totalPrice,
+          amount: totalPrice,
+          status: "tranfer_out",
+          create_at: Timestamp.now(),
+        }),
+        updateDoc(receiverWalletDoc.ref, {
+          balance: receiverBalance + totalPrice,
+          amount: totalPrice,
+          status: "tranfer_in",
+          create_at: Timestamp.now(),
+        })
+      ]);
+
+      console.log('Payment completed successfully');
+      console.log('New payer balance:', payerBalance - totalPrice);
+      console.log('New receiver balance:', receiverBalance + totalPrice);
+
+      // 7. บันทึกการจอง
+      const booking_id = `BK${Date.now()}`;
+      const bookingRef = collection(db, 'Booking');
+      await addDoc(bookingRef, {
+        booking_id,
+        court_id: court.court_id,
+        end_time: formatTimeForDB(date, hourEnd, minuteEnd),
+        start_time: formatTimeForDB(date, hourStart, minuteStart),
+        status: "successful",
+        user_id: userData.user_id,
+        timestamp: serverTimestamp()
+      });
+
+      // อัพเดต UI
+      setWalletBalance(payerBalance - totalPrice);
+      setShowConfirmModal(false);
+      setShowSuccess(true);
+
+      setTimeout(() => {
+        setShowSuccess(false);
+        navigation.navigate('MainTab');
+      }, 2000);
 
     } catch (error) {
-        console.error('Error in booking process:', error);
-        alert('Failed to create booking: ' + error.message);
+      console.error('Error in payment process:', error);
+      alert('Failed to process payment: ' + error.message);
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
-};
+  };
 
   const handleSuccessPress = () => {
     setShowSuccess(false);
@@ -406,11 +438,22 @@ const App = ({ navigation, route }) => {
     }
   
     const diffMinutes = endMinutes - startMinutes;
-    const hours = Math.ceil(diffMinutes / 60); // Always round up to nearest hour
+    const hours = Math.floor(diffMinutes / 60); // จำนวนชั่วโมงเต็ม
+    const remainingMinutes = diffMinutes % 60; // จำนวนนาทีที่เหลือ
+    
+    // คำนวณจำนวนชั่วโมงที่จะคิดเงิน
+    let billableHours = hours;
+    if (remainingMinutes > 30) {
+      // ถ้าเกิน 30 นาที ปัดขึ้นเป็นชั่วโมงถัดไป
+      billableHours += 1;
+    } else if (remainingMinutes > 0) {
+      // ถ้าไม่เกิน 30 นาที คิดราคาตามจริง
+      billableHours += remainingMinutes / 60;
+    }
     
     // ใช้ราคาจาก court.priceslot
     const pricePerHour = court?.priceslot || 500; // ใช้ 500 เป็นค่าเริ่มต้นถ้าไม่มี priceslot
-    const price = hours * pricePerHour;
+    const price = Math.round(billableHours * pricePerHour); // ปัดเศษให้เป็นจำนวนเต็ม
     
     setTotalPrice(price);
     return price;

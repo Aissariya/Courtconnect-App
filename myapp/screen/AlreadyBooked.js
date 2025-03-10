@@ -168,7 +168,6 @@ export default function AlreadyBooked({ navigation, route }) {
               Court Type: {booking.courtDetails.type}{"\n"}
               Booking Date: {formatDateTime(booking.start_time).date}{"\n"}
               Time: {formatDateTime(booking.start_time).time} - {formatDateTime(booking.end_time).time}{"\n"}
-              Number of People: {booking.people} people{"\n"}
               Location: {booking.courtDetails.address}{"\n"}
               Facilities: Locker Room, Shower Room{"\n"}
               Operating Hours: Open Daily 8:00 - 22:00{"\n"}
