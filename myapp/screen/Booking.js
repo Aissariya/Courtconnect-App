@@ -460,35 +460,37 @@ const App = ({ navigation, route }) => {
 
   // ฟังก์ชันคำนวณราคา
   const calculatePrice = (hStart, mStart, hEnd, mEnd) => {
+    console.log('=== Price Calculation ===');
     const startMinutes = parseInt(hStart) * 60 + parseInt(mStart);
     const endMinutes = parseInt(hEnd) * 60 + parseInt(mEnd);
-  
+      
     if (endMinutes <= startMinutes) {
       alert('End time must be after start time');
       setTotalPrice(0);
-      return;
+      return 0;
     }
   
+    // คำนวณระยะเวลาเป็นนาที
     const diffMinutes = endMinutes - startMinutes;
-    const hours = Math.floor(diffMinutes / 60); // จำนวนชั่วโมงเต็ม
-    const remainingMinutes = diffMinutes % 60; // จำนวนนาทีที่เหลือ
     
-    // คำนวณจำนวนชั่วโมงที่จะคิดเงิน
-    let billableHours = hours;
-    if (remainingMinutes > 30) {
-      // ถ้าเกิน 30 นาที ปัดขึ้นเป็นชั่วโมงถัดไป
-      billableHours += 1;
-    } else if (remainingMinutes > 0) {
-      // ถ้าไม่เกิน 30 นาที คิดราคาตามจริง
-      billableHours += remainingMinutes / 60;
-    }
+    // คำนวณชั่วโมง
+    const hours = diffMinutes / 60;
     
-    // ใช้ราคาจาก court.priceslot
-    const pricePerHour = court?.priceslot || 500; // ใช้ 500 เป็นค่าเริ่มต้นถ้าไม่มี priceslot
-    const price = Math.round(billableHours * pricePerHour); // ปัดเศษให้เป็นจำนวนเต็ม
-    
-    setTotalPrice(price);
-    return price;
+    // คำนวณราคา
+    const pricePerHour = court?.priceslot || 500;
+    const totalPrice = Math.ceil(hours) * pricePerHour;
+  
+    console.log('Price calculation:', {
+      startTime: `${hStart}:${mStart}`,
+      endTime: `${hEnd}:${mEnd}`, 
+      diffMinutes,
+      hours,
+      pricePerHour,
+      totalPrice
+    });
+  
+    setTotalPrice(totalPrice);
+    return totalPrice;
   };
 
   // ฟังก์ชัน validateBooking
@@ -634,7 +636,7 @@ const App = ({ navigation, route }) => {
 
           {/* Total Price */}
           <View style={styles.totalContainer}>
-            <Text style={styles.totalText}>Total ({totalPrice / 500} hrs.)</Text>
+            <Text style={styles.totalText}>Total ({Math.floor(totalPrice / court.priceslot)} hrs.)</Text>
             <Text style={styles.priceText}>{totalPrice} BATH</Text>
           </View>
         </View>

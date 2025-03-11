@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity }
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from "@react-navigation/native";
 import { getAuth } from 'firebase/auth';
-import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
 
 export default function Notification() {
@@ -24,43 +24,60 @@ export default function Notification() {
         const userData = userDoc.data();
         const user_id = userData.user_id;
 
-        // ดึงข้อมูลที่จำเป็น
-        const [courtSnapshot, refundsSnapshot] = await Promise.all([
-          getDocs(collection(db, 'Court')),
-          getDocs(collection(db, 'Refund'))
-        ]);
+        // ดึงข้อมูล Refund ที่มีสถานะ Need Action
+        const refundsSnapshot = await getDocs(
+          query(collection(db, 'Refund'), 
+            where('status', '==', 'Need Action'),
+            where('user_id', '==', user_id)
+          )
+        );
 
-        // เก็บข้อมูลสนาม
-        const courts = {};
-        courtSnapshot.forEach(doc => {
-          const courtData = doc.data();
-          courts[courtData.court_id] = courtData;
-        });
+        console.log('Found refunds:', refundsSnapshot.size);
 
-        // สร้าง notifications จาก Refund โดยใช้เวลาจาก datetime_refund
+        // สร้าง array เก็บ notifications
         const notifications = [];
-        refundsSnapshot.forEach(doc => {
+        for (const doc of refundsSnapshot.docs) {
           const refundData = doc.data();
-          if (refundData.user_id === user_id) {
-            const court = courts[refundData.court_id];
-            if (court) {
-              const refundTime = new Date(refundData.datetime_refund);
+          console.log('Processing refund:', refundData);
+
+          // ดึงข้อมูล booking เพื่อหา court_id
+          const bookingsSnapshot = await getDocs(
+            query(collection(db, 'Booking'), 
+              where('booking_id', '==', refundData.booking_id)
+            )
+          );
+
+          if (!bookingsSnapshot.empty) {
+            const bookingData = bookingsSnapshot.docs[0].data();
+            
+            // ดึงข้อมูลสนามจาก court_id
+            const courtSnapshot = await getDocs(
+              query(collection(db, 'Court'),
+                where('court_id', '==', bookingData.court_id)
+              )
+            );
+
+            if (!courtSnapshot.empty) {
+              const courtData = courtSnapshot.docs[0].data();
+              console.log('Found court:', courtData.field);
+
               notifications.push({
                 id: refundData.booking_id,
                 title: 'Cancellation Under Review',
-                message: `${court.field || 'Unknown Court'}`,
-                time: refundTime.toLocaleTimeString(),
-                date: refundTime.toLocaleDateString(),
+                message: `${courtData.field}`,
+                time: new Date(refundData.datetime_refund.seconds * 1000).toLocaleTimeString(),
+                date: new Date(refundData.datetime_refund.seconds * 1000).toLocaleDateString(),
                 status: 'review',
-                timestamp: refundTime.getTime(),
+                timestamp: refundData.datetime_refund.seconds * 1000,
                 reason: refundData.reason_refund
               });
             }
           }
-        });
+        }
 
         // เรียงตามเวลาล่าสุด
         notifications.sort((a, b) => b.timestamp - a.timestamp);
+        console.log('Final notifications:', notifications.length);
         setNotifications(notifications);
 
       } catch (error) {
