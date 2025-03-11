@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList, ActivityIndicator, RefreshControl } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { doc, getDoc, getDocs, collection, updateDoc, arrayRemove, query, where } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
 import { getAuth } from 'firebase/auth';
@@ -56,6 +56,7 @@ const MyBook = () => {
       setLoading(true);
       const auth = getAuth();
       const currentUser = auth.currentUser;
+      const now = new Date(); // เพิ่มการเช็คเวลาปัจจุบัน
       
       if (!currentUser) return;
 
@@ -98,30 +99,59 @@ const MyBook = () => {
         const booking = doc.data();
         const court = courts[booking.court_id];
         
-        if (court) {
-          const refundData = refundMap.get(booking.booking_id);
-          // คำนวณราคาจาก priceslot ของ court
-          const calculatedPrice = calculateBookingPrice(
-            booking.start_time, 
-            booking.end_time, 
-            court.priceslot
-          );
+        // แปลง end_time เป็น Date object เพื่อเปรียบเทียบ
+        const parseEndTime = (timeStr) => {
+          try {
+            const [monthDay, yearTime] = timeStr.split(', ');
+            const [year, timeStr2] = yearTime.split(' at ');
+            const [time, period] = timeStr2.split(' UTC')[0].split(' ');
+            const [month, day] = monthDay.split(' ');
+            
+            const months = {
+              January: 0, February: 1, March: 2, April: 3, May: 4, June: 5,
+              July: 6, August: 7, September: 8, October: 9, November: 10, December: 11
+            };
+            
+            const [hours, minutes] = time.split(':');
+            let hour = parseInt(hours);
+            if (period === 'PM' && hour !== 12) hour += 12;
+            if (period === 'AM' && hour === 12) hour = 0;
+            
+            return new Date(parseInt(year), months[month], parseInt(day), hour, parseInt(minutes));
+          } catch (error) {
+            console.error('Error parsing time:', error);
+            return null;
+          }
+        };
 
-          processedBookings.push({
-            id: booking.booking_id,
-            start_time: booking.start_time,
-            end_time: booking.end_time,
-            status: refundData ? 'Need Action' : booking.status,
-            price: calculatedPrice, // เพิ่มราคาที่คำนวณแล้ว
-            courtDetails: {
-              name: court.field,
-              image: court.image[0],
-              type: court.court_type,
-              address: court.address,
-              court_id: court.court_id,
-              priceslot: court.priceslot
-            }
-          });
+        const endTime = parseEndTime(booking.end_time);
+        
+        // เพิ่มเข้า list เฉพาะการจองที่ยังไม่สิ้นสุด
+        if (endTime && endTime > now) {
+          if (court) {
+            const refundData = refundMap.get(booking.booking_id);
+            const calculatedPrice = calculateBookingPrice(
+              booking.start_time, 
+              booking.end_time, 
+              court.priceslot
+            );
+
+            processedBookings.push({
+              id: booking.booking_id,
+              start_time: booking.start_time,
+              end_time: booking.end_time,
+              status: refundData ? 'Need Action' : booking.status,
+              price: calculatedPrice,
+              courtDetails: {
+                name: court.field,
+                image: court.image[0],
+                type: court.court_type,
+                address: court.address,
+                court_id: court.court_id,
+                priceslot: court.priceslot
+              }
+            });
+          }
         }
       });
 
@@ -143,6 +173,18 @@ const MyBook = () => {
   useEffect(() => {
     fetchUserBookings();
   }, []);
+
+  // เพิ่ม useFocusEffect เพื่อรีโหลดข้อมูลอัตโนมัติเมื่อกลับมาที่หน้านี้
+  useFocusEffect(
+    useCallback(() => {
+      console.log('Screen focused, refreshing data...');
+      fetchUserBookings();
+      return () => {
+        // cleanup เมื่อออกจากหน้า
+        console.log('Screen unfocused');
+      };
+    }, []) // empty dependency array means it runs every time the screen is focused
+  );
 
   const formatDateTime = (timeStr) => {
     try {
