@@ -422,20 +422,28 @@ const App = ({ navigation, route }) => {
       console.log('New payer balance:', payerBalance - totalPrice);
       console.log('New receiver balance:', receiverBalance + totalPrice);
 
+      // สร้าง Timestamp สำหรับ start_time และ end_time
+      const bookingDate = new Date(date);
+      const startTime = new Date(date);
+      startTime.setHours(parseInt(hourStart), parseInt(minuteStart), 0, 0);
+      
+      const endTime = new Date(date);
+      endTime.setHours(parseInt(hourEnd), parseInt(minuteEnd), 0, 0);
+
       // 7. บันทึกการจอง
       const booking_id = `BK${Date.now()}`;
       const bookingRef = collection(db, 'Booking');
       await addDoc(bookingRef, {
         booking_id,
         court_id: court.court_id,
-        end_time: formatTimeForDB(date, hourEnd, minuteEnd),
-        start_time: formatTimeForDB(date, hourStart, minuteStart),
+        end_time: Timestamp.fromDate(endTime),
+        start_time: Timestamp.fromDate(startTime),
         status: "successful",
         user_id: userData.user_id,
         timestamp: serverTimestamp()
       });
 
-      // อัพเดต UI
+      // อัพเดต UI และนำทางกลับ
       setWalletBalance(payerBalance - totalPrice);
       setShowConfirmModal(false);
       setShowSuccess(true);
