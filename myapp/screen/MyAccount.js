@@ -132,7 +132,7 @@ const MyAccount = () => {
 
     try {
       await reauthenticateWithCredential(userAuth, credential);
-      console.log("✅ Reauthentication successful");
+      console.log("Reauthentication successful");
 
       await updatePassword(userAuth, newPassword);
       Alert.alert("Success", "Your password has been updated.");
@@ -201,10 +201,10 @@ const uploadImageToStorage = async (uri) => {
     await uploadBytes(imageRef, blob);
 
     const downloadUrl = await getDownloadURL(imageRef);
-    console.log("✅ Image uploaded:", downloadUrl);
+    console.log(" Image uploaded:", downloadUrl);
     return downloadUrl;
   } catch (error) {
-    console.error("❌ Error uploading image:", error);
+    console.error(" Error uploading image:", error);
     return null;
   }
 };
@@ -212,7 +212,7 @@ const uploadImageToStorage = async (uri) => {
 // ฟังก์ชันอัปเดต Firestore
 const updateProfileImageInFirestore = async (imageUrl) => {
   if (!userAuth) {
-    console.error("❌ No user is logged in");
+    console.error(" No user is logged in");
     return;
   }
 
@@ -220,7 +220,7 @@ const updateProfileImageInFirestore = async (imageUrl) => {
     await setDoc(doc(db, "users", userAuth.uid), { profileImage: imageUrl }, { merge: true });
     console.log("✅ Profile image updated in Firestore");
   } catch (error) {
-    console.error("❌ Error updating profile image in Firestore:", error);
+    console.error(" Error updating profile image in Firestore:", error);
   }
 };
 
