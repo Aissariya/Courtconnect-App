@@ -157,7 +157,10 @@ export default function Filter({ navigation }) {
       <TextInput
         style={styles.inputBox}
         value={maxPrice}
-        onChangeText={setMaxPrice}
+        onChangeText={(text) => {
+          const numericValue = text.replace(/[^0-9]/g, '');
+          setMaxPrice(numericValue);
+        }}
         keyboardType="numeric"
         placeholder="Enter price"
         placeholderTextColor="white"

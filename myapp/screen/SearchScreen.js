@@ -9,28 +9,28 @@ export default function SearchScreen({ route, navigation }) {
     const { searchQuery, court_type: RouteCourtType, priceslot: Routepriceslot, startTime: RoutestartTime, endTime: RouteendTime, date: Routedate } = route.params || {};
     const [court_type, setCourtType] = useState(RouteCourtType);
     const [priceslot, setPriceSlot] = useState(Routepriceslot);
-    const [startTime, setStartTime] = useState(new Date(RoutestartTime));
-    const [endTime, setEndTime] = useState(new Date(RouteendTime));
-    const [date, setDate] = useState(new Date(Routedate));
+    const [startTime, setStartTime] = useState(RoutestartTime ? new Date(RoutestartTime) : null);
+    const [endTime, setEndTime] = useState(RouteendTime ? new Date(RouteendTime) : null);
+    const [date, setDate] = useState(Routedate ? new Date(Routedate) : null);
 
-    const formattedstartTime = startTime instanceof Date ? startTime.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false, // ใช้ 24 ชั่วโมง
-    }) : '';
+    const formattedstartTime = startTime instanceof Date && !isNaN(startTime)
+        ? startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+        : '';
 
-    const formattedendTime = endTime instanceof Date ? endTime.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false, // ใช้ 24 ชั่วโมง
-    }) : '';
+    const formattedendTime = endTime instanceof Date && !isNaN(endTime)
+        ? endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+        : '';
 
-    const formatteddate = date instanceof Date ? date.toLocaleDateString("en-CA") : '';
+    const formatteddate = date instanceof Date && !isNaN(date)
+        ? date.toLocaleDateString("en-CA")
+        : '';
 
 
     useEffect(() => {
         let filtered = courts;
         console.log("priceslot:", priceslot);
+        console.log("formattedstartTime:", formattedstartTime);
+        console.log("Routepriceslot:", Routepriceslot);
         if (searchQuery) {
             filtered = filtered.filter(field =>
                 field.field.toLowerCase().includes(searchQuery.toLowerCase())
@@ -42,10 +42,10 @@ export default function SearchScreen({ route, navigation }) {
         if (priceslot !== undefined) {
             filtered = filtered.filter(field => field.priceslot <= priceslot);
         }
-        if (startTime !== undefined && endTime !== undefined) {
+        if (startTime !== null && endTime !== null) {
 
         }
-        if (date !== undefined) {
+        if (date !== null) {
 
         }
 
@@ -63,6 +63,15 @@ export default function SearchScreen({ route, navigation }) {
 
     const handleClose1 = () => {
         setPriceSlot(undefined);
+    };
+
+    const handleClose2 = () => {
+        setStartTime(null);
+        setEndTime(null);
+    };
+
+    const handleClose3 = () => {
+        setDate(null);
     };
 
     return (
@@ -83,14 +92,14 @@ export default function SearchScreen({ route, navigation }) {
                         </TouchableOpacity>
                     )}
                     {startTime && endTime && (
-                        <TouchableOpacity style={styles.fieldItem2} onPress={handleClose1}>
+                        <TouchableOpacity style={styles.fieldItem2} onPress={handleClose2}>
                             <Text style={styles.fieldName2}>
-                                {formattedstartTime} : {formattedendTime} </Text>
+                                {formattedstartTime} - {formattedendTime} </Text>
                             <Ionicons name="close-outline" size={20} style={styles.icon} />
                         </TouchableOpacity>
                     )}
                     {date && (
-                        <TouchableOpacity style={styles.fieldItem2} onPress={handleClose1}>
+                        <TouchableOpacity style={styles.fieldItem2} onPress={handleClose3}>
                             <Text style={styles.fieldName2}>
                                 Date: {formatteddate}</Text>
                             <Ionicons name="close-outline" size={20} style={styles.icon} />
