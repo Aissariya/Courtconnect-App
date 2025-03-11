@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, serverTimestamp, collection, query, orderBy, limit, getDocs } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, collection, query, orderBy, limit, getDocs, where } from "firebase/firestore";
 import { auth, db } from '../FirebaseConfig';
 import { Wallet } from 'lucide-react-native';
 
@@ -16,7 +16,7 @@ const SignUp = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // เก็บ error ของ input แต่ละช่อง
+
   const [errors, setErrors] = useState({});
 
   const validateField = (name, value) => {
@@ -72,22 +72,57 @@ const SignUp = ({ navigation }) => {
 
   const generateNextUserId = async () => {
     try {
+      console.log('Generating next user ID...');
       const usersRef = collection(db, "users");
-      const q = query(usersRef, orderBy("user_id", "desc"), limit(1));
-      const querySnapshot = await getDocs(q);
+      
 
-      let nextId = "COS0001"; // Default first ID
+      const usersSnapshot = await getDocs(usersRef);
+      let maxNumber = 0;
+  
 
-      if (!querySnapshot.empty) {
-        const latestUser = querySnapshot.docs[0].data();
-        const latestId = latestUser.user_id;
-        const num = parseInt(latestId.substring(3)) + 1;
-        nextId = `COS${num.toString().padStart(4, '0')}`;
+      usersSnapshot.forEach((doc) => {
+        const userData = doc.data();
+        if (userData.user_id && userData.user_id.startsWith('COS')) {
+          const currentNumber = parseInt(userData.user_id.replace('COS', ''));
+          if (!isNaN(currentNumber) && currentNumber > maxNumber) {
+            maxNumber = currentNumber;
+          }
+        }
+        if (userData.wallet_id && userData.wallet_id.startsWith('W')) {
+          const walletNumber = parseInt(userData.wallet_id.replace('W', ''));
+          if (!isNaN(walletNumber) && walletNumber > maxNumber) {
+            maxNumber = walletNumber;
+          }
+        }
+      });
+
+      const nextNumber = maxNumber + 1;
+      console.log('Next number will be:', nextNumber);
+  
+
+      const userId = `COS${nextNumber.toString().padStart(4, '0')}`;
+      const walletId = `W${nextNumber.toString().padStart(4, '0')}`;
+  
+
+      const checkUserIdQuery = query(usersRef, where('user_id', '==', userId));
+      const checkWalletIdQuery = query(usersRef, where('wallet_id', '==', walletId));
+      
+      const [userIdSnapshot, walletIdSnapshot] = await Promise.all([
+        getDocs(checkUserIdQuery),
+        getDocs(checkWalletIdQuery)
+      ]);
+  
+      if (!userIdSnapshot.empty || !walletIdSnapshot.empty) {
+        console.log('ID conflict detected, trying next number');
+
+        return generateNextUserId();
       }
-
-      return nextId;
+  
+      console.log('Generated new IDs:', { userId, walletId });
+      return { userId, walletId };
+  
     } catch (error) {
-      console.error("Error generating user ID:", error);
+      console.error('Error generating IDs:', error);
       throw error;
     }
   };
@@ -96,33 +131,34 @@ const SignUp = ({ navigation }) => {
     if (!validateInputs()) {
       return;
     }
-
+  
     try {
-      const nextUserId = await generateNextUserId();
+      const { userId, walletId } = await generateNextUserId();
+      console.log('Creating new user with IDs:', { userId, walletId });
+  
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+  
 
       await setDoc(doc(db, "users", user.uid), {
-        user_id: nextUserId,
+        user_id: userId,
         email: email,
         name: name,
         surname: surname,
         isCustomer: isCustomer,
-        wallet_id: `w${nextUserId.substring(3).padStart(2, '0')}`, 
+        wallet_id: walletId,
         createdAt: serverTimestamp(),
       });
 
       await setDoc(doc(db, "Wallet", user.uid), {
-        amount :0,
-        balance:0,
-        wallet_id: `w${nextUserId.substring(3).padStart(2, '0')}`, 
-
-        status:"",
+        amount: 0,
+        balance: 0,
+        wallet_id: walletId,
+        status: "",
       });
-
-
-      console.log("Signup successful!");
-      navigation.pop(); // กลับไปหน้า login
+  
+      console.log('Signup completed successfully');
+      navigation.pop();
     } catch (err) {
       console.error("Signup failed:", err.message);
       alert("Signup failed: " + err.message);
@@ -135,7 +171,7 @@ const SignUp = ({ navigation }) => {
         <Image source={require("../assets/logo.png")} style={styles.logo} />
         <Text style={styles.title}>Sign up</Text>
 
-        {/* Email */}
+
         <View style={styles.inputContainer}>
           <Ionicons name="person-outline" size={20} color="black" />
           <TextInput
@@ -148,7 +184,7 @@ const SignUp = ({ navigation }) => {
         </View>
         {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
 
-        {/* Password */}
+
         <View style={styles.inputContainer}>
           <Ionicons name="lock-closed-outline" size={20} color="black" />
           <TextInput
@@ -169,7 +205,6 @@ const SignUp = ({ navigation }) => {
         </View>
         {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
 
-        {/* Confirm Password */}
         <View style={styles.inputContainer}>
           <Ionicons name="lock-closed-outline" size={20} color="black" />
           <TextInput
@@ -190,7 +225,7 @@ const SignUp = ({ navigation }) => {
         </View>
         {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
 
-        {/* Name */}
+
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
@@ -202,7 +237,7 @@ const SignUp = ({ navigation }) => {
         </View>
         {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
 
-        {/* Surname */}
+
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
@@ -214,7 +249,7 @@ const SignUp = ({ navigation }) => {
         </View>
         {errors.surname && <Text style={styles.errorText}>{errors.surname}</Text>}
 
-        {/* Sign Up Button */}
+
         <TouchableOpacity style={styles.signUpButton} onPress={handleSignup}>
           <Text style={styles.signUpButtonText}>Sign up</Text>
         </TouchableOpacity>

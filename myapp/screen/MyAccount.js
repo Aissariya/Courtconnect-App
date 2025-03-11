@@ -132,7 +132,7 @@ const MyAccount = () => {
 
     try {
       await reauthenticateWithCredential(userAuth, credential);
-      console.log("✅ Reauthentication successful");
+      console.log("Reauthentication successful");
 
       await updatePassword(userAuth, newPassword);
       Alert.alert("Success", "Your password has been updated.");
@@ -169,30 +169,60 @@ const MyAccount = () => {
   };
 
   // Handle profile image picker
-  const pickImage = async () => {
-    if (!isEditable) return;
+// ฟังก์ชันเลือกและอัปโหลดรูป
+const pickImage = async () => {
+  if (!isEditable) return;
 
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
+  let result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsEditing: true,
+    aspect: [1, 1],
+    quality: 1,
+  });
 
-    if (!result.canceled) {
-      const uri = result.assets[0].uri;
-      const imageUrl = await uploadImageToStorage(uri);
-      setUser((prevState) => ({ ...prevState, profileImage: imageUrl }));
-    }
-  };
+  if (!result.canceled) {
+    const uri = result.assets[0].uri;
+    const imageUrl = await uploadImageToStorage(uri);
 
-  const uploadImageToStorage = async (uri) => {
+    // อัปเดต state ในแอป
+    setUser((prevState) => ({ ...prevState, profileImage: imageUrl }));
+
+    // อัปเดต Firestore
+    await updateProfileImageInFirestore(imageUrl);
+  }
+};
+
+// ฟังก์ชันอัปโหลดรูปไป Firebase Storage
+const uploadImageToStorage = async (uri) => {
+  try {
     const response = await fetch(uri);
     const blob = await response.blob();
     const imageRef = ref(storage, `profileImages/${userAuth.uid}.jpg`);
     await uploadBytes(imageRef, blob);
-    return await getDownloadURL(imageRef);
-  };
+
+    const downloadUrl = await getDownloadURL(imageRef);
+    console.log(" Image uploaded:", downloadUrl);
+    return downloadUrl;
+  } catch (error) {
+    console.error(" Error uploading image:", error);
+    return null;
+  }
+};
+
+// ฟังก์ชันอัปเดต Firestore
+const updateProfileImageInFirestore = async (imageUrl) => {
+  if (!userAuth) {
+    console.error(" No user is logged in");
+    return;
+  }
+
+  try {
+    await setDoc(doc(db, "users", userAuth.uid), { profileImage: imageUrl }, { merge: true });
+    console.log("✅ Profile image updated in Firestore");
+  } catch (error) {
+    console.error(" Error updating profile image in Firestore:", error);
+  }
+};
 
   return (
     <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
