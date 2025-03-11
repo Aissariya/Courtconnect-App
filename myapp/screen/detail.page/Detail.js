@@ -9,6 +9,7 @@ import { getFirestore, collection, addDoc, serverTimestamp, updateDoc, doc, dele
 import { AverageRating } from "../../context/AverageRating";
 import Detailstyles from './Detailstyles';
 import { checkCommented, handleDeleteComment } from "../../context/checkCommented";
+import { Menu, Divider } from 'react-native-paper';
 
 export default function Detail({ route, navigation }) {
   const auth = getAuth();
@@ -76,7 +77,6 @@ export default function Detail({ route, navigation }) {
         alert("Comment submitted successfully!");
         setText("");
         setRating(5);
-        navigation.replace('Detail', { court_id });
       } catch (error) {
         console.error("Error adding comment: ", error);
         alert("Failed to submit comment.");

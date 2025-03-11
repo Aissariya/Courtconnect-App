@@ -31,10 +31,23 @@ export default function Filter({ navigation }) {
 
   const handleSearch = () => {
     if (selectedSport) {
+      if (!startTime || !endTime) {
+        alert("Please select a valid time range!");
+        return;
+      }
+      if (!date) {
+        alert("Please select a date!");
+        return;
+      }
       if (maxPrice === "") {
         alert("Please enter a maximum price!");
       } else {
-        navigation.navigate("SearchScreen", { court_type: selectedSport, priceslot: maxPrice });
+        navigation.navigate("SearchScreen", {
+          court_type: selectedSport, priceslot: maxPrice,
+          startTime: new Date(startTime).toISOString(),
+          endTime: new Date(endTime).toISOString(),
+          date: new Date(date).toISOString(),
+        });
       }
     } else {
       alert("Please select a sport!");
@@ -44,21 +57,24 @@ export default function Filter({ navigation }) {
   const onChangeDate = (event, selectedDate) => {
     const currentDate = selectedDate || date;
     setShowDatePicker(false);
+    console.log("currentDate: ", { currentDate });
     setDate(currentDate);
   };
 
   const onChangeStartTime = (event, selectedTime) => {
-    const currentTime = selectedTime || startTime;
-    currentTime.setMinutes(0, 0, 0); // Set minutes to 00
+    const currentstartTime = selectedTime || startTime;
+    currentstartTime.setMinutes(0, 0, 0); // Set minutes to 00
     setShowStartTimePicker(false);
-    setStartTime(currentTime);
+    console.log("onChangeStartTime: ", { currentstartTime });
+    setStartTime(currentstartTime);
   };
 
   const onChangeEndTime = (event, selectedTime) => {
-    const currentTime = selectedTime || endTime;
-    currentTime.setMinutes(0, 0, 0); // Set minutes to 00
+    const currentendTime = selectedTime || endTime;
+    console.log("onChangeEndTime: ", { currentendTime });
+    currentendTime.setMinutes(0, 0, 0); // Set minutes to 00
     setShowEndTimePicker(false);
-    setEndTime(currentTime);
+    setEndTime(currentendTime);
   };
 
   const showDatepicker = () => {

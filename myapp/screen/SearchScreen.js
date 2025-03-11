@@ -1,14 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Database from '../Model/database';
 
 export default function SearchScreen({ route, navigation }) {
     const courts = Database();
     const [filteredFields, setFilteredFields] = useState([]);
-    const { searchQuery, court_type: RouteCourtType, priceslot: Routepriceslot } = route.params || {};
+    const { searchQuery, court_type: RouteCourtType, priceslot: Routepriceslot, startTime: RoutestartTime, endTime: RouteendTime, date: Routedate } = route.params || {};
     const [court_type, setCourtType] = useState(RouteCourtType);
     const [priceslot, setPriceSlot] = useState(Routepriceslot);
+    const [startTime, setStartTime] = useState(new Date(RoutestartTime));
+    const [endTime, setEndTime] = useState(new Date(RouteendTime));
+    const [date, setDate] = useState(new Date(Routedate));
+
+    const formattedstartTime = startTime instanceof Date ? startTime.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false, // ใช้ 24 ชั่วโมง
+    }) : '';
+
+    const formattedendTime = endTime instanceof Date ? endTime.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false, // ใช้ 24 ชั่วโมง
+    }) : '';
+
+    const formatteddate = date instanceof Date ? date.toLocaleDateString("en-CA") : '';
+
+
     useEffect(() => {
         let filtered = courts;
         console.log("priceslot:", priceslot);
@@ -23,10 +42,16 @@ export default function SearchScreen({ route, navigation }) {
         if (priceslot !== undefined) {
             filtered = filtered.filter(field => field.priceslot <= priceslot);
         }
+        if (startTime !== undefined && endTime !== undefined) {
+
+        }
+        if (date !== undefined) {
+
+        }
 
         setFilteredFields(filtered);
         console.log("Filtered Fields:", filtered);
-    }, [searchQuery, court_type, priceslot, courts]);
+    }, [searchQuery, court_type, priceslot, courts, startTime, endTime, date]);
 
     const handleFieldPress = (item) => {
         navigation.navigate('DetailScreen', { court_id: item.court_id });
@@ -43,19 +68,35 @@ export default function SearchScreen({ route, navigation }) {
     return (
         <View style={styles.container}>
             <View style={styles.containerfilter}>
-                {court_type && (
-                    <TouchableOpacity style={styles.fieldItem2} onPress={handleClose}>
-                        <Text style={styles.fieldName2}>{court_type}</Text>
-                        <Ionicons name="close-outline" size={20} style={styles.icon} />
-                    </TouchableOpacity>
-                )}
-                {priceslot && (
-                    <TouchableOpacity style={styles.fieldItem2} onPress={handleClose1}>
-                        <Text style={styles.fieldName2}>
-                            Price below {priceslot}</Text>
-                        <Ionicons name="close-outline" size={20} style={styles.icon} />
-                    </TouchableOpacity>
-                )}
+                <ScrollView horizontal={true} style={styles.scrollContainer} showsHorizontalScrollIndicator={false}>
+                    {court_type && (
+                        <TouchableOpacity style={styles.fieldItem2} onPress={handleClose}>
+                            <Text style={styles.fieldName2}>{court_type}</Text>
+                            <Ionicons name="close-outline" size={20} style={styles.icon} />
+                        </TouchableOpacity>
+                    )}
+                    {priceslot && (
+                        <TouchableOpacity style={styles.fieldItem2} onPress={handleClose1}>
+                            <Text style={styles.fieldName2}>
+                                Price below {priceslot}</Text>
+                            <Ionicons name="close-outline" size={20} style={styles.icon} />
+                        </TouchableOpacity>
+                    )}
+                    {startTime && endTime && (
+                        <TouchableOpacity style={styles.fieldItem2} onPress={handleClose1}>
+                            <Text style={styles.fieldName2}>
+                                {formattedstartTime} : {formattedendTime} </Text>
+                            <Ionicons name="close-outline" size={20} style={styles.icon} />
+                        </TouchableOpacity>
+                    )}
+                    {date && (
+                        <TouchableOpacity style={styles.fieldItem2} onPress={handleClose1}>
+                            <Text style={styles.fieldName2}>
+                                Date: {formatteddate}</Text>
+                            <Ionicons name="close-outline" size={20} style={styles.icon} />
+                        </TouchableOpacity>
+                    )}
+                </ScrollView>
             </View>
             <FlatList
                 data={filteredFields}

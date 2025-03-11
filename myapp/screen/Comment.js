@@ -9,6 +9,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../FirebaseConfig";
 import { getAuth } from "firebase/auth";
 import { checkCommented, handleDeleteComment } from "../context/checkCommented";
+import { Menu, Divider } from 'react-native-paper';
 
 const CommentScreen = ({ route }) => {
     const auth = getAuth();

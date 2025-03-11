@@ -17,6 +17,9 @@ export default function Home({ navigation, route }) {
     { title: "Tennis", data: courts.filter(item => item.court_type === "Tennis"), court_type: "Tennis" },
     { title: "Ping Pong", data: courts.filter(item => item.court_type === "Ping Pong"), court_type: "Ping Pong" },
     { title: "Swimming", data: courts.filter(item => item.court_type === "Swimming"), court_type: "Swimming" },
+    { title: "Boxing", data: courts.filter(item => item.court_type === "Boxing"), court_type: "Boxing" },
+    { title: "Aerobic", data: courts.filter(item => item.court_type === "Aerobic"), court_type: "Aerobic" },
+    { title: "Yoga", data: courts.filter(item => item.court_type === "Yoga"), court_type: "Yoga" },
   ];
 
   // ฟังก์ชันสำหรับแสดงรายการ
