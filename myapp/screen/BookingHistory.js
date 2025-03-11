@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Image, FlatList, ActivityIndicator } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import { View, Text, StyleSheet, Image, FlatList, ActivityIndicator, RefreshControl } from "react-native";
 import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
 import { db } from "../FirebaseConfig"; // นำเข้า Firebase
+import { getAuth } from 'firebase/auth';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function BookingHistory() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   // ฟังก์ชันแปลง String เป็น Date()
   const parseBookingTime = (timeStr) => {
@@ -90,58 +93,101 @@ export default function BookingHistory() {
     }
   };
 
-  useEffect(() => {
-    const fetchBookingHistory = async () => {
-      try {
-        const now = new Date();
-        const bookingRef = collection(db, "Booking");
-        const bookingSnapshot = await getDocs(bookingRef);
-  
-        let bookingList = [];
-  
-        for (const docSnap of bookingSnapshot.docs) {
-          const bookingData = docSnap.data();
-          const endTime = parseBookingTime(bookingData.end_time);
-          if (!endTime) continue;
+  const fetchBookingHistory = async () => {
+    try {
+      const now = new Date();
+      
+      // 1. ดึง user_id จาก user ที่ล็อกอิน
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        console.log('No user logged in');
+        return;
+      }
 
-          if (endTime < now) {
-            const courtQuery = query(
-              collection(db, "Court"), 
-              where("court_id", "==", bookingData.court_id)
+      // 2. ดึง user_id จาก users collection
+      const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+      if (!userDoc.exists()) {
+        console.log('User document not found');
+        return;
+      }
+      const user_id = userDoc.data().user_id;
+
+      // 3. ดึงการจองของ user นี้
+      const bookingRef = collection(db, "Booking");
+      const userBookingsQuery = query(bookingRef, where("user_id", "==", user_id));
+      const bookingSnapshot = await getDocs(userBookingsQuery);
+
+      let bookingList = [];
+      console.log(`Found ${bookingSnapshot.size} bookings for user ${user_id}`);
+
+      for (const docSnap of bookingSnapshot.docs) {
+        const bookingData = docSnap.data();
+        const endTime = parseBookingTime(bookingData.end_time);
+        if (!endTime) continue;
+
+        // 4. เช็คว่าการจองสิ้นสุดแล้วหรือยัง
+        if (endTime < now) {
+          console.log('Processing ended booking:', bookingData.booking_id);
+          
+          // 5. ดึงข้อมูลสนามจาก Court collection
+          const courtQuery = query(
+            collection(db, "Court"), 
+            where("court_id", "==", bookingData.court_id)
+          );
+          const courtSnapshot = await getDocs(courtQuery);
+
+          if (!courtSnapshot.empty) {
+            const courtData = courtSnapshot.docs[0].data();
+            const courtImage = courtData.image?.[0] || null;
+
+            // คำนวณราคา
+            const calculatedPrice = calculateBookingPrice(
+              bookingData.start_time,
+              bookingData.end_time,
+              courtData.priceslot || 500
             );
-            const courtSnapshot = await getDocs(courtQuery);
-  
-            if (!courtSnapshot.empty) {
-              const courtData = courtSnapshot.docs[0].data();
-              const courtImage = courtData.image?.[0] || null;
 
-              // คำนวณราคาใหม่โดยใช้ฟังก์ชัน calculateBookingPrice
-              const calculatedPrice = calculateBookingPrice(
-                bookingData.start_time,
-                bookingData.end_time,
-                courtData.priceslot || 500 // ใช้ค่าเริ่มต้น 500 ถ้าไม่มี priceslot
-              );
-  
-              bookingList.push({
-                id: docSnap.id,
-                field: courtData.field || "Unknown Field",
-                image: courtImage,
-                date: parseDateOnly(bookingData.start_time),
-                time: `${parseTimeOnly(bookingData.start_time)} - ${parseTimeOnly(bookingData.end_time)}`,
-                price: calculatedPrice, // ใช้ราคาที่คำนวณใหม่
-              });
-            }
+            bookingList.push({
+              id: docSnap.id,
+              booking_id: bookingData.booking_id,
+              field: courtData.field || "Unknown Field",
+              image: courtImage,
+              date: parseDateOnly(bookingData.start_time),
+              time: `${parseTimeOnly(bookingData.start_time)} - ${parseTimeOnly(bookingData.end_time)}`,
+              price: calculatedPrice,
+            });
+
+            console.log('Added booking to history:', bookingData.booking_id);
           }
         }
-  
-        setBookings(bookingList);
-      } catch (error) {
-        console.error("❌ Error fetching booking history:", error);
-      } finally {
-        setLoading(false);
       }
-    };
 
+      console.log(`Total history bookings: ${bookingList.length}`);
+      setBookings(bookingList);
+    } catch (error) {
+      console.error("❌ Error fetching booking history:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchBookingHistory().finally(() => setRefreshing(false));
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      console.log('History screen focused, refreshing data...');
+      fetchBookingHistory();
+      return () => {
+        console.log('History screen unfocused');
+      };
+    }, [])
+  );
+
+  useEffect(() => {
     fetchBookingHistory();
   }, []);
   
@@ -155,19 +201,25 @@ export default function BookingHistory() {
         <FlatList
           data={bookings}
           keyExtractor={(item) => item.id}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#009900"]}
+              tintColor="#009900"
+            />
+          }
           renderItem={({ item }) => (
             <View style={styles.card}>
-              {item.image && (
-                <Image 
-                  source={{ uri: item.image }} 
-                  style={styles.image}
-                  resizeMode="cover"
-                />
-              )}
+              <Image 
+                source={{ uri: item.image }} 
+                style={styles.image}
+                resizeMode="cover"
+              />
               <View style={styles.cardContent}>
                 <Text style={styles.title}>{item.field}</Text>
                 <Text style={styles.text}>Date: {item.date}</Text>
-                <Text style={styles.text}>Time: {item.time}</Text>
+                <Text style={styles.text}>Time: {item.time}</Text>              
                 <Text style={styles.price}>Price: {item.price} THB</Text>
               </View>
               <View style={[styles.statusContainer, styles.completed]}>
@@ -204,8 +256,8 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   image: {
-    width: 80,
-    height: 80,
+    width: 90,
+    height: 90,
     borderRadius: 6,
     marginRight: 15,
   },
@@ -236,7 +288,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: 8,
-
   },
   statusText: {
     fontSize: 12,
@@ -251,5 +302,20 @@ const styles = StyleSheet.create({
     marginTop: 50,
     fontSize: 16,
     color: "#666",
+  },
+  imageWrapper: {
+    backgroundColor: '#F4F4F4',
+    borderRadius: 6,
+    overflow: 'hidden',
+    width: 80,
+    height: 80,
+    marginRight: 15,
+  },
+  grayScale: {
+    opacity: 0.6,
+    tintColor: '#808080',
+  },
+  placeholderImage: {
+    backgroundColor: '#E0E0E0',
   },
 });
