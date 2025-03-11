@@ -54,18 +54,24 @@ const BookingSection = ({ route }) => {
         const bookingsRef = collection(db, 'Booking');
         const q = query(
           bookingsRef,
-          where('court_id', '==', court.court_id)
+          where('court_id', '==', court.court_id),
+          where('status', 'in', ['successful']) // เฉพาะสถานะ successful เท่านั้น
         );
 
         const querySnapshot = await getDocs(q);
         const slots = [];
         querySnapshot.forEach((doc) => {
           const booking = doc.data();
-          console.log('Found booking:', booking);
-          slots.push(booking);
+          // เพิ่มเงื่อนไขเช็คสถานะ
+          if (booking.status === 'successful') {
+            console.log('Found valid booking:', booking);
+            slots.push(booking);
+          } else {
+            console.log('Skipping cancelled booking:', booking);
+          }
         });
 
-        console.log('Total bookings found:', slots.length);
+        console.log('Total valid bookings found:', slots.length);
         setBookedSlots(slots);
       } catch (error) {
         console.error('Error fetching bookings:', error);
@@ -185,22 +191,30 @@ const BookingSection = ({ route }) => {
       const todayBookings = [];
       querySnapshot.forEach((doc) => {
         const booking = doc.data();
-        // ดึงวันที่จาก start_time
-        const bookingDateStr = booking.start_time.split(' at')[0];
-        const selectedDateStr = selectedDate.toLocaleDateString('en-US', {
-          month: 'long',
-          day: 'numeric',
-          year: 'numeric'
-        });
+        // ตรวจสอบว่า start_time เป็น Timestamp
+        if (booking.start_time && booking.start_time.toDate) {
+          const bookingDate = booking.start_time.toDate();
+          const selectedDateStr = selectedDate.toLocaleDateString('en-US', {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric'
+          });
 
-        console.log('Comparing dates:', {
-          bookingDate: bookingDateStr,
-          selectedDate: selectedDateStr,
-          booking
-        });
+          const bookingDateStr = bookingDate.toLocaleDateString('en-US', {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric'  
+          });
 
-        if (bookingDateStr === selectedDateStr) {
-          todayBookings.push(booking);
+          console.log('Comparing dates:', {
+            bookingDate: bookingDateStr,
+            selectedDate: selectedDateStr,
+            booking
+          });
+
+          if (bookingDateStr === selectedDateStr) {
+            todayBookings.push(booking);
+          }
         }
       });
 
@@ -216,87 +230,56 @@ const BookingSection = ({ route }) => {
   };
 
   const renderBookedSlots = () => {
-    if (!date || !bookedSlots.length) return null; // เพิ่มการตรวจสอบ date
-
-    const parseDateTime = (dateTimeStr) => {
-      try {
-        console.log('Parsing datetime:', dateTimeStr);
-        // Format: "March 7, 2025 at 10:00 AM UTC+7"
-        const [monthDay, yearTime] = dateTimeStr.split(', ');
-        const [year, timeStr] = yearTime.split(' at ');
-        const [time, period, timezone] = timeStr.split(' ');
-        const [month, day] = monthDay.split(' ');
-        
-        // Convert month name to month number (0-11)
-        const months = {
-          January: 0, February: 1, March: 2, April: 3, May: 4, June: 5,
-          July: 6, August: 7, September: 8, October: 9, November: 10, December: 11
-        };
-        
-        const [hours, minutes] = time.split(':');
-        let hour = parseInt(hours);
-        
-        // Convert to 24 hour format
-        if (period === 'PM' && hour !== 12) hour += 12;
-        if (period === 'AM' && hour === 12) hour = 0;
-        
-        const date = new Date(
-          parseInt(year),
-          months[month],
-          parseInt(day),
-          hour,
-          parseInt(minutes)
-        );
-
-        console.log('Parsed date:', date);
-        return date;
-      } catch (error) {
-        console.error('Error parsing date:', error);
-        return null;
-      }
-    };
+    if (!date || !bookedSlots.length) return null;
 
     return (
       <View style={styles.bookedSlotsContainer}>
         <Text style={styles.bookedSlotsTitle}>Booked Time Slots:</Text>
         {bookedSlots.map((slot) => {
-          const startDate = parseDateTime(slot.start_time);
-          const endDate = parseDateTime(slot.end_time);
-          
-          if (!startDate || !endDate) {
-            console.error('Invalid date found:', slot);
+          // ตรวจสอบว่าเป็น Timestamp หรือไม่
+          if (!slot.start_time || !slot.end_time || 
+              !slot.start_time.toDate || !slot.end_time.toDate) {
+            console.log('Skipping invalid timestamp booking:', slot);
             return null;
           }
 
-          return (
-            <View key={slot.booking_id} style={styles.bookedSlotItem}>
-              <AntDesign name="clockcircle" size={16} color="#D32F2F" style={styles.clockIcon} />
-              <View style={styles.bookedSlotContent}>
-                <Text style={styles.bookedSlotDate}>
-                  {startDate.toLocaleDateString('th-TH', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </Text>
-                <Text style={styles.bookedSlotTime}>
-                  {startDate.toLocaleTimeString('th-TH', { 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    hour12: true 
-                  })}
-                  {' - '}
-                  {endDate.toLocaleTimeString('th-TH', { 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    hour12: true 
-                  })}
-                </Text>
+          try {
+            const startDate = slot.start_time.toDate();
+            const endDate = slot.end_time.toDate();
+
+            return (
+              <View key={slot.booking_id} style={styles.bookedSlotItem}>
+                <AntDesign name="clockcircle" size={16} color="#D32F2F" style={styles.clockIcon} />
+                <View style={styles.bookedSlotContent}>
+                  <Text style={styles.bookedSlotDate}>
+                    {startDate.toLocaleDateString('th-TH', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </Text>
+                  <Text style={styles.bookedSlotTime}>
+                    {startDate.toLocaleTimeString('th-TH', { 
+                      hour: '2-digit', 
+                      minute: '2-digit',
+                      hour12: true 
+                    })}
+                    {' - '}
+                    {endDate.toLocaleTimeString('th-TH', { 
+                      hour: '2-digit', 
+                      minute: '2-digit',
+                      hour12: true 
+                    })}
+                  </Text>
+                </View>
               </View>
-            </View>
-          );
-        })}
+            );
+          } catch (error) {
+            console.error('Error processing timestamp:', error);
+            return null;
+          }
+        }).filter(Boolean)} {/* filter out null values */}
       </View>
     );
   };
@@ -386,7 +369,9 @@ const BookingSection = ({ route }) => {
 
   const renderItem = ({ item }) => (
     <View style={styles.timeSlot}>
-      <Text style={styles.timeText}>{item}</Text>
+      <Text style={styles.timeText}>
+        {typeof item === 'string' ? item : ''}
+      </Text>
       <View style={[styles.bookButton, isBooked(item) && styles.booked]}>
         {isBooked(item) && (
           <View style={styles.bookedContent}>
@@ -421,42 +406,35 @@ const BookingSection = ({ route }) => {
   const checkTimeSlotAvailability = (hour) => {
     if (!bookedSlots.length) return { isBooked: false };
 
-    // เช็คการจองแต่ละรายการ
     for (const booking of bookedSlots) {
       try {
-        // แยกเวลาออกจาก start_time และ end_time
-        const startTimePart = booking.start_time.split(' at ')[1];
-        const endTimePart = booking.end_time.split(' at ')[1];
-        
-        // แปลงเวลาเป็นชั่วโมง
-        const startHour = parseInt(startTimePart.split(':')[0]);
-        const endHour = parseInt(endTimePart.split(':')[0]);
-        
-        // ปรับค่าชั่วโมงตาม AM/PM
-        const adjustedStartHour = startTimePart.includes('PM') && startHour !== 12 
-          ? startHour + 12 
-          : startHour;
-        const adjustedEndHour = endTimePart.includes('PM') && endHour !== 12 
-          ? endHour + 12 
-          : endHour;
+        // ตรวจสอบทั้ง timestamp และสถานะ
+        if (!booking.start_time?.toDate || !booking.end_time?.toDate || booking.status !== 'successful') {
+          console.log('Skipping invalid or cancelled booking:', booking);
+          continue;
+        }
 
-        console.log('Checking time slot:', {
-          slotHour: hour,
-          startHour: adjustedStartHour,
-          endHour: adjustedEndHour,
-          booking: booking
-        });
+        const startTime = booking.start_time.toDate();
+        const endTime = booking.end_time.toDate();
+        
+        const bookingHour = startTime.getHours();
+        const bookingEndHour = endTime.getHours();
 
-        if (hour >= adjustedStartHour && hour < adjustedEndHour) {
+        if (hour >= bookingHour && hour < bookingEndHour) {
           return {
             isBooked: true,
             isUserBooking: booking.user_id === currentUserId,
             booking: booking,
-            timeRange: `${startTimePart.split(' UTC')[0]} - ${endTimePart.split(' UTC')[0]}`
+            timeRange: (
+              <Text>
+                {startTime.toLocaleTimeString()} - {endTime.toLocaleTimeString()}
+              </Text>
+            )
           };
         }
       } catch (error) {
-        console.error('Error checking time slot:', error);
+        console.error('Error checking booking:', error);
+        continue;
       }
     }
 

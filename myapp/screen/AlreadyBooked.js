@@ -20,27 +20,47 @@ export default function AlreadyBooked({ navigation, route }) {
     checkRefundStatus();
   }, [booking]);
 
-  const formatDateTime = (timeStr) => {
-    try {
-      if (!timeStr) return { date: 'Invalid date', time: 'Invalid time' };
+  const formatDateTime = (dateTime) => {
+    if (!dateTime) return { date: 'Invalid date', time: 'Invalid time' };
 
-      // รองรับทั้งรูปแบบที่มี 'at' และไม่มี
-      if (timeStr.includes(' at ')) {
-        const [datePart, timePart] = timeStr.split(' at ');
+    try {
+      // ตรวจสอบว่าเป็น timestamp จาก Booking Database
+      if (dateTime.seconds) {
+        const date = new Date(dateTime.seconds * 1000);
         return {
-          date: datePart,
-          time: timePart.split(' UTC')[0]
-        };
-      } else {
-        // รูปแบบใหม่: "March 9, 2025, 12:00 PM UTC+7"
-        const [datePart, timePart] = timeStr.split(', ').slice(-2);
-        return {
-          date: timeStr.split(', ').slice(0, -1).join(', '), // เอาส่วนวันที่ทั้งหมด
-          time: timePart.split(' UTC')[0] // เอาเฉพาะเวลา
+          date: date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }),
+          time: date.toLocaleString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          })
         };
       }
+
+      // ถ้าเป็น Date object
+      if (dateTime instanceof Date) {
+        return {
+          date: dateTime.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long', 
+            day: 'numeric'
+          }),
+          time: dateTime.toLocaleString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          })
+        };
+      }
+
+      console.error('Invalid timestamp format:', dateTime);
+      return { date: 'Invalid date', time: 'Invalid time' };
     } catch (error) {
-      console.error('Error parsing datetime:', error, 'for string:', timeStr);
+      console.error('Error formatting datetime:', error);
       return { date: 'Invalid date', time: 'Invalid time' };
     }
   };
@@ -153,7 +173,7 @@ export default function AlreadyBooked({ navigation, route }) {
 
             <Text style={styles.detailsText}>
               Court Type: {booking.courtDetails.type}{"\n"}
-              Booking Date: {formatDateTime(booking.start_time).date}{"\n"}
+              Date: {formatDateTime(booking.start_time).date}{"\n"}
               Time: {formatDateTime(booking.start_time).time} - {formatDateTime(booking.end_time).time}{"\n"}
               Location: {booking.courtDetails.address}{"\n"}
               Facilities: Locker Room, Shower Room{"\n"}

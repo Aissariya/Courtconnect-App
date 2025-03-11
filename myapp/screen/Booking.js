@@ -91,29 +91,59 @@ const App = ({ navigation, route }) => {
     fetchWalletBalance();
   }, []);
 
-  const formatTo12Hour = (date24) => {
-    console.log('Converting date:', date24);
-    const date = new Date(date24);
+const formatTo12Hour = (date24) => {
+  // ตรวจสอบว่าเป็น Timestamp หรือไม่
+  if (date24?.seconds) {
+    // แปลง Timestamp เป็น Date object
+    const date = new Date(date24.seconds * 1000);
     return date.toLocaleString('th-TH', {
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true // บังคับให้แสดงเวลาในรูปแบบ 12 ชั่วโมง
-    });
-  };
-
-  const formatTimeTo12Hour = (date) => {
-    return date.toLocaleString('th-TH', {
-      year: 'numeric',
+      year: 'numeric',  
       month: 'numeric',
       day: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
       hour12: true
     });
-  };
+  }
+
+  // กรณีเป็น Date object
+  if (date24 instanceof Date) {
+    return date24.toLocaleString('th-TH', {
+      year: 'numeric',
+      month: 'numeric', 
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  }
+
+  console.error('Invalid date format:', date24);
+  return '';
+};
+
+const formatTimeTo12Hour = (date) => {
+  if (!date) return '';
+  
+  // ตรวจสอบว่าเป็น Timestamp
+  if (date?.seconds) {
+    date = new Date(date.seconds * 1000);
+  }
+
+  try {
+    return date.toLocaleString('th-TH', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric', 
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  } catch (error) {
+    console.error('Error formatting time:', error);
+    return '';
+  }
+};
 
   const roundToHour = (date) => {
     const roundedDate = new Date(date);
