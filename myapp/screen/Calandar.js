@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, Image, FlatList, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, TextInput, Image, FlatList, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { AntDesign } from '@expo/vector-icons'; 
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { collection, getDocs, query, where } from 'firebase/firestore';
@@ -54,25 +54,26 @@ const BookingSection = ({ route }) => {
         const bookingsRef = collection(db, 'Booking');
         const q = query(
           bookingsRef,
-          where('court_id', '==', court.court_id),
-          where('status', 'in', ['successful']) // เฉพาะสถานะ successful เท่านั้น
+          where('court_id', '==', court.court_id)
         );
 
         const querySnapshot = await getDocs(q);
         const slots = [];
+        
         querySnapshot.forEach((doc) => {
           const booking = doc.data();
-          // เพิ่มเงื่อนไขเช็คสถานะ
+          // เพิ่มการตรวจสอบสถานะ successful
           if (booking.status === 'successful') {
-            console.log('Found valid booking:', booking);
+            console.log('Found successful booking:', booking);
             slots.push(booking);
           } else {
-            console.log('Skipping cancelled booking:', booking);
+            console.log('Skipping non-successful booking:', booking.status);
           }
         });
 
         console.log('Total valid bookings found:', slots.length);
         setBookedSlots(slots);
+
       } catch (error) {
         console.error('Error fetching bookings:', error);
       }
@@ -187,12 +188,12 @@ const BookingSection = ({ route }) => {
       const q = query(bookingsRef, where('court_id', '==', court.court_id));
       const querySnapshot = await getDocs(q);
       
-      // กรองข้อมูลตามวันที่
       const todayBookings = [];
       querySnapshot.forEach((doc) => {
         const booking = doc.data();
-        // ตรวจสอบว่า start_time เป็น Timestamp
-        if (booking.start_time && booking.start_time.toDate) {
+        
+        // ตรวจสอบทั้ง timestamp และสถานะ successful
+        if (booking.status === 'successful' && booking.start_time?.toDate) {
           const bookingDate = booking.start_time.toDate();
           const selectedDateStr = selectedDate.toLocaleDateString('en-US', {
             month: 'long',
@@ -206,19 +207,13 @@ const BookingSection = ({ route }) => {
             year: 'numeric'  
           });
 
-          console.log('Comparing dates:', {
-            bookingDate: bookingDateStr,
-            selectedDate: selectedDateStr,
-            booking
-          });
-
           if (bookingDateStr === selectedDateStr) {
             todayBookings.push(booking);
           }
         }
       });
 
-      console.log('Found bookings:', todayBookings);
+      console.log('Found valid bookings for date:', todayBookings.length);
       setBookedSlots(todayBookings);
     } catch (error) {
       console.error('Error fetching bookings:', error);
@@ -531,6 +526,18 @@ const BookingSection = ({ route }) => {
     },
     // ...existing styles...
   });
+
+  const onDayPress = (day) => {
+    if (markedDates[day.dateString]?.marked) {
+      Alert.alert(
+        'Booking Status',
+        'This date is already booked', // แก้จาก <Text> เป็น string ธรรมดา
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    // ...existing code...
+  };
 
   return (
     <FlatList

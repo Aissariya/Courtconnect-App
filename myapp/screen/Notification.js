@@ -24,10 +24,10 @@ export default function Notification() {
         const userData = userDoc.data();
         const user_id = userData.user_id;
 
-        // ดึงข้อมูล Refund ที่มีสถานะ Need Action
+        // ดึงข้อมูล Refund ที่มีสถานะ Need Action, Rejected และ Accepted
         const refundsSnapshot = await getDocs(
           query(collection(db, 'Refund'), 
-            where('status', '==', 'Need Action'),
+            where('status', 'in', ['Need Action', 'Rejected', 'Accepted']), // เพิ่ม Accepted
             where('user_id', '==', user_id)
           )
         );
@@ -39,6 +39,7 @@ export default function Notification() {
         for (const doc of refundsSnapshot.docs) {
           const refundData = doc.data();
           console.log('Processing refund:', refundData);
+          console.log('Status:', refundData.status);
 
           // ดึงข้อมูล booking เพื่อหา court_id
           const bookingsSnapshot = await getDocs(
@@ -63,11 +64,15 @@ export default function Notification() {
 
               notifications.push({
                 id: refundData.booking_id,
-                title: 'Cancellation Under Review',
+                title: refundData.status === 'Need Action' ? 'Cancellation Under Review' :
+                      refundData.status === 'Rejected' ? 'Cancellation Rejected' :
+                      refundData.status === 'Accepted' ? 'Refund Successful' : '', // เพิ่มเงื่อนไข Accepted
                 message: `${courtData.field}`,
                 time: new Date(refundData.datetime_refund.seconds * 1000).toLocaleTimeString(),
                 date: new Date(refundData.datetime_refund.seconds * 1000).toLocaleDateString(),
-                status: 'review',
+                status: refundData.status === 'Need Action' ? 'review' :
+                       refundData.status === 'Rejected' ? 'rejected' :
+                       refundData.status === 'Accepted' ? 'refundSuccess' : '', // map Accepted เป็น refundSuccess
                 timestamp: refundData.datetime_refund.seconds * 1000,
                 reason: refundData.reason_refund
               });
@@ -78,6 +83,7 @@ export default function Notification() {
         // เรียงตามเวลาล่าสุด
         notifications.sort((a, b) => b.timestamp - a.timestamp);
         console.log('Final notifications:', notifications.length);
+        console.log('Notifications:', notifications);
         setNotifications(notifications);
 
       } catch (error) {

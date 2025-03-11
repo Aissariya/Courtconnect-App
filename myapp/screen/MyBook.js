@@ -84,9 +84,8 @@ const MyBook = () => {
       const refundMap = new Map();
       refundSnapshot.forEach(doc => {
         const refundData = doc.data();
-        if (refundData.status === 'Need Action') {
-          refundMap.set(refundData.booking_id, refundData);
-        }
+        // เก็บข้อมูล refund ทั้งหมด ไม่ว่าจะเป็น status อะไร
+        refundMap.set(refundData.booking_id, refundData);
       });
 
       // แปลงข้อมูล bookings และตรวจสอบกับ refund
@@ -98,29 +97,29 @@ const MyBook = () => {
         if (court) {
           const refundData = refundMap.get(booking.booking_id);
 
-          // แปลง Timestamp เป็น Date object
-          const startTime = booking.start_time.toDate();
-          const endTime = booking.end_time.toDate();
+          // ถ้าไม่มี refund หรือ status ไม่ใช่ Rejected จึงจะแสดงในรายการ
+          if (!refundData || refundData.status !== 'Rejected') {
+            const startTime = booking.start_time.toDate();
+            const endTime = booking.end_time.toDate();
+            const diffHours = (endTime - startTime) / (1000 * 60 * 60);
+            const calculatedPrice = Math.ceil(diffHours) * court.priceslot;
 
-          // คำนวณจำนวนชั่วโมง
-          const diffHours = (endTime - startTime) / (1000 * 60 * 60);
-          const calculatedPrice = Math.ceil(diffHours) * court.priceslot;
-
-          processedBookings.push({
-            id: booking.booking_id,
-            start_time: startTime,
-            end_time: endTime,
-            status: refundData ? 'Need Action' : booking.status,
-            price: calculatedPrice,
-            courtDetails: {
-              name: court.field,
-              image: court.image[0],
-              type: court.court_type,
-              address: court.address,
-              court_id: court.court_id,
-              priceslot: court.priceslot
-            }
-          });
+            processedBookings.push({
+              id: booking.booking_id,
+              start_time: startTime,
+              end_time: endTime,
+              status: refundData ? refundData.status : booking.status,
+              price: calculatedPrice,
+              courtDetails: {
+                name: court.field,
+                image: court.image[0],
+                type: court.court_type,
+                address: court.address,
+                court_id: court.court_id,
+                priceslot: court.priceslot
+              }
+            });
+          }
         }
       });
 
