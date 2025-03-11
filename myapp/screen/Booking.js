@@ -316,17 +316,15 @@ const App = ({ navigation, route }) => {
       setIsLoading(true);
       console.log('=== Starting Payment Process ===');
 
-      // 1. ดึงข้อมูล user wallet ที่จะจ่ายเงิน
-      const auth = getAuth();
-      const currentUser = auth.currentUser;
-      if (!currentUser || !userData) {
-        throw new Error('No user data available');
-      }
-
-      // 2. ดึงข้อมูลจาก Court collection เพื่อหา user_id ของเจ้าของสนาม
+      // 1. ดึง user_id ของเจ้าของสนามจาก Court collection
       const courtsRef = collection(db, 'Court');
       const courtQuery = query(courtsRef, where('court_id', '==', court.court_id));
       const courtSnapshot = await getDocs(courtQuery);
+
+      console.log('Checking court:', {
+        court_id: court.court_id,
+        courtSnapshot: courtSnapshot.size
+      });
 
       if (courtSnapshot.empty) {
         throw new Error('Court not found');
@@ -334,12 +332,17 @@ const App = ({ navigation, route }) => {
 
       const courtData = courtSnapshot.docs[0].data();
       const courtOwnerId = courtData.user_id;
-      console.log('Court owner ID:', courtOwnerId);
+      console.log('Found court owner user_id:', courtOwnerId);
 
-      // 3. ดึง wallet_id ของเจ้าของสนามจาก users collection
+      // 2. ค้นหา wallet_id จาก Users collection โดยใช้ user_id
       const usersRef = collection(db, 'users');
       const courtOwnerQuery = query(usersRef, where('user_id', '==', courtOwnerId));
       const userSnapshot = await getDocs(courtOwnerQuery);
+
+      console.log('Checking court owner:', {
+        owner_id: courtOwnerId,
+        userSnapshot: userSnapshot.size
+      });
 
       if (userSnapshot.empty) {
         throw new Error('Court owner not found');
@@ -347,13 +350,42 @@ const App = ({ navigation, route }) => {
 
       const courtOwnerData = userSnapshot.docs[0].data();
       const courtOwnerWalletId = courtOwnerData.wallet_id;
-      console.log('Court owner wallet ID:', courtOwnerWalletId);
+      console.log('Found court owner wallet_id:', courtOwnerWalletId);
 
-      // 4. ดึงข้อมูล wallet ของทั้งสองฝ่าย
+      // 3. ดึงข้อมูล wallet ของทั้งสองฝ่าย
       const walletsRef = collection(db, 'Wallet');
-      const [payerWalletSnapshot, receiverWalletSnapshot] = await Promise.all([
+      const [payerWallet, receiverWallet] = await Promise.all([
         getDocs(query(walletsRef, where('wallet_id', '==', userData.wallet_id))),
         getDocs(query(walletsRef, where('wallet_id', '==', courtOwnerWalletId)))
+      ]);
+
+      console.log('Checking wallets:', {
+        payer: {
+          wallet_id: userData.wallet_id,
+          found: !payerWallet.empty
+        },
+        receiver: {
+          wallet_id: courtOwnerWalletId,
+          found: !receiverWallet.empty
+        }
+      });
+
+      if (payerWallet.empty || receiverWallet.empty) {
+        throw new Error('Wallet information not found');
+      }
+
+      const payerDoc = payerWallet.docs[0];
+      const receiverDoc = receiverWallet.docs[0];
+      console.log('Wallet balances before transfer:', {
+        payer: payerDoc.data().balance,
+        receiver: receiverDoc.data().balance,
+        amount: totalPrice
+      });
+
+      // 4. ดึงข้อมูล wallet ของทั้งสองฝ่าย
+      const [payerWalletSnapshot, receiverWalletSnapshot] = await Promise.all([
+        getDocs(query(collection(db, 'Wallet'), where('wallet_id', '==', userData.wallet_id))),
+        getDocs(query(collection(db, 'Wallet'), where('wallet_id', '==', courtOwnerWalletId)))
       ]);
 
       if (payerWalletSnapshot.empty || receiverWalletSnapshot.empty) {

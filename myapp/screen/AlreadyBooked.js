@@ -68,7 +68,7 @@ export default function AlreadyBooked({ navigation, route }) {
         throw new Error('No booking data available');
       }
   
-      const booking_id = booking.booking_id || booking.id;
+      const booking_id = booking.booking_id || booking.id; 
       const auth = getAuth();
       const currentUser = auth.currentUser;
       
@@ -76,33 +76,20 @@ export default function AlreadyBooked({ navigation, route }) {
         throw new Error('Missing required data');
       }
   
-      // ดึง court_id จาก booking data
-      const bookingRef = collection(db, 'Booking');
-      const bookingQuery = query(bookingRef, where('booking_id', '==', booking_id));
-      const bookingSnapshot = await getDocs(bookingQuery);
-      
-      let court_id;
-      if (!bookingSnapshot.empty) {
-        const bookingDoc = bookingSnapshot.docs[0];
-        court_id = bookingDoc.data().court_id;
-      } else {
-        throw new Error('Cannot find booking record');
-      }
-  
       const userDoc = await getDoc(doc(db, "users", currentUser.uid));
       const userData = userDoc.data();
       const user_id = userData.user_id;
   
-      // บันทึกข้อมูล refund อย่างเดียว
+      // บันทึกข้อมูล refund ด้วย Timestamp
       const refundData = {
         booking_id,
         user_id,
         status: 'Need Action',
         reason_refund: selectedReason,
-        datetime_refund: new Date().toISOString(),
-        court_id: court_id
+        datetime_refund: serverTimestamp() // เปลี่ยนเป็น serverTimestamp
       };
   
+      console.log('Saving refund data:', refundData);
       const refundRef = collection(db, 'Refund');
       await addDoc(refundRef, refundData);
   
