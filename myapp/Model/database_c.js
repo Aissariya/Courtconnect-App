@@ -8,7 +8,6 @@ const DataComment = (court_id) => {
     useEffect(() => {
         const fetchComments = async () => {
             try {
-
                 console.log('=== Fetching Comment Data for court_id:', court_id);
                 const commentsQuery = query(
                     collection(db, 'Comment'),

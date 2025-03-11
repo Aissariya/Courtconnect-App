@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
 import Database from '../Model/database';
 import DataComment from '../Model/database_c';
 import DataUser from '../Model/database_u';
 import { AverageRating } from "../context/AverageRating";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../FirebaseConfig";
+import { getAuth } from "firebase/auth";
+import { checkCommented, handleDeleteComment } from "../context/checkCommented";
 
 const CommentScreen = ({ route }) => {
+    const auth = getAuth();
     const courts = Database();
     const { court_id } = route.params || {};
     const comments = DataComment(court_id);
@@ -53,22 +57,34 @@ const CommentScreen = ({ route }) => {
                     {comments.length > 0 ? (
                         comments.map((comment) => (
                             <View key={comment.id} style={styles.reviewBox}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                    <Image
-                                        source={
-                                            userData[comment.id]?.profileImage
-                                                ? { uri: userData[comment.id].profileImage }
-                                                : require("../assets/profile-user.png")
-                                        }
-                                        style={styles.profileImage}
-                                    />
-                                    <Text style={styles.reviewerName}>{userData[comment.id]?.name || "Loading..."}</Text>
-                                    <View style={styles.starContainer}>
-                                        {[...Array(comment.rating)].map((_, index) => (
-                                            <Text key={index} style={styles.star}>★</Text>
-                                        ))}
+                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <Image
+                                            source={
+                                                userData[comment.id]?.profileImage
+                                                    ? { uri: userData[comment.id].profileImage }
+                                                    : require("../assets/profile-user.png")
+                                            }
+                                            style={styles.profileImage}
+                                        />
+                                        <Text style={styles.reviewerName}>{userData[comment.id]?.name || "Loading..."}</Text>
+                                        <View style={styles.starContainer}>
+                                            {[...Array(comment.rating)].map((_, index) => (
+                                                <Text key={index} style={styles.star}>★</Text>
+                                            ))}
+                                        </View>
+                                        <Text style={styles.rateText}>({comment.rating}.0) </Text>
                                     </View>
-                                    <Text style={styles.rateText}>({comment.rating}.0) </Text>
+                                    {auth.currentUser && comment.user_id === auth.currentUser.uid && (
+                                        <TouchableOpacity onPress={() => handleDeleteComment(comment.id)}>
+                                            <MaterialCommunityIcons
+                                                name="dots-vertical"
+                                                size={15}
+                                                color="#000"
+                                                style={{ marginTop: 5 }}
+                                            />
+                                        </TouchableOpacity>
+                                    )}
                                 </View>
                                 <Text style={styles.dateText}>
                                     {comment.timestamp ? new Date(comment.timestamp.seconds * 1000).toLocaleString('en-GB', {
@@ -88,8 +104,6 @@ const CommentScreen = ({ route }) => {
                     )}
                 </View>
             </ScrollView>
-
-
         </View>
     )
 }

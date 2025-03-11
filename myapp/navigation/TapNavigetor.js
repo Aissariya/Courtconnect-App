@@ -3,7 +3,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import React from 'react';
 import Home from '../screen/Home';
-import DetailScreen from '../screen/Detail';
+import DetailScreen from '../screen/detail.page/Detail';
 import NotificationScreen from '../screen/Notification';
 import AccountScreen from '../screen/Account';
 import MyAccount from '../screen/MyAccount';

@@ -1,6 +1,6 @@
 import { View, StyleSheet, TextInput, TouchableOpacity, Text } from 'react-native';
 import React, { useState, useEffect } from 'react';
-import DetailScreen from '../screen/Detail';
+import DetailScreen from '../screen/detail.page/Detail';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import TabNaVigator from './TapNavigetor';
 import BookingSection from '../screen/Calandar';
