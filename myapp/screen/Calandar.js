@@ -132,37 +132,26 @@ const BookingSection = ({ route }) => {
 
   // แก้ไข isBooked function เพื่อเพิ่ม console.log
   const isBooked = (timeSlot) => {
-    if (!date || !bookedSlots.length) {
-      return false;
-    }
-
-    console.log(`Checking bookings for ${timeSlot} on ${date.toLocaleDateString()}`);
-    
-    const currentDate = new Date(date);
-    currentDate.setHours(0, 0, 0, 0);
+    if (!date || !bookedSlots.length) return false;
 
     const slotHour = parseInt(timeSlot.split(':')[0]);
-    console.log('Checking hour:', slotHour);
-
+    
     return bookedSlots.some(booking => {
-      const bookingStart = new Date(booking.start_time);
-      const bookingEnd = new Date(booking.end_time);
+      try {
+        const startTime = booking.start_time;
+        const endTime = booking.end_time;
+        const bookingDate = startTime.toDate();
+        
+        if (bookingDate.toDateString() !== date.toDateString()) return false;
 
-      // เช็คว่าเป็นวันเดียวกัน
-      if (bookingStart.toDateString() !== currentDate.toDateString()) {
+        const bookingStartHour = startTime.toDate().getHours();
+        const bookingEndHour = endTime.toDate().getHours();
+
+        return slotHour >= bookingStartHour && slotHour < bookingEndHour;
+      } catch (error) {
+        console.error('Error checking booking:', error);
         return false;
       }
-
-      const bookingStartHour = bookingStart.getHours();
-      const bookingEndHour = bookingEnd.getHours();
-
-      console.log('Booking hours:', {
-        start: bookingStartHour,
-        end: bookingEndHour,
-        slot: slotHour
-      });
-
-      return slotHour >= bookingStartHour && slotHour <= bookingEndHour;
     });
   };
 
@@ -193,19 +182,10 @@ const BookingSection = ({ route }) => {
         const booking = doc.data();
         
         // ตรวจสอบทั้ง timestamp และสถานะ successful
-        if (booking.status === 'successful' && booking.start_time?.toDate) {
+        if (booking.status === 'successful' && booking.start_time) {
           const bookingDate = booking.start_time.toDate();
-          const selectedDateStr = selectedDate.toLocaleDateString('en-US', {
-            month: 'long',
-            day: 'numeric',
-            year: 'numeric'
-          });
-
-          const bookingDateStr = bookingDate.toLocaleDateString('en-US', {
-            month: 'long',
-            day: 'numeric',
-            year: 'numeric'  
-          });
+          const selectedDateStr = selectedDate.toLocaleDateString();
+          const bookingDateStr = bookingDate.toLocaleDateString();
 
           if (bookingDateStr === selectedDateStr) {
             todayBookings.push(booking);
@@ -224,6 +204,7 @@ const BookingSection = ({ route }) => {
     setShow(true);
   };
 
+  // แก้ไขฟังก์ชัน renderBookedSlots ในส่วนที่แสดงเวลา
   const renderBookedSlots = () => {
     if (!date || !bookedSlots.length) return null;
 
@@ -231,14 +212,14 @@ const BookingSection = ({ route }) => {
       <View style={styles.bookedSlotsContainer}>
         <Text style={styles.bookedSlotsTitle}>Booked Time Slots:</Text>
         {bookedSlots.map((slot) => {
-          // ตรวจสอบว่าเป็น Timestamp หรือไม่
-          if (!slot.start_time || !slot.end_time || 
-              !slot.start_time.toDate || !slot.end_time.toDate) {
-            console.log('Skipping invalid timestamp booking:', slot);
+          // ตรวจสอบว่ามี timestamp หรือไม่
+          if (!slot.start_time || !slot.end_time) {
+            console.log('Invalid booking data:', slot);
             return null;
           }
 
           try {
+            // ใช้ timestamp โดยตรงในการเปรียบเทียบ
             const startDate = slot.start_time.toDate();
             const endDate = slot.end_time.toDate();
 
@@ -271,10 +252,10 @@ const BookingSection = ({ route }) => {
               </View>
             );
           } catch (error) {
-            console.error('Error processing timestamp:', error);
+            console.error('Error displaying booking:', error);
             return null;
           }
-        }).filter(Boolean)} {/* filter out null values */}
+        })}
       </View>
     );
   };
@@ -403,28 +384,20 @@ const BookingSection = ({ route }) => {
 
     for (const booking of bookedSlots) {
       try {
-        // ตรวจสอบทั้ง timestamp และสถานะ
-        if (!booking.start_time?.toDate || !booking.end_time?.toDate || booking.status !== 'successful') {
-          console.log('Skipping invalid or cancelled booking:', booking);
-          continue;
-        }
+        if (!booking.start_time || !booking.end_time) continue;
 
-        const startTime = booking.start_time.toDate();
-        const endTime = booking.end_time.toDate();
-        
-        const bookingHour = startTime.getHours();
-        const bookingEndHour = endTime.getHours();
+        const bookingStartHour = booking.start_time.toDate().getHours();
+        const bookingEndHour = booking.end_time.toDate().getHours();
 
-        if (hour >= bookingHour && hour < bookingEndHour) {
+        if (hour >= bookingStartHour && hour < bookingEndHour) {
           return {
             isBooked: true,
             isUserBooking: booking.user_id === currentUserId,
             booking: booking,
-            timeRange: (
-              <Text>
-                {startTime.toLocaleTimeString()} - {endTime.toLocaleTimeString()}
-              </Text>
-            )
+            timeDisplay: {
+              start: booking.start_time.toDate().toLocaleTimeString(),
+              end: booking.end_time.toDate().toLocaleTimeString()
+            }
           };
         }
       } catch (error) {
@@ -432,11 +405,10 @@ const BookingSection = ({ route }) => {
         continue;
       }
     }
-
     return { isBooked: false };
   };
 
-  // แก้ไข renderTimeSlots function เพื่อแสดงสถานะการจอง
+  // แก้ไขฟังก์ชัน renderTimeSlots
   const renderTimeSlots = () => {
     if (!date) return null;
 
@@ -447,23 +419,17 @@ const BookingSection = ({ route }) => {
 
     return (
       <View style={styles.timeSlotsContainer}>
-        <Text style={styles.dateHeader}>
-          {date.toLocaleDateString('th-TH', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          })}
-        </Text>
-
-        {bookedSlots.length > 0 && (
-          <Text style={styles.bookingsSummary}>
-            การจองวันนี้: {bookedSlots.length} รายการ
+        {/* แก้ส่วนแสดงจำนวนการจอง */}
+        <View style={styles.bookingsSummaryContainer}>
+          <Text style={styles.bookingsSummaryText}>
+            <Text>การจองวันนี้: </Text>
+            <Text>{bookedSlots.length}</Text>
+            <Text> รายการ</Text>
           </Text>
-        )}
+        </View>
 
         {timeSlots.map(({ hour, display }) => {
-          const { isBooked, isUserBooking, timeRange } = checkTimeSlotAvailability(hour);
+          const { isBooked, isUserBooking, timeDisplay } = checkTimeSlotAvailability(hour);
           
           return (
             <View key={hour} style={styles.timeSlotRow}>
@@ -474,12 +440,27 @@ const BookingSection = ({ route }) => {
                   (isUserBooking ? styles.userBookedSlot : styles.bookedSlot) 
                   : styles.availableSlot
               ]}>
-                <Text style={styles.statusText}>
-                  {isBooked ? 
-                    (isUserBooking ? 'การจองของคุณ' : 'ไม่ว่าง') 
-                    : 'ว่าง'}
-                </Text>
-                {timeRange && <Text style={styles.timeRangeText}>{timeRange}</Text>}
+                <View style={styles.statusContainer}>
+                  <Text style={styles.statusText}>
+                    {isBooked ? 
+                      (isUserBooking ? 
+                        <Text>การจองของคุณ</Text> : 
+                        <Text>ไม่ว่าง</Text>
+                      ) : 
+                      <Text>ว่าง</Text>
+                    }
+                  </Text>
+                </View>
+                
+                {timeDisplay && (
+                  <View style={styles.timeDisplayContainer}>
+                    <Text style={styles.timeRangeText}>
+                      <Text>{timeDisplay.start}</Text>
+                      <Text> - </Text>
+                      <Text>{timeDisplay.end}</Text>
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
           );
@@ -530,9 +511,9 @@ const BookingSection = ({ route }) => {
   const onDayPress = (day) => {
     if (markedDates[day.dateString]?.marked) {
       Alert.alert(
-        'Booking Status',
-        'This date is already booked', // แก้จาก <Text> เป็น string ธรรมดา
-        [{ text: 'OK' }]
+        <Text>Booking Status</Text>,
+        <Text>This date is already booked</Text>,
+        [{ text: <Text>OK</Text> }]
       );
       return;
     }
@@ -837,6 +818,24 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: '#388E3C', // สีขอบสีเขียวเข้ม
   },
+  bookingsSummaryContainer: {
+    backgroundColor: '#f5f5f5',
+    padding: 8,
+    borderRadius: 5,
+    marginBottom: 10,
+  },
+  bookingsSummaryText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+  },
+  statusContainer: {
+    marginBottom: 4,
+  },
+  timeDisplayContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  }
 });
 
 export default BookingSection;
