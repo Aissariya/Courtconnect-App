@@ -5,18 +5,17 @@ import Database from '../Model/database';
 import DataComment from '../Model/database_c';
 import DataUser from '../Model/database_u';
 import { AverageRating } from "../context/AverageRating";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, deleteDoc } from "firebase/firestore";
 import { db } from "../FirebaseConfig";
 import { getAuth } from "firebase/auth";
-import { checkCommented, handleDeleteComment } from "../context/checkCommented";
 
-const CommentScreen = ({ route }) => {
+const CommentScreen = ({ route, navigation }) => {
     const auth = getAuth();
     const courts = Database();
-    const { court_id } = route.params || {};
+    const { court_id, fromDetailScreen } = route.params || {};
     const comments = DataComment(court_id);
     const userData = DataUser(comments);
-
+    const [commentsList, setCommentsList] = useState(comments);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -34,6 +33,23 @@ const CommentScreen = ({ route }) => {
     }
 
     const averageRating = AverageRating(comments);
+
+    const handleDeleteComment = async (commentId) => {
+        try {
+            const commentRef = doc(db, "Comment", commentId);
+            await deleteDoc(commentRef);
+            alert("Comment deleted successfully!");
+
+            navigation.pop();
+            navigation.replace('DetailScreen', { court_id });
+            navigation.navigate('CommentScreen', { court_id });
+
+
+        } catch (error) {
+            console.error("Error deleting comment: ", error);
+            alert("Failed to delete comment.");
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -75,7 +91,7 @@ const CommentScreen = ({ route }) => {
                                         </View>
                                         <Text style={styles.rateText}>({comment.rating}.0) </Text>
                                     </View>
-                                    {auth.currentUser && comment.user_id === auth.currentUser.uid && (
+                                    {fromDetailScreen && auth.currentUser && comment.user_id === auth.currentUser.uid && (
                                         <TouchableOpacity onPress={() => handleDeleteComment(comment.id)}>
                                             <MaterialCommunityIcons
                                                 name="dots-vertical"

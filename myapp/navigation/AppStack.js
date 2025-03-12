@@ -123,24 +123,23 @@ const AppStack = () => {
       <Stack.Screen
         component={MyWallet}
         name='MyWallet'
-        options={screenOptions4}
+        options={screenOptions3}
       />
       <Stack.Screen
         component={Deposit}
         name='Deposit'
-        options={screenOptions4}
+        options={screenOptions3}
       />
       <Stack.Screen
         component={Transfer}
         name='Transfer'
-        options={screenOptions4}
+        options={screenOptions3}
       />
       <Stack.Screen
         component={AlreadyBooked}
         name='AlreadyBooked'
-        options={screenOptions4}
+        options={screenOptions3}
       />
-
     </Stack.Navigator>
   );
 };

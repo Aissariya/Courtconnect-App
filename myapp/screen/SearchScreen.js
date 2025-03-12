@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Image } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Database from '../Model/database';
+import DatabaseTimeslots from '../Model/datebase_ts';
 
 export default function SearchScreen({ route, navigation }) {
     const courts = Database();
-    const [filteredFields, setFilteredFields] = useState([]);
+    const Timeslot = DatabaseTimeslots();
+    const [
+        filteredFields, setFilteredFields] = useState([]);
     const { searchQuery, court_type: RouteCourtType, priceslot: Routepriceslot, startTime: RoutestartTime, endTime: RouteendTime, date: Routedate } = route.params || {};
     const [court_type, setCourtType] = useState(RouteCourtType);
     const [priceslot, setPriceSlot] = useState(Routepriceslot);
@@ -22,15 +25,14 @@ export default function SearchScreen({ route, navigation }) {
         : '';
 
     const formatteddate = date instanceof Date && !isNaN(date)
-        ? date.toLocaleDateString("en-CA")
+        ? date.toLocaleDateString('en-US', { weekday: 'long' })
         : '';
-
 
     useEffect(() => {
         let filtered = courts;
+
         console.log("priceslot:", priceslot);
-        console.log("formattedstartTime:", formattedstartTime);
-        console.log("Routepriceslot:", Routepriceslot);
+
         if (searchQuery) {
             filtered = filtered.filter(field =>
                 field.field.toLowerCase().includes(searchQuery.toLowerCase())
@@ -42,16 +44,37 @@ export default function SearchScreen({ route, navigation }) {
         if (priceslot !== undefined) {
             filtered = filtered.filter(field => field.priceslot <= priceslot);
         }
-        if (startTime !== null && endTime !== null) {
+        if (date !== null && startTime !== null && endTime !== null) {
+            const numericStartTime = parseInt(formattedstartTime.trim().replace(":", ""));
+            const numericEndTime = parseInt(formattedendTime.trim().replace(":", ""));
 
-        }
-        if (date !== null) {
+            const filteredTimeslots = Timeslot.filter(slot => {
+                if (!slot.time_start || !slot.time_end) return false;
 
+                const slotStartTime = new Date(slot.time_start.seconds * 1000);
+                const slotEndTime = new Date(slot.time_end.seconds * 1000);
+
+                const formattedSlotStartTime = parseInt(slotStartTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }).replace(":", ""));
+                const formattedSlotEndTime = parseInt(slotEndTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }).replace(":", ""));
+
+                const dayOfWeek = formatteddate.toLowerCase();
+                console.log("dayOfWeek: ", slot.availableDays[dayOfWeek])
+                return formattedSlotStartTime <= numericStartTime &&
+                    formattedSlotEndTime >= numericEndTime &&
+                    slot.available === true &&
+                    slot.availableDays[dayOfWeek];
+            });
+
+            const availableCourtIds = filteredTimeslots.map(slot => slot.court_id);
+
+            console.log("availableCourtIds:", availableCourtIds);
+            filtered = filtered.filter(field => availableCourtIds.includes(field.court_id));
         }
 
         setFilteredFields(filtered);
         console.log("Filtered Fields:", filtered);
-    }, [searchQuery, court_type, priceslot, courts, startTime, endTime, date]);
+    }, [searchQuery, court_type, priceslot, courts, startTime, endTime, date, Timeslot]);
+
 
     const handleFieldPress = (item) => {
         navigation.navigate('DetailScreen', { court_id: item.court_id });
@@ -68,9 +91,6 @@ export default function SearchScreen({ route, navigation }) {
     const handleClose2 = () => {
         setStartTime(null);
         setEndTime(null);
-    };
-
-    const handleClose3 = () => {
         setDate(null);
     };
 
@@ -87,21 +107,14 @@ export default function SearchScreen({ route, navigation }) {
                     {priceslot && (
                         <TouchableOpacity style={styles.fieldItem2} onPress={handleClose1}>
                             <Text style={styles.fieldName2}>
-                                Price below {priceslot}</Text>
+                                Price 0 - {priceslot}</Text>
                             <Ionicons name="close-outline" size={20} style={styles.icon} />
                         </TouchableOpacity>
                     )}
-                    {startTime && endTime && (
+                    {date && startTime && endTime && (
                         <TouchableOpacity style={styles.fieldItem2} onPress={handleClose2}>
                             <Text style={styles.fieldName2}>
-                                {formattedstartTime} - {formattedendTime} </Text>
-                            <Ionicons name="close-outline" size={20} style={styles.icon} />
-                        </TouchableOpacity>
-                    )}
-                    {date && (
-                        <TouchableOpacity style={styles.fieldItem2} onPress={handleClose3}>
-                            <Text style={styles.fieldName2}>
-                                Date: {formatteddate}</Text>
+                                {formatteddate} {formattedstartTime} - {formattedendTime} </Text>
                             <Ionicons name="close-outline" size={20} style={styles.icon} />
                         </TouchableOpacity>
                     )}
@@ -110,26 +123,87 @@ export default function SearchScreen({ route, navigation }) {
             <FlatList
                 data={filteredFields}
                 keyExtractor={(item) => item.id.toString()}
-                renderItem={({ item }) => (
-                    <TouchableOpacity style={styles.fieldItem} onPress={() => handleFieldPress(item)}>
-                        <Ionicons name="location" size={20} style={styles.icon} />
-                        <Text style={styles.fieldName}>{item.field}</Text>
-                    </TouchableOpacity>
-                )}
+                renderItem={({ item }) => {
+                    const matchingSlot = Timeslot.find(slot => slot.court_id === item.court_id);
+
+                    const formattedTimeStart = matchingSlot && matchingSlot.time_start
+                        ? new Date(matchingSlot.time_start.seconds * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+                        : "N/A";
+
+                    const formattedTimeEnd = matchingSlot && matchingSlot.time_end
+                        ? new Date(matchingSlot.time_end.seconds * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+                        : "N/A";
+
+                    return (
+                        <TouchableOpacity style={styles.card} onPress={() => handleFieldPress(item)}>
+                            <Image
+                                source={item.image && item.image[0] ? { uri: item.image[0] } : require('./images/dog.jpg')}
+                                style={styles.image}
+                            />
+                            <View style={styles.cardContent}>
+                                <Text style={styles.title}>{item.field}</Text>
+                                <Text style={styles.text}>Time: {formattedTimeStart} - {formattedTimeEnd}</Text>
+                                <Text style={styles.text}>Court Type: {item.court_type}</Text>
+                                <Text style={styles.price}>Price: {item.priceslot} THB</Text>
+                            </View>
+                        </TouchableOpacity>
+                    );
+                }}
             />
         </View>
     );
 }
 
 const styles = StyleSheet.create({
+    title: {
+        fontSize: 16,
+        fontWeight: "600",
+        marginBottom: 5,
+        color: "#333",
+    },
+    text: {
+        fontSize: 14,
+        color: "#555",
+        marginBottom: 2,
+    },
+    price: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: "#009900",
+        marginTop: 5,
+    },
+    card: {
+        backgroundColor: "#FFF",
+        borderRadius: 8,
+        padding: 15,
+        flexDirection: "row",
+        alignItems: "center",
+        marginTop: 20,
+        borderWidth: 1,
+        borderColor: "#E0E0E0",
+        shadowColor: "#000",
+        shadowOpacity: 0.1,
+        shadowRadius: 5,
+        elevation: 3,
+        position: "relative",
+    },
+    image: {
+        width: 90,
+        height: 90,
+        borderRadius: 6,
+        marginRight: 15,
+    },
+    cardContent: {
+        flex: 1,
+    },
     container: {
         flex: 1,
         backgroundColor: "#FFFFFF",
         padding: 16,
     },
     containerfilter: {
-        flexDirection: 'row', // Align items in a column (vertical)
-        alignItems: 'flex-start', // Align items to the left
+        flexDirection: 'row',
+        alignItems: 'flex-start',
     },
     fieldItem: {
         backgroundColor: "white",
@@ -160,7 +234,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "bold",
     },
-
     icon: {
         marginRight: 10,
         color: "black"

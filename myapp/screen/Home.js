@@ -1,13 +1,34 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, ImageBackground, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, ImageBackground, TouchableOpacity, FlatList, RefreshControl } from 'react-native';
 import { windowWidth } from '../utils/Dimensions';
 import Database from '../Model/database';
-import DataComment from '../Model/database_c';
-import DataUser from '../Model/database_u';
-import { AverageRating } from "../context/AverageRating";
+import { db } from '../FirebaseConfig';
+import { getDocs, collection } from 'firebase/firestore';
 
 export default function Home({ navigation, route }) {
-  const courts = Database();
+  const [courts, setCourts] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    const fetchCourts = async () => {
+      try {
+        const courtSnapshot = await getDocs(collection(db, 'Court'));
+        if (!courtSnapshot.empty) {
+          const courtsData = courtSnapshot.docs.map(doc => {
+            const data = { id: doc.id, ...doc.data() };
+            return data;
+          });
+          setCourts(courtsData);
+        } else {
+          console.log('No courts found in database');
+        }
+      } catch (error) {
+        console.error("Error fetching courts: ", error);
+      }
+    };
+
+    fetchCourts();
+  }, []);
 
   const sections = [
     // { title: "All Courts", data: courts },
@@ -22,10 +43,34 @@ export default function Home({ navigation, route }) {
     { title: "Yoga", data: courts.filter(item => item.court_type === "Yoga"), court_type: "Yoga" },
   ];
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setCourts([]);
+    await fetchCourts();
+    setRefreshing(false);
+  };
+
+  const fetchCourts = async () => {
+    try {
+      const courtSnapshot = await getDocs(collection(db, 'Court'));
+      if (!courtSnapshot.empty) {
+        const courtsData = courtSnapshot.docs.map(doc => {
+          const data = { id: doc.id, ...doc.data() };
+          return data;
+        });
+        setCourts(courtsData);
+      } else {
+        console.log('No courts found in database');
+      }
+    } catch (error) {
+      console.error("Error fetching courts: ", error);
+    }
+  };
+
   // ฟังก์ชันสำหรับแสดงรายการ
   const renderItem = ({ item }) => {
-    // console.log('court_id:', item.court_id);
-    return item.image ? (
+    const imageUri = item.image && item.image[0] ? item.image[0] : null;
+    return imageUri ? (
       <ImageBackground source={{ uri: item.image[0] }} style={styles.image}>
         <TouchableOpacity
           style={{ flex: 1, width: '100%' }}
@@ -34,9 +79,6 @@ export default function Home({ navigation, route }) {
         <View style={styles.LeftBox}>
           <View style={styles.TextBox2}>
             <Text style={styles.TitelText}>{item.field}</Text>
-          </View>
-          <View>
-            <Text style={styles.TitelText2}>★★★★★ (5.0)</Text>
           </View>
         </View>
       </ImageBackground>
@@ -81,6 +123,10 @@ export default function Home({ navigation, route }) {
             />
           </View>
         )}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#009900"]}
+            tintColor="#009900" />
+        }
       />
     </SafeAreaView>
   );

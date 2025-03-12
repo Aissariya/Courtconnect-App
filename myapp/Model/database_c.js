@@ -8,13 +8,13 @@ const DataComment = (court_id) => {
     useEffect(() => {
         const fetchComments = async () => {
             try {
-                console.log('=== Fetching Comment Data for court_id:', court_id);
+                // console.log('=== Fetching Comment Data for court_id:', court_id);
                 const commentsQuery = query(
                     collection(db, 'Comment'),
                     where('court_id', '==', court_id)
                 );
                 const commentSnapshot = await getDocs(commentsQuery);
-                console.log('Total Comments found for court_id:', court_id, commentSnapshot.size);
+                // console.log('Total Comments found for court_id:', court_id, commentSnapshot.size);
 
                 if (!commentSnapshot.empty) {
                     const commentsData = commentSnapshot.docs.map(doc => {

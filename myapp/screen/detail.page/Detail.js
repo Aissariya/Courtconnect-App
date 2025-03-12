@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState, RefreshControl, useCallback } from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, TextInput, ActivityIndicator } from 'react-native';
 import Database from '../../Model/database';
@@ -8,18 +8,20 @@ import { getAuth } from "firebase/auth";
 import { getFirestore, collection, addDoc, serverTimestamp, updateDoc, doc, deleteDoc } from "firebase/firestore";
 import { AverageRating } from "../../context/AverageRating";
 import Detailstyles from './Detailstyles';
-import { checkCommented, handleDeleteComment } from "../../context/checkCommented";
-import { Menu, Divider } from 'react-native-paper';
+import { checkCommented } from '../../context/checkCommented';
+import DatabaseTimeslots from "../../Model/datebase_ts";
 
 export default function Detail({ route, navigation }) {
   const auth = getAuth();
   const db = getFirestore();
   const courts = Database();
+  const Timeslot = DatabaseTimeslots();
   const { court_id } = route.params || {};
-  const comments = DataComment(court_id);
-  const userData = DataUser(comments);
+  const comments = DataComment(court_id) || [];
+  const userData = DataUser(comments) || {};
   const [text, setText] = useState("");
   const [rating, setRating] = useState(5);
+  const [loading, setLoading] = useState(false);
 
   // console.log('court_id:', court_id);
   if (!userData) {
@@ -54,9 +56,12 @@ export default function Detail({ route, navigation }) {
     const userId = auth.currentUser ? auth.currentUser.uid : null;
     if (userId) {
       try {
+        setLoading(true);
+
         const hasCommented = await checkCommented(court_id, userId);
 
         if (hasCommented) {
+          setLoading(false);
           alert("You have already commented on this court.");
           return;
         }
@@ -77,22 +82,48 @@ export default function Detail({ route, navigation }) {
         alert("Comment submitted successfully!");
         setText("");
         setRating(5);
+        setLoading(false);
+        navigation.replace('DetailScreen', { court_id });
       } catch (error) {
         console.error("Error adding comment: ", error);
         alert("Failed to submit comment.");
+        setLoading(false);
       }
     } else {
       alert("User not authenticated.");
     }
   };
 
-
-
+  const handleDeleteComment = async (commentId) => {
+    try {
+      const commentRef = doc(db, "Comment", commentId);
+      await deleteDoc(commentRef);
+      alert("Comment deleted successfully!");
+      console.log("Comment deleted successfully!");
+      setLoading(false);
+      navigation.replace('DetailScreen', { court_id });
+    } catch (error) {
+      console.error("Error deleting comment: ", error);
+      alert("Failed to delete comment.");
+    }
+  };
   const titlename = item ? item.field : "test";
-  const mainImage = item ? { uri: item.image[0] } : require('../../assets/pingpong.jpg');
+  const mainImage = item ? { uri: item.image[0] } : require('../images/dog.jpg');
   const subImages = item ? item.image.slice(1) : [];
   const price = item ? item.priceslot : "500";
   const court = item ? item.court_type : "Null";
+  const address = item ? item.address : "Null";
+
+  const matchingSlot = Timeslot.find(slot => slot.court_id === item.court_id);
+  if (!matchingSlot) {
+    return (
+      <View style={Detailstyles.loadcontainer}>
+        <Text>ไม่พบเวลาในการจอง</Text>
+      </View>
+    );
+  }
+  const formattedTimeStart = new Date(matchingSlot.time_start.seconds * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+  const formattedTimeEnd = new Date(matchingSlot.time_end.seconds * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
 
   return (
     <View style={Detailstyles.container}>
@@ -120,13 +151,13 @@ export default function Detail({ route, navigation }) {
           <Text style={Detailstyles.priceText}>Price {price} per hour</Text>
         </View>
         <Text style={Detailstyles.detailsText}>
-          Field type: {court}{"\n"}
-          Facilities: locker room, shower room{"\n"}
-          Business hours: Open every day 8:00 - 14:00{"\n"}
-          Terms and conditions:{"\n"}
-          - Users must follow the rules and regulations of the field.{"\n"}
-          - If you want to cancel your reservation, you should notify in advance according to the specified period.{"\n"}
-          - Use of the field must be careful to ensure the safety of all players.{"\n"}
+
+          Court Type: {court}{"\n"}
+          {/* Date: {formatDateTime(booking.start_time).date}{"\n"} */}
+          Time: {formattedTimeStart} - {formattedTimeEnd}{"\n"}
+          Location: {address}{"\n"}
+          Facilities: Locker Room, Shower Room{"\n"}
+          Operating Hours: Open Daily 8:00 - 22:00{"\n"}
           Payment: Can pay through various channels
         </Text>
 
@@ -142,7 +173,7 @@ export default function Detail({ route, navigation }) {
             </Text>
             <Text style={Detailstyles.averageRatingText}>({averageRating})</Text>
           </View>
-          <TouchableOpacity onPress={() => navigation.navigate('CommentScreen', { court_id })}>
+          <TouchableOpacity onPress={() => navigation.navigate('CommentScreen', { court_id, fromDetailScreen: true })}>
             <Text style={Detailstyles.scoreText2}>showmore</Text>
           </TouchableOpacity>
         </View>
@@ -172,10 +203,13 @@ export default function Detail({ route, navigation }) {
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
             <Text style={Detailstyles.counter}>{text.length} / 150</Text>
-            <TouchableOpacity style={Detailstyles.submit} onPress={handleSubmit}>
+            <TouchableOpacity style={Detailstyles.submit} onPress={handleSubmit} disabled={loading}>{loading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
               <Text style={{ fontSize: 14, fontWeight: 'bold', color: 'white' }}>
                 Submit
               </Text>
+            )}
             </TouchableOpacity>
           </View>
         </View>
@@ -202,13 +236,16 @@ export default function Detail({ route, navigation }) {
                     <Text style={Detailstyles.rateText}>({comment.rating}.0) </Text>
                   </View>
                   {auth.currentUser && comment.user_id === auth.currentUser.uid && (
-                    <TouchableOpacity onPress={() => handleDeleteComment(comment.id)}>
+                    <TouchableOpacity onPress={() => handleDeleteComment(comment.id)} disabled={loading}>{loading ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
                       <MaterialCommunityIcons
                         name="dots-vertical"
                         size={15}
                         color="#000"
                         style={{ marginTop: 5 }}
                       />
+                    )}
                     </TouchableOpacity>
                   )}
                 </View>

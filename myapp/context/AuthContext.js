@@ -27,13 +27,18 @@ export const AuthProvider = ({ children }) => {
 
     const isLoggedIn = async () => {
         try {
-            let userToken = await AsyncStorage.getItem('userToken');
-            setUserToken(userToken);
-            setIsLoading(false);
+            let storedToken = await AsyncStorage.getItem('userToken');
+            if (storedToken) {
+                setUserToken(storedToken);
+            } else {
+                setUserToken(null); // Ensure userToken is null if no token is found
+            }
         } catch (e) {
             console.log('isLoggedIn error:', e);
+        } finally {
+            setIsLoading(false); // Ensure isLoading is set to false regardless of success or failure
         }
-    }
+    };
 
     useEffect(() => {
         isLoggedIn();
