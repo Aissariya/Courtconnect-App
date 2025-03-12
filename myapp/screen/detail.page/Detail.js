@@ -151,13 +151,10 @@ export default function Detail({ route, navigation }) {
           <Text style={Detailstyles.priceText}>Price {price} per hour</Text>
         </View>
         <Text style={Detailstyles.detailsText}>
-
           Court Type: {court}{"\n"}
-          {/* Date: {formatDateTime(booking.start_time).date}{"\n"} */}
-          Time: {formattedTimeStart} - {formattedTimeEnd}{"\n"}
           Location: {address}{"\n"}
           Facilities: Locker Room, Shower Room{"\n"}
-          Operating Hours: Open Daily 8:00 - 22:00{"\n"}
+          Operating Hours: Open Daily {formattedTimeStart} - {formattedTimeEnd}{"\n"}
           Payment: Can pay through various channels
         </Text>
 
