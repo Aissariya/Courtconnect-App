@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, Alert } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { doc, getDoc, getDocs, collection , addDoc, serverTimestamp, query, where, deleteDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, addDoc, serverTimestamp, query, where, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
 import { getAuth } from 'firebase/auth';
+import DataComment from '../Model/database_c';
+import DataUser from '../Model/database_u';
+import { AverageRating } from "../context/AverageRating";
 
 export default function AlreadyBooked({ navigation, route }) {
   const [showReason, setShowReason] = useState(false);
@@ -12,12 +15,25 @@ export default function AlreadyBooked({ navigation, route }) {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [isRefunded, setIsRefunded] = useState(false);
+  const [images, setImages] = useState([]);
 
   const { booking } = route.params || {};
 
   useEffect(() => {
     console.log('Received booking data:', booking);
     checkRefundStatus();
+  }, [booking]);
+
+  const comments = DataComment(booking.courtDetails.court_id);
+  const userData = DataUser(comments);
+  const averageRating = AverageRating(comments);
+
+  // เก็บภาพเข้า Array
+  useEffect(() => {
+    if (booking && booking.courtDetails && booking.courtDetails.image) {
+      setImages((prevImages) => [...prevImages, booking.courtDetails.image]);
+      console.log('Images Array:', images);
+    }
   }, [booking]);
 
   const formatDateTime = (dateTime) => {
@@ -46,7 +62,7 @@ export default function AlreadyBooked({ navigation, route }) {
         return {
           date: dateTime.toLocaleDateString('en-US', {
             year: 'numeric',
-            month: 'long', 
+            month: 'long',
             day: 'numeric'
           }),
           time: dateTime.toLocaleString('en-US', {
@@ -87,19 +103,19 @@ export default function AlreadyBooked({ navigation, route }) {
       if (!booking) {
         throw new Error('No booking data available');
       }
-  
-      const booking_id = booking.booking_id || booking.id; 
+
+      const booking_id = booking.booking_id || booking.id;
       const auth = getAuth();
       const currentUser = auth.currentUser;
-      
+
       if (!currentUser || !booking_id) {
         throw new Error('Missing required data');
       }
-  
+
       const userDoc = await getDoc(doc(db, "users", currentUser.uid));
       const userData = userDoc.data();
       const user_id = userData.user_id;
-  
+
       // บันทึกข้อมูล refund ด้วย Timestamp
       const refundData = {
         booking_id,
@@ -108,15 +124,15 @@ export default function AlreadyBooked({ navigation, route }) {
         reason_refund: selectedReason,
         datetime_refund: serverTimestamp() // เปลี่ยนเป็น serverTimestamp
       };
-  
+
       console.log('Saving refund data:', refundData);
       const refundRef = collection(db, 'Refund');
       await addDoc(refundRef, refundData);
-  
+
       setShowConfirmModal(false);
       setShowReason(false);
       setShowReviewModal(true);
-  
+
     } catch (error) {
       console.error('Error processing refund:', error);
       Alert.alert('Error', 'Failed to process refund request: ' + error.message);
@@ -130,12 +146,12 @@ export default function AlreadyBooked({ navigation, route }) {
     try {
       const bookingId = booking.booking_id || booking.id;
       const refundsRef = collection(db, 'Refund');
-      const q = query(refundsRef, 
+      const q = query(refundsRef,
         where('booking_id', '==', bookingId),
         where('status', '==', 'Need Action')
       );
       const querySnapshot = await getDocs(q);
-      
+
       if (!querySnapshot.empty) {
         setIsRefunded(true);
       }
@@ -155,9 +171,15 @@ export default function AlreadyBooked({ navigation, route }) {
               resizeMode="cover"
             />
 
-            <Text style={styles.detailsTitle}>
-              {booking.courtDetails.name} ★★★★★ (5.0)
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={styles.detailsTitle}>{booking.courtDetails.name}</Text>
+              <View style={{ flexDirection: 'row', marginLeft: 5, marginRight: 5 }}>
+                {[...Array(Math.round(averageRating))].map((_, index) => (
+                  <Text key={index} style={styles.star1}>★</Text>
+                ))}
+              </View>
+              <Text style={styles.detailsTitle}>({averageRating})</Text>
+            </View>
 
             <View style={[
               styles.priceBox,
@@ -182,32 +204,59 @@ export default function AlreadyBooked({ navigation, route }) {
             </Text>
 
             <View style={styles.scoreBar}>
-              <Text style={styles.scoreText}>Score ★★★★★ (5.0)</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('CommentScreen')}>
-                <Text style={styles.scoreText2}>Show more</Text>
+              <View style={{ flexDirection: 'row' }}>
+                <Text style={styles.scoreText}>
+                  Score
+                </Text>
+                <Text style={styles.scoreIcon}>
+                  {[...Array(Math.round(averageRating))].map((_, index) => (
+                    <Text key={index} style={styles.star}>★</Text>
+                  ))}
+
+                </Text>
+                <Text style={styles.averageRatingText}>({averageRating})</Text>
+              </View>
+              <TouchableOpacity onPress={() => navigation.navigate('CommentScreen', { court_id: booking.courtDetails.court_id })}>
+                <Text style={styles.scoreText2}>showmore</Text>
               </TouchableOpacity>
             </View>
-
-            <View style={styles.reviewContainer}>
-              <View style={styles.reviewBox}>
-                <Text style={styles.reviewerName}>John Doe</Text>
-                <Text style={styles.reviewText}>Great basketball court with excellent atmosphere and well-maintained facilities.</Text>
-                <View style={styles.starContainer}>
-                  {[...Array(5)].map((_, index) => (
-                    <Text key={index} style={styles.star}>★</Text>
-                  ))}
-                </View>
-              </View>
-
-              <View style={styles.reviewBox}>
-                <Text style={styles.reviewerName}>Jane Smith</Text>
-                <Text style={styles.reviewText}>Clean court with complete equipment. Very convenient.</Text>
-                <View style={styles.starContainer}>
-                  {[...Array(4)].map((_, index) => (
-                    <Text key={index} style={styles.star}>★</Text>
-                  ))}
-                </View>
-              </View>
+            <View>
+              {comments.length > 0 ? (
+                comments.slice(0, 3).map((comment) => (
+                  <View key={comment.id} style={styles.reviewBox}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Image
+                        source={
+                          userData[comment.id]?.profileImage
+                            ? { uri: userData[comment.id].profileImage }
+                            : require("../assets/profile-user.png")
+                        }
+                        style={styles.profileImage}
+                      />
+                      <Text style={styles.reviewerName}>{userData[comment.id]?.name || "Loading..."}</Text>
+                      <View style={styles.starContainer}>
+                        {[...Array(comment.rating)].map((_, index) => (
+                          <Text key={index} style={styles.star}>★</Text>
+                        ))}
+                      </View>
+                      <Text style={styles.rateText}>({comment.rating}.0) </Text>
+                    </View>
+                    <Text style={styles.dateText}>
+                      {comment.timestamp ? new Date(comment.timestamp.seconds * 1000).toLocaleString('en-GB', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      }) : "No date"}
+                    </Text>
+                    <Text style={styles.reviewText}>{comment.text} </Text>
+                    <View style={styles.separator} />
+                  </View>
+                ))
+              ) : (
+                <View style={styles.box} />
+              )}
             </View>
           </>
         ) : (
@@ -245,37 +294,46 @@ export default function AlreadyBooked({ navigation, route }) {
       </ScrollView>
 
       {/* แก้ไขเงื่อนไขการแสดงปุ่มด้านล่าง */}
-      {!showReason && booking && !isRefunded && (
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.calanderButton}
-            onPress={() => navigation.navigate('MainTab')}
-            activeOpacity={1}
-          >
-            <MaterialCommunityIcons name='home' size={20} color='#000' />
-            <Text style={styles.calanderText}>Home</Text>
-          </TouchableOpacity>
+      {
+        !showReason && booking && !isRefunded && (
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.calanderButton}
+              onPress={() => navigation.navigate('MainTab')}
+              activeOpacity={1}
+            >
+              <MaterialCommunityIcons name='home' size={20} color='#000' />
+              <Text style={styles.calanderText}>Home</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.calanderButton}
-            onPress={() => navigation.navigate('CalanderScreen')}
-            activeOpacity={1}
-          >
-            <MaterialCommunityIcons name='calendar-outline' size={20} color='#000' />
-            <Text style={styles.calanderText}>Calendar</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.calanderButton}
+              onPress={() => navigation.navigate('CalanderScreen', {
+                court: {
+                  court_id: booking.courtDetails.court_id,
+                  field: booking.courtDetails.name,
+                  image: images,
+                  address: booking.courtDetails.address
+                }
+              })}
+              activeOpacity={1}
+            >
+              <MaterialCommunityIcons name='calendar-outline' size={20} color='#000' />
+              <Text style={styles.calanderText}>Calendar</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.bookingButton}
-            onPress={() => setShowReason(true)}
-            activeOpacity={1}
-          >
-            <View style={styles.CancelView}>
-              <Text style={styles.CancelText}>Cancel Booking</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      )}
+            <TouchableOpacity
+              style={styles.bookingButton}
+              onPress={() => setShowReason(true)}
+              activeOpacity={1}
+            >
+              <View style={styles.CancelView}>
+                <Text style={styles.CancelText}>Cancel Booking</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        )
+      }
 
       <Modal
         visible={showConfirmModal}
@@ -341,11 +399,30 @@ export default function AlreadyBooked({ navigation, route }) {
           </View>
         </View>
       </Modal>
-    </View>
+    </View >
   );
 }
 
 const styles = StyleSheet.create({
+  profileImage: {
+    width: 20,
+    height: 20,
+    borderRadius: 50,
+    backgroundColor: "#ddd",
+    marginRight: 5,
+  },
+  separator: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    marginTop: 10,
+  },
+  averageRatingText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+    paddingTop: 4,
+    paddingLeft: 10,
+  },
   container: {
     backgroundColor: 'white',
     flex: 1,
@@ -381,7 +458,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'left',
-    width: '100%',
+
   },
   priceBox: {
     marginTop: 10,
@@ -406,11 +483,30 @@ const styles = StyleSheet.create({
   scoreBar: {
     flexDirection: 'row',
     backgroundColor: 'black',
-    width: '100%',
     paddingVertical: 10,
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     marginTop: 20,
+  },
+  scoreIcon: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+    paddingLeft: 5,
+  },
+  star1: {
+    color: '#00000',
+    fontSize: 18,
+    marginTop: 5,
+  },
+  rateText: {
+    fontSize: 14,
+    color: '#333',
+    marginLeft: 3,
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#333',
   },
   scoreText: {
     color: 'white',
@@ -453,7 +549,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   star: {
-    color: '#FFD700',
+    color: '#00000',
     fontSize: 18,
     marginRight: 3,
   },
@@ -468,7 +564,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  
+
   reasonTitle: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -570,7 +666,7 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 10,
   },
-  
+
   modalLabel: {
     fontSize: 16,
     fontWeight: 'bold',

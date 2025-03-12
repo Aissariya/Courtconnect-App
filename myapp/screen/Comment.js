@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import Database from '../Model/database';
 import DataComment from '../Model/database_c';
 import DataUser from '../Model/database_u';
@@ -11,23 +11,15 @@ import { getAuth } from "firebase/auth";
 
 const CommentScreen = ({ route, navigation }) => {
     const auth = getAuth();
-    const courts = Database();
     const { court_id, fromDetailScreen } = route.params || {};
     const comments = DataComment(court_id);
     const userData = DataUser(comments);
-    const [commentsList, setCommentsList] = useState(comments);
-    const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        if (Object.keys(userData).length > 0) {
-            setIsLoading(false);  // ถ้ามีข้อมูล userNames แล้ว ให้หยุดโหลด
-        }
-    }, [userData]);
 
-    if (isLoading) {
+    if (comments.length < 0) {
         return (
             <View style={styles.loadcontainer}>
-                <Text>Loading...</Text>
+                <ActivityIndicator size="large" color="#0000ff" />
             </View>
         );
     }
