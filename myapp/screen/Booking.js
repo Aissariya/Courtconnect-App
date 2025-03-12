@@ -293,155 +293,161 @@ const formatTimeTo12Hour = (date) => {
     return result;
   };
 
-  const handleFinalConfirm = async () => {
-    try {
-      setIsLoading(true);
-      console.log('=== Starting Payment Process ===');
+const handleFinalConfirm = async () => {
+  try {
+    setIsLoading(true);
+    console.log('=== Starting Payment Process ===');
 
-      // 1. ดึง user_id ของเจ้าของสนามจาก Court collection
-      const courtsRef = collection(db, 'Court');
-      const courtQuery = query(courtsRef, where('court_id', '==', court.court_id));
-      const courtSnapshot = await getDocs(courtQuery);
+    // 1. Get court owner's user_id
+    const courtsRef = collection(db, 'Court');
+    const courtQuery = query(courtsRef, where('court_id', '==', court.court_id));
+    const courtSnapshot = await getDocs(courtQuery);
 
-      console.log('Checking court:', {
-        court_id: court.court_id,
-        courtSnapshot: courtSnapshot.size
-      });
+    console.log('Checking court details:', {
+      court_id: court.court_id,
+      found: !courtSnapshot.empty
+    });
 
-      if (courtSnapshot.empty) {
-        throw new Error('Court not found');
-      }
-
-      const courtData = courtSnapshot.docs[0].data();
-      const courtOwnerId = courtData.user_id;
-      console.log('Found court owner user_id:', courtOwnerId);
-
-      // 2. ค้นหา wallet_id จาก Users collection โดยใช้ user_id
-      const usersRef = collection(db, 'users');
-      const courtOwnerQuery = query(usersRef, where('user_id', '==', courtOwnerId));
-      const userSnapshot = await getDocs(courtOwnerQuery);
-
-      console.log('Checking court owner:', {
-        owner_id: courtOwnerId,
-        userSnapshot: userSnapshot.size
-      });
-
-      if (userSnapshot.empty) {
-        throw new Error('Court owner not found');
-      }
-
-      const courtOwnerData = userSnapshot.docs[0].data();
-      const courtOwnerWalletId = courtOwnerData.wallet_id;
-      console.log('Found court owner wallet_id:', courtOwnerWalletId);
-
-      // 3. ดึงข้อมูล wallet ของทั้งสองฝ่าย
-      const walletsRef = collection(db, 'Wallet');
-      const [payerWallet, receiverWallet] = await Promise.all([
-        getDocs(query(walletsRef, where('wallet_id', '==', userData.wallet_id))),
-        getDocs(query(walletsRef, where('wallet_id', '==', courtOwnerWalletId)))
-      ]);
-
-      console.log('Checking wallets:', {
-        payer: {
-          wallet_id: userData.wallet_id,
-          found: !payerWallet.empty
-        },
-        receiver: {
-          wallet_id: courtOwnerWalletId,
-          found: !receiverWallet.empty
-        }
-      });
-
-      if (payerWallet.empty || receiverWallet.empty) {
-        throw new Error('Wallet information not found');
-      }
-
-      const payerDoc = payerWallet.docs[0];
-      const receiverDoc = receiverWallet.docs[0];
-      console.log('Wallet balances before transfer:', {
-        payer: payerDoc.data().balance,
-        receiver: receiverDoc.data().balance,
-        amount: totalPrice
-      });
-
-      // 4. ดึงข้อมูล wallet ของทั้งสองฝ่าย
-      const [payerWalletSnapshot, receiverWalletSnapshot] = await Promise.all([
-        getDocs(query(collection(db, 'Wallet'), where('wallet_id', '==', userData.wallet_id))),
-        getDocs(query(collection(db, 'Wallet'), where('wallet_id', '==', courtOwnerWalletId)))
-      ]);
-
-      if (payerWalletSnapshot.empty || receiverWalletSnapshot.empty) {
-        throw new Error('Wallet information not found');
-      }
-
-      const payerWalletDoc = payerWalletSnapshot.docs[0];
-      const receiverWalletDoc = receiverWalletSnapshot.docs[0];
-      const payerBalance = payerWalletDoc.data().balance;
-      const receiverBalance = receiverWalletDoc.data().balance;
-
-      // 5. ตรวจสอบยอดเงินและทำการโอน
-      if (payerBalance < totalPrice) {
-        throw new Error('Insufficient balance');
-      }
-
-      // 6. อัพเดตยอดเงินทั้งสองฝ่าย
-      await Promise.all([
-        updateDoc(payerWalletDoc.ref, {
-          balance: payerBalance - totalPrice,
-          amount: totalPrice,
-          status: "tranfer_out",
-          create_at: Timestamp.now(),
-        }),
-        updateDoc(receiverWalletDoc.ref, {
-          balance: receiverBalance + totalPrice,
-          amount: totalPrice,
-          status: "tranfer_in",
-          create_at: Timestamp.now(),
-        })
-      ]);
-
-      console.log('Payment completed successfully');
-      console.log('New payer balance:', payerBalance - totalPrice);
-      console.log('New receiver balance:', receiverBalance + totalPrice);
-
-      // สร้าง Timestamp สำหรับ start_time และ end_time
-      const bookingDate = new Date(date);
-      const startTime = new Date(date);
-      startTime.setHours(parseInt(hourStart), parseInt(minuteStart), 0, 0);
-      
-      const endTime = new Date(date);
-      endTime.setHours(parseInt(hourEnd), parseInt(minuteEnd), 0, 0);
-
-      // 7. บันทึกการจอง
-      const booking_id = `BK${Date.now()}`;
-      const bookingRef = collection(db, 'Booking');
-      await addDoc(bookingRef, {
-        booking_id,
-        court_id: court.court_id,
-        end_time: Timestamp.fromDate(endTime),
-        start_time: Timestamp.fromDate(startTime),
-        status: "successful",
-        user_id: userData.user_id,
-        timestamp: serverTimestamp()
-      });
-
-      // อัพเดต UI และนำทางกลับ
-      setWalletBalance(payerBalance - totalPrice);
-      setShowConfirmModal(false);
-      setShowSuccess(true);
-
-      setTimeout(() => {
-        setShowSuccess(false);
-        navigation.navigate('MainTab');
-      }, 2000);
-
-    } catch (error) {
-      console.error('Error in payment process:', error);
-      alert('Failed to process payment: ' + error.message);
-    } finally {
-      setIsLoading(false);
+    if (courtSnapshot.empty) {
+      throw new Error('Court not found');
     }
-  };
+
+    const courtData = courtSnapshot.docs[0].data();
+    const courtOwnerId = courtData.user_id;
+    console.log('Found court owner user_id:', courtOwnerId);
+
+    // 2. Get owner's wallet_id from Users collection
+    const usersRef = collection(db, 'users');
+    const courtOwnerQuery = query(usersRef, where('user_id', '==', courtOwnerId));
+    const userSnapshot = await getDocs(courtOwnerQuery);
+
+    console.log('Checking owner details:', {
+      owner_id: courtOwnerId,
+      found: !userSnapshot.empty
+    });
+
+    if (userSnapshot.empty) {
+      throw new Error('Court owner not found');
+    }
+
+    const courtOwnerData = userSnapshot.docs[0].data();
+    const courtOwnerWalletId = courtOwnerData.wallet_id;
+    console.log('Owner wallet details:', {
+      wallet_id: courtOwnerWalletId,
+      user_id: courtOwnerId,
+      name: courtOwnerData.name
+    });
+
+    // 3. Get wallet balances
+    const walletsRef = collection(db, 'Wallet');
+    const [payerWallet, receiverWallet] = await Promise.all([
+      getDocs(query(walletsRef, where('wallet_id', '==', userData.wallet_id))),
+      getDocs(query(walletsRef, where('wallet_id', '==', courtOwnerWalletId)))
+    ]);
+
+    console.log('Checking wallets:', {
+      payer: {
+        wallet_id: userData.wallet_id,
+        found: !payerWallet.empty
+      },
+      receiver: {
+        wallet_id: courtOwnerWalletId,
+        found: !receiverWallet.empty
+      }
+    });
+
+    if (payerWallet.empty || receiverWallet.empty) {
+      throw new Error('Wallet information not found');
+    }
+
+    const payerDoc = payerWallet.docs[0];
+    const receiverDoc = receiverWallet.docs[0];
+    console.log('Wallet balances before transfer:', {
+      payer: payerDoc.data().balance,
+      receiver: receiverDoc.data().balance,
+      amount: totalPrice
+    });
+
+    // 4. ดึงข้อมูล wallet ของทั้งสองฝ่าย
+    const [payerWalletSnapshot, receiverWalletSnapshot] = await Promise.all([
+      getDocs(query(collection(db, 'Wallet'), where('wallet_id', '==', userData.wallet_id))),
+      getDocs(query(collection(db, 'Wallet'), where('wallet_id', '==', courtOwnerWalletId)))
+    ]);
+
+    if (payerWalletSnapshot.empty || receiverWalletSnapshot.empty) {
+      throw new Error('Wallet information not found');
+    }
+
+    const payerWalletDoc = payerWalletSnapshot.docs[0];
+    const receiverWalletDoc = receiverWalletSnapshot.docs[0];
+    const payerBalance = payerWalletDoc.data().balance;
+    const receiverBalance = receiverWalletDoc.data().balance;
+
+    // 5. ตรวจสอบยอดเงินและทำการโอน
+    if (payerBalance < totalPrice) {
+      throw new Error('Insufficient balance');
+    }
+
+    // 6. อัพเดตยอดเงินทั้งสองฝ่าย
+    await Promise.all([
+      updateDoc(payerWalletDoc.ref, {
+        balance: payerBalance - totalPrice,
+        amount: totalPrice,
+        status: "tranfer_out",
+        create_at: Timestamp.now(),
+      }),
+      addDoc(collection(db, 'Wallet'), {
+        wallet_id: courtOwnerWalletId,
+        balance: receiverBalance + totalPrice,
+        amount: totalPrice,
+        status: "tranfer_in",
+        create_at: Timestamp.now(),
+        user_id: courtOwnerId
+      })
+    ]);
+
+    console.log('Payment completed successfully');
+    console.log('New payer balance:', payerBalance - totalPrice);
+    console.log('New receiver balance:', receiverBalance + totalPrice);
+
+    // สร้าง Timestamp สำหรับ start_time และ end_time
+    const bookingDate = new Date(date);
+    const startTime = new Date(date);
+    startTime.setHours(parseInt(hourStart), parseInt(minuteStart), 0, 0);
+    
+    const endTime = new Date(date);
+    endTime.setHours(parseInt(hourEnd), parseInt(minuteEnd), 0, 0);
+
+    // 7. บันทึกการจอง
+    const booking_id = `BK${Date.now()}`;
+    const bookingRef = collection(db, 'Booking');
+    await addDoc(bookingRef, {
+      booking_id,
+      court_id: court.court_id,
+      end_time: Timestamp.fromDate(endTime),
+      start_time: Timestamp.fromDate(startTime),
+      status: "successful",
+      user_id: userData.user_id,
+      timestamp: serverTimestamp()
+    });
+
+    // อัพเดต UI และนำทางกลับ
+    setWalletBalance(payerBalance - totalPrice);
+    setShowConfirmModal(false);
+    setShowSuccess(true);
+
+    setTimeout(() => {
+      setShowSuccess(false);
+      navigation.navigate('MainTab');
+    }, 2000);
+
+  } catch (error) {
+    console.error('Error in payment process:', error);
+    alert('Failed to process payment: ' + error.message);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleSuccessPress = () => {
     setShowSuccess(false);
