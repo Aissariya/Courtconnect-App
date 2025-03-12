@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView, Text, View, TouchableOpacity, Modal, Button, ActivityIndicator, Image } from 'react-native';
+import { SafeAreaView, Text, View, TouchableOpacity, Modal, Button, ActivityIndicator, Image, Alert } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, TextInput, ScrollView } from 'react-native';
@@ -181,101 +181,53 @@ const formatTimeTo12Hour = (date) => {
   // เพิ่มฟังก์ชันตรวจสอบการจองซ้ำ
   const checkBookingConflict = async () => {
     console.log('=== Starting Booking Conflict Check ===');
-    console.log('Checking for:', {
-      court_id: court?.court_id,
-      selected_date: date,
-      start_time: `${hourStart}:${minuteStart}`,
-      end_time: `${hourEnd}:${minuteEnd}`
-    });
-
     if (!court?.court_id || !date) {
       console.log('Missing required data for checking');
       return false;
     }
-
+  
     try {
-      // สร้างวันที่และเวลาที่เลือก
+      // สร้าง Timestamp จากเวลาที่เลือก
       const selectedStartDate = new Date(date);
-      selectedStartDate.setHours(parseInt(hourStart), parseInt(minuteStart));
-      
+      selectedStartDate.setHours(parseInt(hourStart), parseInt(minuteStart), 0, 0);
       const selectedEndDate = new Date(date);
-      selectedEndDate.setHours(parseInt(hourEnd), parseInt(minuteEnd));
-
-      console.log('Selected time range:', {
-        start: formatTo12Hour(selectedStartDate),
-        end: formatTo12Hour(selectedEndDate)
-      });
-
+      selectedEndDate.setHours(parseInt(hourEnd), parseInt(minuteEnd), 0, 0);
+  
+      const selectedStartTimestamp = Timestamp.fromDate(selectedStartDate);
+      const selectedEndTimestamp = Timestamp.fromDate(selectedEndDate);
+  
       // ดึงข้อมูลการจองทั้งหมดของสนามนี้
       const bookingRef = collection(db, 'Booking');
       const bookingsSnapshot = await getDocs(
-        query(bookingRef, where('court_id', '==', court.court_id))
+        query(bookingRef, 
+          where('court_id', '==', court.court_id),
+          where('status', '==', 'successful')
+        )
       );
-
-      console.log(`Found ${bookingsSnapshot.size} existing bookings for this court`);
-
+  
       // ตรวจสอบการจองที่ซ้ำซ้อน
       for (const doc of bookingsSnapshot.docs) {
         const booking = doc.data();
-        
-        // แปลงสตริงวันที่เวลาเป็น Date object
-        const parseBookingTime = (timeStr) => {
-          try {
-            // แยกวันที่และเวลา
-            const [monthDay, yearTime] = timeStr.split(', ');
-            const [year, timeStr2] = yearTime.split(' at ');
-            const [time, period] = timeStr2.split(' UTC')[0].split(' ');
-            const [month, day] = monthDay.split(' ');
-            
-            // แปลงชื่อเดือนเป็นตัวเลข
-            const months = {
-              January: 0, February: 1, March: 2, April: 3, May: 4, June: 5,
-              July: 6, August: 7, September: 8, October: 9, November: 10, December: 11
-            };
-            
-            // แยกชั่วโมงและนาที
-            const [hours, minutes] = time.split(':');
-            let hour = parseInt(hours);
-            
-            // แปลงเป็น 24 ชั่วโมง
-            if (period === 'PM' && hour !== 12) hour += 12;
-            if (period === 'AM' && hour === 12) hour = 0;
-            
-            return new Date(parseInt(year), months[month], parseInt(day), hour, parseInt(minutes));
-          } catch (error) {
-            console.error('Error parsing time:', error, timeStr);
-            return null;
-          }
-        };
-
-        const bookingStart = parseBookingTime(booking.start_time);
-        const bookingEnd = parseBookingTime(booking.end_time);
-
-        if (!bookingStart || !bookingEnd) continue;
-
-        console.log('Comparing bookings:', {
-          selected: {
-            start: formatTimeTo12Hour(selectedStartDate),
-            end: formatTimeTo12Hour(selectedEndDate)
-          },
-          existing: {
-            start: formatTimeTo12Hour(bookingStart),
-            end: formatTimeTo12Hour(bookingEnd)
-          }
-        });
-
-        if (compareDates(selectedStartDate, selectedEndDate, bookingStart, bookingEnd)) {
+        const bookingStart = booking.start_time;
+        const bookingEnd = booking.end_time;
+  
+        // เปรียบเทียบ Timestamp โดยตรง
+        if (
+          (selectedStartTimestamp.seconds >= bookingStart.seconds && selectedStartTimestamp.seconds < bookingEnd.seconds) ||
+          (selectedEndTimestamp.seconds > bookingStart.seconds && selectedEndTimestamp.seconds <= bookingEnd.seconds) ||
+          (selectedStartTimestamp.seconds <= bookingStart.seconds && selectedEndTimestamp.seconds >= bookingEnd.seconds)
+        ) {
           console.log('⚠️ Booking conflict found!');
+          const conflictStartTime = bookingStart.toDate().toLocaleTimeString();
+          const conflictEndTime = bookingEnd.toDate().toLocaleTimeString();
           return {
             hasConflict: true,
-            conflictTime: `${formatTimeTo12Hour(bookingStart)} - ${formatTimeTo12Hour(bookingEnd)}`
+            conflictTime: `${conflictStartTime} - ${conflictEndTime}`
           };
         }
       }
-
-      console.log('✅ No booking conflicts found');
+  
       return { hasConflict: false };
-
     } catch (error) {
       console.error('Error checking booking conflicts:', error);
       return { hasConflict: false };
@@ -593,6 +545,74 @@ const formatTimeTo12Hour = (date) => {
 
   const handleImagePress = () => {
     setShowImageModal(true);
+  };
+
+  const checkBookingOverlap = async (startTime, endTime, court_id) => {
+    try {
+      // แปลงวันที่และเวลาที่เลือกเป็น timestamp
+      const selectedStartTimestamp = startTime.getTime();
+      const selectedEndTimestamp = endTime.getTime();
+  
+      // ดึงข้อมูลการจองทั้งหมดของสนามนี้
+      const bookingsRef = collection(db, 'Booking');
+      const q = query(
+        bookingsRef,
+        where('court_id', '==', court_id),
+        where('status', '==', 'successful')
+      );
+  
+      const querySnapshot = await getDocs(q);
+      
+      // ตรวจสอบการซ้อนทับกับการจองที่มีอยู่
+      for (const doc of querySnapshot.docs) {
+        const booking = doc.data();
+        const bookingStartTime = booking.start_time.toDate();
+        const bookingEndTime = booking.end_time.toDate();
+        
+        const bookingStartTimestamp = bookingStartTime.getTime();
+        const bookingEndTimestamp = bookingEndTime.getTime();
+  
+        // เช็คการซ้อนทับของเวลา
+        if (
+          (selectedStartTimestamp >= bookingStartTimestamp && selectedStartTimestamp < bookingEndTimestamp) ||
+          (selectedEndTimestamp > bookingStartTimestamp && selectedEndTimestamp <= bookingEndTimestamp) ||
+          (selectedStartTimestamp <= bookingStartTimestamp && selectedEndTimestamp >= bookingEndTimestamp)
+        ) {
+          // พบการจองที่ซ้อนทับ
+          const formattedStartTime = bookingStartTime.toLocaleTimeString();
+          const formattedEndTime = bookingEndTime.toLocaleTimeString();
+          
+          Alert.alert(
+            'Booking Conflict',
+            `This time slot is already booked (${formattedStartTime} - ${formattedEndTime})`,
+            [{ text: 'OK' }]
+          );
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking booking overlap:', error);
+      return true; // ส่งคืน true เพื่อป้องกันการจองในกรณีที่เกิดข้อผิดพลาด
+    }
+  };
+  
+  // ในส่วนของการ handleBooking
+  const handleBooking = async () => {
+    try {
+      // ...existing validation code...
+  
+      // เช็คการซ้อนทับก่อนทำการจอง
+      const isOverlap = await checkBookingOverlap(startTime, endTime, court.court_id);
+      if (isOverlap) {
+        return; // ยกเลิกการจองถ้ามีการซ้อนทับ
+      }
+  
+      // ...existing booking code...
+    } catch (error) {
+      console.error('Error during booking:', error);
+      Alert.alert('Error', 'Failed to process booking');
+    }
   };
 
   return (
