@@ -121,6 +121,9 @@ function BookingHistory() {
   
   const renderBookingCard = ({ item }) => (
     <View style={styles.card}>
+      <View style={[styles.statusBadge, styles.ended]}>
+        <Text style={styles.statusText}>Ended</Text>
+      </View>
       <Image source={{ uri: item.courtImage }} style={styles.image} />
       <View style={styles.cardContent}>
         <Text style={styles.title}>{item.courtName}</Text>
@@ -245,6 +248,23 @@ const styles = StyleSheet.create({
   },
   placeholderImage: {
     backgroundColor: '#E0E0E0',
+  },
+  statusBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+    zIndex: 1,
+  },
+  ended: {
+    backgroundColor: '#878787',
+  },
+  statusText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
 
