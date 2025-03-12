@@ -5,7 +5,7 @@ import { db } from "../FirebaseConfig"; // นำเข้า Firebase
 import { getAuth } from 'firebase/auth';
 import { useFocusEffect } from '@react-navigation/native';
 
-export default function BookingHistory() {
+function BookingHistory() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -35,66 +35,66 @@ export default function BookingHistory() {
 
   const fetchBookingHistory = async () => {
     try {
-      const now = new Date();
+      setLoading(true);
       const auth = getAuth();
       const currentUser = auth.currentUser;
       
-      if (!currentUser) {
-        console.log("❌ No user logged in");
-        return;
-      }
+      if (!currentUser) return;
 
+      // ดึงข้อมูล user_id
       const userDoc = await getDoc(doc(db, "users", currentUser.uid));
       if (!userDoc.exists()) return;
-      
       const user_id = userDoc.data().user_id;
-      console.log('Fetching bookings for user:', user_id);
 
-      // ดึงการจองทั้งหมดของ user
-      const bookingRef = collection(db, "Booking");
-      const userBookingsQuery = query(bookingRef, where("user_id", "==", user_id));
-      const bookingSnapshot = await getDocs(userBookingsQuery);
+      // ดึงข้อมูล court ทั้งหมดมาเก็บไว้
+      const courtsSnapshot = await getDocs(collection(db, 'Court'));
+      const courtsData = {};
+      courtsSnapshot.forEach(doc => {
+        const court = doc.data();
+        courtsData[court.court_id] = court;
+      });
 
-      let bookingList = [];
+      // ดึงข้อมูล bookings
+      const bookingsRef = collection(db, 'Booking');
+      const q = query(bookingsRef, where('user_id', '==', user_id));
+      const querySnapshot = await getDocs(q);
 
-      for (const docSnap of bookingSnapshot.docs) {
-        const booking = docSnap.data();
-        const endTime = booking.end_time?.toDate(); // แปลง Timestamp เป็น Date
+      const historyBookings = [];
+      const now = new Date();
 
-        // Only add to history if end_time has passed
-        if (endTime && endTime < now) {
-          const courtQuery = query(
-            collection(db, "Court"), 
-            where("court_id", "==", booking.court_id)
-          );
-          const courtSnapshot = await getDocs(courtQuery);
+      querySnapshot.forEach(doc => {
+        const booking = doc.data();
+        const endTime = booking.end_time.toDate();
+        
+        // เช็คว่าเป็นการจองที่ผ่านมาแล้ว
+        if (endTime < now) {
+          const court = courtsData[booking.court_id];
+          if (court) {
+            // คำนวณราคาจากข้อมูลจริง
+            const startTime = booking.start_time.toDate();
+            const hours = Math.ceil((endTime - startTime) / (1000 * 60 * 60));
+            const price = hours * court.priceslot; // ใช้ราคาจริงจาก court
 
-          if (!courtSnapshot.empty) {
-            const courtData = courtSnapshot.docs[0].data();
-            const formattedStart = formatDateTime(booking.start_time);
-            const formattedEnd = formatDateTime(booking.end_time);
-
-            // เพิ่มข้อมูลการจองที่สิ้นสุดแล้วเข้า list
-            bookingList.push({
-              id: docSnap.id,
-              booking_id: booking.booking_id,
-              field: courtData.field,
-              image: courtData.image[0],
-              date: formattedStart.date,
-              time: `${formattedStart.time} - ${formattedEnd.time}`,
-              price: booking.price || '0'
+            historyBookings.push({
+              id: booking.booking_id,
+              courtName: court.field,
+              courtImage: court.image[0],
+              date: startTime,
+              startTime: startTime,
+              endTime: endTime,
+              price: price,
+              status: booking.status
             });
-
-            console.log('Added past booking:', booking.booking_id);
           }
         }
-      }
+      });
 
-      console.log(`📌 Total history bookings: ${bookingList.length}`);
-      setBookings(bookingList);
+      // เรียงตามวันที่ล่าสุด
+      historyBookings.sort((a, b) => b.date - a.date);
+      setBookings(historyBookings);
 
     } catch (error) {
-      console.error("❌ Error fetching booking history:", error);
+      console.error('Error fetching booking history:', error);
     } finally {
       setLoading(false);
     }
@@ -119,6 +119,23 @@ export default function BookingHistory() {
     fetchBookingHistory();
   }, []);
   
+  const renderBookingCard = ({ item }) => (
+    <View style={styles.card}>
+      <Image source={{ uri: item.courtImage }} style={styles.image} />
+      <View style={styles.cardContent}>
+        <Text style={styles.title}>{item.courtName}</Text>
+        <Text style={styles.text}>
+          Date: {item.startTime.toLocaleDateString()}
+        </Text>
+        <Text style={styles.text}>
+          Time: {item.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} 
+          - {item.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </Text>
+        <Text style={styles.price}>Price: {item.price} THB</Text>
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       {loading ? (
@@ -137,24 +154,7 @@ export default function BookingHistory() {
               tintColor="#009900"
             />
           }
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Image 
-                source={{ uri: item.image }} 
-                style={styles.image}
-                resizeMode="cover"
-              />
-              <View style={styles.cardContent}>
-                <Text style={styles.title}>{item.field}</Text>
-                <Text style={styles.text}>Date: {item.date}</Text>
-                <Text style={styles.text}>Time: {item.time}</Text>              
-                <Text style={styles.price}>Price: {item.price} THB</Text>
-              </View>
-              <View style={[styles.statusContainer, styles.completed]}>
-                <Text style={styles.statusText}>Ended</Text>
-              </View>
-            </View>
-          )}
+          renderItem={renderBookingCard}
         />
       )}
     </View>
@@ -247,3 +247,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#E0E0E0',
   },
 });
+
+export default BookingHistory;
