@@ -392,11 +392,12 @@ const formatTimeTo12Hour = (date) => {
           status: "tranfer_out",
           create_at: Timestamp.now(),
         }),
-        updateDoc(receiverWalletDoc.ref, {
+        addDoc(collection(db, 'Wallet'), {
+          wallet_id: courtOwnerWalletId,
           balance: receiverBalance + totalPrice,
           amount: totalPrice,
           status: "tranfer_in",
-          create_at: Timestamp.now(),
+          create_at: Timestamp.now()
         })
       ]);
 
