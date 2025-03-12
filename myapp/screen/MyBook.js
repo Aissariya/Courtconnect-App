@@ -54,6 +54,7 @@ const MyBook = () => {
   const fetchUserBookings = async () => {
     try {
       setLoading(true);
+      const now = new Date();
       const auth = getAuth();
       const currentUser = auth.currentUser;
       
@@ -88,37 +89,58 @@ const MyBook = () => {
         refundMap.set(refundData.booking_id, refundData);
       });
 
+      // Get all history booking IDs
+      const historyBookingsQuery = query(
+        collection(db, "Booking"),
+        where("user_id", "==", user_id)
+      );
+      const historySnapshot = await getDocs(historyBookingsQuery);
+      const historyBookingIds = new Set();
+
+      historySnapshot.forEach(doc => {
+        const booking = doc.data();
+        const endTime = booking.end_time.toDate();
+        if (endTime < now) {
+          historyBookingIds.add(booking.booking_id);
+        }
+      });
+
       // แปลงข้อมูล bookings และตรวจสอบกับ refund
       const processedBookings = [];
       bookingSnapshot.forEach(doc => {
         const booking = doc.data();
-        const court = courts[booking.court_id];
+        const endTime = booking.end_time.toDate();
         
-        if (court) {
-          const refundData = refundMap.get(booking.booking_id);
+        // Only include if not in history and not ended
+        if (!historyBookingIds.has(booking.booking_id) && endTime > now) {
+          const court = courts[booking.court_id];
+          
+          if (court) {
+            const refundData = refundMap.get(booking.booking_id);
 
-          // ถ้าไม่มี refund หรือ status ไม่ใช่ Rejected จึงจะแสดงในรายการ
-          if (!refundData || refundData.status !== 'Rejected') {
-            const startTime = booking.start_time.toDate();
-            const endTime = booking.end_time.toDate();
-            const diffHours = (endTime - startTime) / (1000 * 60 * 60);
-            const calculatedPrice = Math.ceil(diffHours) * court.priceslot;
+            // ถ้าไม่มี refund หรือ status ไม่ใช่ Rejected จึงจะแสดงในรายการ
+            if (!refundData || refundData.status !== 'Rejected') {
+              const startTime = booking.start_time.toDate();
+              const endTime = booking.end_time.toDate();
+              const diffHours = (endTime - startTime) / (1000 * 60 * 60);
+              const calculatedPrice = Math.ceil(diffHours) * court.priceslot;
 
-            processedBookings.push({
-              id: booking.booking_id,
-              start_time: startTime,
-              end_time: endTime,
-              status: refundData ? refundData.status : booking.status,
-              price: calculatedPrice,
-              courtDetails: {
-                name: court.field,
-                image: court.image[0],
-                type: court.court_type,
-                address: court.address,
-                court_id: court.court_id,
-                priceslot: court.priceslot
-              }
-            });
+              processedBookings.push({
+                id: booking.booking_id,
+                start_time: startTime,
+                end_time: endTime,
+                status: refundData ? refundData.status : booking.status,
+                price: calculatedPrice,
+                courtDetails: {
+                  name: court.field,
+                  image: court.image[0],
+                  type: court.court_type,
+                  address: court.address,
+                  court_id: court.court_id,
+                  priceslot: court.priceslot
+                }
+              });
+            }
           }
         }
       });

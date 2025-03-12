@@ -2,13 +2,9 @@ import React, { useState, useEffect } from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, Alert } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { doc, getDoc, getDocs, collection, addDoc, serverTimestamp, query, where, deleteDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection , addDoc, serverTimestamp, query, where, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
 import { getAuth } from 'firebase/auth';
-import DataComment from '../Model/database_c';
-import DataUser from '../Model/database_u';
-import { AverageRating } from "../context/AverageRating";
-import { checkCommented, handleDeleteComment } from "../context/checkCommented";
 
 export default function AlreadyBooked({ navigation, route }) {
   const [showReason, setShowReason] = useState(false);
@@ -16,20 +12,12 @@ export default function AlreadyBooked({ navigation, route }) {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [isRefunded, setIsRefunded] = useState(false);
-  const [commentsState, setComments] = useState([]);
-  const [userData, setUserData] = useState({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [rating, setRating] = useState(5);
 
   const { booking } = route.params || {};
-  const auth = getAuth();
 
   useEffect(() => {
-    if (booking) {
-      checkRefundStatus();
-      fetchComments();
-    }
-    setIsLoading(false);
+    console.log('Received booking data:', booking);
+    checkRefundStatus();
   }, [booking]);
 
   const formatDateTime = (dateTime) => {
@@ -58,7 +46,7 @@ export default function AlreadyBooked({ navigation, route }) {
         return {
           date: dateTime.toLocaleDateString('en-US', {
             year: 'numeric',
-            month: 'long',
+            month: 'long', 
             day: 'numeric'
           }),
           time: dateTime.toLocaleString('en-US', {
@@ -99,19 +87,19 @@ export default function AlreadyBooked({ navigation, route }) {
       if (!booking) {
         throw new Error('No booking data available');
       }
-
-      const booking_id = booking.booking_id || booking.id;
+  
+      const booking_id = booking.booking_id || booking.id; 
       const auth = getAuth();
       const currentUser = auth.currentUser;
-
+      
       if (!currentUser || !booking_id) {
         throw new Error('Missing required data');
       }
-
+  
       const userDoc = await getDoc(doc(db, "users", currentUser.uid));
       const userData = userDoc.data();
       const user_id = userData.user_id;
-
+  
       // บันทึกข้อมูล refund ด้วย Timestamp
       const refundData = {
         booking_id,
@@ -120,15 +108,15 @@ export default function AlreadyBooked({ navigation, route }) {
         reason_refund: selectedReason,
         datetime_refund: serverTimestamp() // เปลี่ยนเป็น serverTimestamp
       };
-
+  
       console.log('Saving refund data:', refundData);
       const refundRef = collection(db, 'Refund');
       await addDoc(refundRef, refundData);
-
+  
       setShowConfirmModal(false);
       setShowReason(false);
       setShowReviewModal(true);
-
+  
     } catch (error) {
       console.error('Error processing refund:', error);
       Alert.alert('Error', 'Failed to process refund request: ' + error.message);
@@ -142,58 +130,18 @@ export default function AlreadyBooked({ navigation, route }) {
     try {
       const bookingId = booking.booking_id || booking.id;
       const refundsRef = collection(db, 'Refund');
-      const q = query(refundsRef,
+      const q = query(refundsRef, 
         where('booking_id', '==', bookingId),
         where('status', '==', 'Need Action')
       );
       const querySnapshot = await getDocs(q);
-
+      
       if (!querySnapshot.empty) {
         setIsRefunded(true);
       }
     } catch (error) {
       console.error('Error checking refund status:', error);
     }
-  };
-
-  const fetchComments = async () => {
-    if (!booking?.courtDetails?.court_id) return;
-
-    try {
-      const commentsRef = collection(db, 'Comment');
-      const q = query(commentsRef, where('court_id', '==', booking.courtDetails.court_id));
-      const querySnapshot = await getDocs(q);
-
-      const commentsData = [];
-      querySnapshot.forEach((doc) => {
-        commentsData.push({
-          id: doc.id,
-          ...doc.data()
-        });
-      });
-
-      setComments(commentsData);
-
-      const userDataObj = {};
-      for (const comment of commentsData) {
-        if (comment.user_id) {
-          const userDoc = await getDoc(doc(db, 'users', comment.user_id));
-          if (userDoc.exists()) {
-            userDataObj[comment.id] = userDoc.data();
-          }
-        }
-      }
-
-      setUserData(userDataObj);
-    } catch (error) {
-      console.error('Error fetching comments:', error);
-    }
-  };
-
-  const calculateAverageRating = () => {
-    if (!commentsState || commentsState.length === 0) return 0;
-    const total = commentsState.reduce((sum, comment) => sum + (comment.rating || 0), 0);
-    return (total / commentsState.length).toFixed(1);
   };
 
   return (
@@ -234,71 +182,32 @@ export default function AlreadyBooked({ navigation, route }) {
             </Text>
 
             <View style={styles.scoreBar}>
-              <View style={{ flexDirection: 'row' }}>
-                <Text style={styles.scoreText}>Score</Text>
-                <Text style={styles.scoreIcon}>
-                  {[...Array(Math.round(calculateAverageRating()))].map((_, index) => (
-                    <Text key={index} style={styles.star}>★</Text>
-                  ))}
-                </Text>
-                <Text style={styles.averageRatingText}>({calculateAverageRating()})</Text>
-              </View>
-              <TouchableOpacity onPress={() => navigation.navigate('CommentScreen', { court_id: booking.courtDetails.court_id })}>
-                <Text style={styles.scoreText2}>showmore</Text>
+              <Text style={styles.scoreText}>Score ★★★★★ (5.0)</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('CommentScreen')}>
+                <Text style={styles.scoreText2}>Show more</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.reviewContainer}>
-              {commentsState.length > 0 ? (
-                commentsState.slice(0, 3).map((comment) => (
-                  <View key={comment.id} style={styles.reviewBox}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <Image
-                          source={
-                            userData[comment.id]?.profileImage
-                              ? { uri: userData[comment.id].profileImage }
-                              : require("../assets/profile-user.png")
-                          }
-                          style={styles.profileImage}
-                        />
-                        <Text style={styles.reviewerName}>{userData[comment.id]?.name || "Loading..."}</Text>
-                        <View style={styles.starContainer}>
-                          {[...Array(comment.rating)].map((_, index) => (
-                            <Text key={index} style={styles.star2}>★</Text>
-                          ))}
-                        </View>
-                        <Text style={styles.rateText}>({comment.rating}.0) </Text>
-                      </View>
-                      {auth.currentUser && comment.user_id === auth.currentUser.uid && (
-                        <TouchableOpacity onPress={() => handleDeleteComment(comment.id)}>
-                          <MaterialCommunityIcons
-                            name="dots-vertical"
-                            size={15}
-                            color="#000"
-                            style={{ marginTop: 5 }}
-                          />
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                    <Text style={styles.dateText}>
-                      {comment.timestamp ? new Date(comment.timestamp.seconds * 1000).toLocaleString('en-GB', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      }) : "No date"}
-                    </Text>
-                    <Text style={styles.reviewText}>{comment.text}</Text>
-                    <View style={styles.separator} />
-                  </View>
-                ))
-              ) : (
-                <View style={styles.reviewBox}>
-                  <Text style={styles.reviewText}>No reviews yet.</Text>
+              <View style={styles.reviewBox}>
+                <Text style={styles.reviewerName}>John Doe</Text>
+                <Text style={styles.reviewText}>Great basketball court with excellent atmosphere and well-maintained facilities.</Text>
+                <View style={styles.starContainer}>
+                  {[...Array(5)].map((_, index) => (
+                    <Text key={index} style={styles.star}>★</Text>
+                  ))}
                 </View>
-              )}
+              </View>
+
+              <View style={styles.reviewBox}>
+                <Text style={styles.reviewerName}>Jane Smith</Text>
+                <Text style={styles.reviewText}>Clean court with complete equipment. Very convenient.</Text>
+                <View style={styles.starContainer}>
+                  {[...Array(4)].map((_, index) => (
+                    <Text key={index} style={styles.star}>★</Text>
+                  ))}
+                </View>
+              </View>
             </View>
           </>
         ) : (
@@ -540,23 +449,13 @@ const styles = StyleSheet.create({
     marginVertical: 5,
   },
   starContainer: {
-    marginTop: -3,
     flexDirection: 'row',
+    alignItems: 'center',
   },
   star: {
-    color: 'white',
+    color: '#FFD700',
     fontSize: 18,
-    // marginRight: 1,
-  },
-  star1: {
-    color: 'white',
-    fontSize: 18,
-    marginTop: 5,
-  },
-  star2: {
-    color: 'black',
-    fontSize: 18,
-    marginTop: 5,
+    marginRight: 3,
   },
   reasonContainer: {
     marginTop: 20,
@@ -569,13 +468,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  averageRatingText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold',
-    paddingTop: 4,
-    paddingLeft: 10,
-},
+  
   reasonTitle: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -677,7 +570,7 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 10,
   },
-
+  
   modalLabel: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -745,25 +638,5 @@ const styles = StyleSheet.create({
   cancelText: {
     color: 'white', // สีข้อความเมื่อยกเลิก
   },
-  profileImage: {
-    width: 20,
-    height: 20,
-    borderRadius: 50,
-    backgroundColor: "#ddd",
-    marginRight: 5,
-  },
-  rateText: {
-    fontSize: 14,
-    color: '#333',
-    marginLeft: 3,
-  },
-  dateText: {
-    fontSize: 12,
-    color: '#333',
-  },
-  separator: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-    marginTop: 10,
-  },
+
 });

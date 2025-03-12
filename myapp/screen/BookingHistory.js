@@ -10,161 +10,89 @@ export default function BookingHistory() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // ฟังก์ชันแปลง String เป็น Date()
-  const parseBookingTime = (timeStr) => {
+  const formatDateTime = (timestamp) => {
+    if (!timestamp?.seconds) return { date: 'Invalid date', time: 'Invalid time' };
+    
     try {
-      const [monthDay, yearTime] = timeStr.split(", ");
-      const [year, timeStr2] = yearTime.split(" at ");
-      const [time, period] = timeStr2.split(" UTC")[0].split(" ");
-      const [month, day] = monthDay.split(" ");
-
-      // แปลงชื่อเดือนเป็นตัวเลข
-      const months = {
-        January: 0, February: 1, March: 2, April: 3, May: 4, June: 5,
-        July: 6, August: 7, September: 8, October: 9, November: 10, December: 11
+      const date = new Date(timestamp.seconds * 1000);
+      return {
+        date: date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        }),
+        time: date.toLocaleString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        })
       };
-
-      // แยกชั่วโมงและนาที
-      const [hours, minutes] = time.split(":");
-      let hour = parseInt(hours);
-
-      // แปลงเป็น 24 ชั่วโมง
-      if (period === "PM" && hour !== 12) hour += 12;
-      if (period === "AM" && hour === 12) hour = 0;
-
-      return new Date(parseInt(year), months[month], parseInt(day), hour, parseInt(minutes));
     } catch (error) {
-      console.error("❌ Error parsing time:", timeStr, error);
-      return null;
-    }
-  };
-
-  const parseDateOnly = (timeStr) => {
-    try {
-      return timeStr.split(" at ")[0]; // แยกเอาเฉพาะส่วน "March 10, 2025"
-    } catch (error) {
-      console.error("❌ Error parsing date:", timeStr, error);
-      return "Invalid Date";
-    }
-  };
-  
-  // ฟังก์ชันดึงเฉพาะเวลา "02:00 PM"
-  const parseTimeOnly = (timeStr) => {
-    try {
-      return timeStr.split(" at ")[1].split(" UTC")[0]; // แยกเอาเฉพาะเวลา เช่น "02:00 PM"
-    } catch (error) {
-      console.error("❌ Error parsing time:", timeStr, error);
-      return "Invalid Time";
-    }
-  };
-
-  const calculateBookingPrice = (startTime, endTime, courtPrice) => {
-    try {
-      const parseTime = (timeStr) => {
-        const [datePart, timePart] = timeStr.split(' at ');
-        const [time, period] = timePart.split(' UTC')[0].split(' ');
-        const [hours, minutes] = time.split(':');
-        let hour = parseInt(hours);
-        
-        if (period === 'PM' && hour !== 12) hour += 12;
-        if (period === 'AM' && hour === 12) hour = 0;
-        
-        return { hour, minutes: parseInt(minutes) };
-      };
-
-      const start = parseTime(startTime);
-      const end = parseTime(endTime);
-
-      let totalHours;
-      if (end.hour < start.hour) {
-        totalHours = (24 - start.hour) + end.hour;
-      } else {
-        totalHours = end.hour - start.hour;
-      }
-
-      if (end.minutes < start.minutes) {
-        totalHours--;
-      }
-
-      return totalHours * courtPrice;
-    } catch (error) {
-      console.error('Error calculating price:', error);
-      return 0;
+      console.error('Error formatting datetime:', error);
+      return { date: 'Invalid date', time: 'Invalid time' };
     }
   };
 
   const fetchBookingHistory = async () => {
     try {
       const now = new Date();
-      
-      // 1. ดึง user_id จาก user ที่ล็อกอิน
       const auth = getAuth();
       const currentUser = auth.currentUser;
+      
       if (!currentUser) {
-        console.log('No user logged in');
+        console.log("❌ No user logged in");
         return;
       }
 
-      // 2. ดึง user_id จาก users collection
       const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-      if (!userDoc.exists()) {
-        console.log('User document not found');
-        return;
-      }
+      if (!userDoc.exists()) return;
+      
       const user_id = userDoc.data().user_id;
+      console.log('Fetching bookings for user:', user_id);
 
-      // 3. ดึงการจองของ user นี้
+      // ดึงการจองทั้งหมดของ user
       const bookingRef = collection(db, "Booking");
       const userBookingsQuery = query(bookingRef, where("user_id", "==", user_id));
       const bookingSnapshot = await getDocs(userBookingsQuery);
 
       let bookingList = [];
-      console.log(`Found ${bookingSnapshot.size} bookings for user ${user_id}`);
 
       for (const docSnap of bookingSnapshot.docs) {
-        const bookingData = docSnap.data();
-        const endTime = parseBookingTime(bookingData.end_time);
-        if (!endTime) continue;
+        const booking = docSnap.data();
+        const endTime = booking.end_time?.toDate(); // แปลง Timestamp เป็น Date
 
-        // 4. เช็คว่าการจองสิ้นสุดแล้วหรือยัง
-        if (endTime < now) {
-          console.log('Processing ended booking:', bookingData.booking_id);
-          
-          // 5. ดึงข้อมูลสนามจาก Court collection
+        // Only add to history if end_time has passed
+        if (endTime && endTime < now) {
           const courtQuery = query(
             collection(db, "Court"), 
-            where("court_id", "==", bookingData.court_id)
+            where("court_id", "==", booking.court_id)
           );
           const courtSnapshot = await getDocs(courtQuery);
 
           if (!courtSnapshot.empty) {
             const courtData = courtSnapshot.docs[0].data();
-            const courtImage = courtData.image?.[0] || null;
+            const formattedStart = formatDateTime(booking.start_time);
+            const formattedEnd = formatDateTime(booking.end_time);
 
-            // คำนวณราคา
-            const calculatedPrice = calculateBookingPrice(
-              bookingData.start_time,
-              bookingData.end_time,
-              courtData.priceslot || 500
-            );
-
+            // เพิ่มข้อมูลการจองที่สิ้นสุดแล้วเข้า list
             bookingList.push({
               id: docSnap.id,
-              booking_id: bookingData.booking_id,
-              field: courtData.field || "Unknown Field",
-              image: courtImage,
-              date: parseDateOnly(bookingData.start_time),
-              time: `${parseTimeOnly(bookingData.start_time)} - ${parseTimeOnly(bookingData.end_time)}`,
-              price: calculatedPrice,
+              booking_id: booking.booking_id,
+              field: courtData.field,
+              image: courtData.image[0],
+              date: formattedStart.date,
+              time: `${formattedStart.time} - ${formattedEnd.time}`,
+              price: booking.price || '0'
             });
 
-            console.log('Added booking to history:', bookingData.booking_id);
+            console.log('Added past booking:', booking.booking_id);
           }
         }
       }
 
-      console.log(`Total history bookings: ${bookingList.length}`);
+      console.log(`📌 Total history bookings: ${bookingList.length}`);
       setBookings(bookingList);
+
     } catch (error) {
       console.error("❌ Error fetching booking history:", error);
     } finally {
