@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, Image, FlatList, StyleSheet, TouchableOpacity, Alert } from "react-native";
-import { AntDesign } from '@expo/vector-icons'; 
+import { View, Text, TextInput, Image, FlatList, StyleSheet, TouchableOpacity } from "react-native";
+import { AntDesign } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
@@ -10,7 +10,7 @@ import { doc, getDoc } from 'firebase/firestore';
 const BookingSection = ({ route }) => {
   const { court } = route.params || {};
   const [date, setDate] = useState(null); // เปลี่ยนจาก new Date() เป็น null
-  
+
   // เพิ่ม console.log เพื่อตรวจสอบข้อมูลที่เข้ามา
   useEffect(() => {
     console.log('=================== Calendar Screen Data ===================');
@@ -26,7 +26,7 @@ const BookingSection = ({ route }) => {
   useEffect(() => {
     console.log('Full route params:', route.params);
     console.log('Court data received:', court);
-    
+
     if (!court) {
       console.error('No court data received');
     } else if (!court.court_id) {
@@ -50,7 +50,7 @@ const BookingSection = ({ route }) => {
 
       try {
         console.log('Fetching bookings for court:', court.court_id);
-        
+
         const bookingsRef = collection(db, 'Booking');
         const q = query(
           bookingsRef,
@@ -59,21 +59,14 @@ const BookingSection = ({ route }) => {
 
         const querySnapshot = await getDocs(q);
         const slots = [];
-        
         querySnapshot.forEach((doc) => {
           const booking = doc.data();
-          // เพิ่มการตรวจสอบสถานะ successful
-          if (booking.status === 'successful') {
-            console.log('Found successful booking:', booking);
-            slots.push(booking);
-          } else {
-            console.log('Skipping non-successful booking:', booking.status);
-          }
+          console.log('Found booking:', booking);
+          slots.push(booking);
         });
 
-        console.log('Total valid bookings found:', slots.length);
+        console.log('Total bookings found:', slots.length);
         setBookedSlots(slots);
-
       } catch (error) {
         console.error('Error fetching bookings:', error);
       }
@@ -132,26 +125,37 @@ const BookingSection = ({ route }) => {
 
   // แก้ไข isBooked function เพื่อเพิ่ม console.log
   const isBooked = (timeSlot) => {
-    if (!date || !bookedSlots.length) return false;
+    if (!date || !bookedSlots.length) {
+      return false;
+    }
+
+    console.log(`Checking bookings for ${timeSlot} on ${date.toLocaleDateString()}`);
+
+    const currentDate = new Date(date);
+    currentDate.setHours(0, 0, 0, 0);
 
     const slotHour = parseInt(timeSlot.split(':')[0]);
-    
+    console.log('Checking hour:', slotHour);
+
     return bookedSlots.some(booking => {
-      try {
-        const startTime = booking.start_time;
-        const endTime = booking.end_time;
-        const bookingDate = startTime.toDate();
-        
-        if (bookingDate.toDateString() !== date.toDateString()) return false;
+      const bookingStart = new Date(booking.start_time);
+      const bookingEnd = new Date(booking.end_time);
 
-        const bookingStartHour = startTime.toDate().getHours();
-        const bookingEndHour = endTime.toDate().getHours();
-
-        return slotHour >= bookingStartHour && slotHour < bookingEndHour;
-      } catch (error) {
-        console.error('Error checking booking:', error);
+      // เช็คว่าเป็นวันเดียวกัน
+      if (bookingStart.toDateString() !== currentDate.toDateString()) {
         return false;
       }
+
+      const bookingStartHour = bookingStart.getHours();
+      const bookingEndHour = bookingEnd.getHours();
+
+      console.log('Booking hours:', {
+        start: bookingStartHour,
+        end: bookingEndHour,
+        slot: slotHour
+      });
+
+      return slotHour >= bookingStartHour && slotHour <= bookingEndHour;
     });
   };
 
@@ -176,24 +180,31 @@ const BookingSection = ({ route }) => {
       const bookingsRef = collection(db, 'Booking');
       const q = query(bookingsRef, where('court_id', '==', court.court_id));
       const querySnapshot = await getDocs(q);
-      
+
+      // กรองข้อมูลตามวันที่
       const todayBookings = [];
       querySnapshot.forEach((doc) => {
         const booking = doc.data();
-        
-        // ตรวจสอบทั้ง timestamp และสถานะ successful
-        if (booking.status === 'successful' && booking.start_time) {
-          const bookingDate = booking.start_time.toDate();
-          const selectedDateStr = selectedDate.toLocaleDateString();
-          const bookingDateStr = bookingDate.toLocaleDateString();
+        // ดึงวันที่จาก start_time
+        const bookingDateStr = booking.start_time.split(' at')[0];
+        const selectedDateStr = selectedDate.toLocaleDateString('en-US', {
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric'
+        });
 
-          if (bookingDateStr === selectedDateStr) {
-            todayBookings.push(booking);
-          }
+        console.log('Comparing dates:', {
+          bookingDate: bookingDateStr,
+          selectedDate: selectedDateStr,
+          booking
+        });
+
+        if (bookingDateStr === selectedDateStr) {
+          todayBookings.push(booking);
         }
       });
 
-      console.log('Found valid bookings for date:', todayBookings.length);
+      console.log('Found bookings:', todayBookings);
       setBookedSlots(todayBookings);
     } catch (error) {
       console.error('Error fetching bookings:', error);
@@ -204,57 +215,87 @@ const BookingSection = ({ route }) => {
     setShow(true);
   };
 
-  // แก้ไขฟังก์ชัน renderBookedSlots ในส่วนที่แสดงเวลา
   const renderBookedSlots = () => {
-    if (!date || !bookedSlots.length) return null;
+    if (!date || !bookedSlots.length) return null; // เพิ่มการตรวจสอบ date
+
+    const parseDateTime = (dateTimeStr) => {
+      try {
+        console.log('Parsing datetime:', dateTimeStr);
+        // Format: "March 7, 2025 at 10:00 AM UTC+7"
+        const [monthDay, yearTime] = dateTimeStr.split(', ');
+        const [year, timeStr] = yearTime.split(' at ');
+        const [time, period, timezone] = timeStr.split(' ');
+        const [month, day] = monthDay.split(' ');
+
+        // Convert month name to month number (0-11)
+        const months = {
+          January: 0, February: 1, March: 2, April: 3, May: 4, June: 5,
+          July: 6, August: 7, September: 8, October: 9, November: 10, December: 11
+        };
+
+        const [hours, minutes] = time.split(':');
+        let hour = parseInt(hours);
+
+        // Convert to 24 hour format
+        if (period === 'PM' && hour !== 12) hour += 12;
+        if (period === 'AM' && hour === 12) hour = 0;
+
+        const date = new Date(
+          parseInt(year),
+          months[month],
+          parseInt(day),
+          hour,
+          parseInt(minutes)
+        );
+
+        console.log('Parsed date:', date);
+        return date;
+      } catch (error) {
+        console.error('Error parsing date:', error);
+        return null;
+      }
+    };
 
     return (
       <View style={styles.bookedSlotsContainer}>
         <Text style={styles.bookedSlotsTitle}>Booked Time Slots:</Text>
         {bookedSlots.map((slot) => {
-          // ตรวจสอบว่ามี timestamp หรือไม่
-          if (!slot.start_time || !slot.end_time) {
-            console.log('Invalid booking data:', slot);
+          const startDate = parseDateTime(slot.start_time);
+          const endDate = parseDateTime(slot.end_time);
+
+          if (!startDate || !endDate) {
+            console.error('Invalid date found:', slot);
             return null;
           }
 
-          try {
-            // ใช้ timestamp โดยตรงในการเปรียบเทียบ
-            const startDate = slot.start_time.toDate();
-            const endDate = slot.end_time.toDate();
-
-            return (
-              <View key={slot.booking_id} style={styles.bookedSlotItem}>
-                <AntDesign name="clockcircle" size={16} color="#D32F2F" style={styles.clockIcon} />
-                <View style={styles.bookedSlotContent}>
-                  <Text style={styles.bookedSlotDate}>
-                    {startDate.toLocaleDateString('th-TH', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </Text>
-                  <Text style={styles.bookedSlotTime}>
-                    {startDate.toLocaleTimeString('th-TH', { 
-                      hour: '2-digit', 
-                      minute: '2-digit',
-                      hour12: true 
-                    })}
-                    {' - '}
-                    {endDate.toLocaleTimeString('th-TH', { 
-                      hour: '2-digit', 
-                      minute: '2-digit',
-                      hour12: true 
-                    })}
-                  </Text>
-                </View>
+          return (
+            <View key={slot.booking_id} style={styles.bookedSlotItem}>
+              <AntDesign name="clockcircle" size={16} color="#D32F2F" style={styles.clockIcon} />
+              <View style={styles.bookedSlotContent}>
+                <Text style={styles.bookedSlotDate}>
+                  {startDate.toLocaleDateString('th-TH', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </Text>
+                <Text style={styles.bookedSlotTime}>
+                  {startDate.toLocaleTimeString('th-TH', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                  })}
+                  {' - '}
+                  {endDate.toLocaleTimeString('th-TH', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                  })}
+                </Text>
               </View>
-            );
-          } catch (error) {
-            console.error('Error displaying booking:', error);
-            return null;
-          }
+            </View>
+          );
         })}
       </View>
     );
@@ -272,17 +313,17 @@ const BookingSection = ({ route }) => {
         const [year, timeStr] = yearTime.split(' at ');
         const [time, period, timezone] = timeStr.split(' ');
         const [month, day] = monthDay.split(' ');
-        
+
         const months = {
           January: 0, February: 1, March: 2, April: 3, May: 4, June: 5,
           July: 6, August: 7, September: 8, October: 9, November: 10, December: 11
         };
-        
+
         const [hours, minutes] = time.split(':');
         let hour = parseInt(hours);
         if (period === 'PM' && hour !== 12) hour += 12;
         if (period === 'AM' && hour === 12) hour = 0;
-        
+
         const date = new Date(
           parseInt(year),
           months[month],
@@ -323,16 +364,16 @@ const BookingSection = ({ route }) => {
                   })}
                 </Text>
                 <Text style={styles.userBookingTime}>
-                  {startDate.toLocaleTimeString('th-TH', { 
-                    hour: '2-digit', 
+                  {startDate.toLocaleTimeString('th-TH', {
+                    hour: '2-digit',
                     minute: '2-digit',
-                    hour12: true 
+                    hour12: true
                   })}
                   {' - '}
-                  {endDate.toLocaleTimeString('th-TH', { 
-                    hour: '2-digit', 
+                  {endDate.toLocaleTimeString('th-TH', {
+                    hour: '2-digit',
                     minute: '2-digit',
-                    hour12: true 
+                    hour12: true
                   })}
                 </Text>
               </View>
@@ -345,9 +386,7 @@ const BookingSection = ({ route }) => {
 
   const renderItem = ({ item }) => (
     <View style={styles.timeSlot}>
-      <Text style={styles.timeText}>
-        {typeof item === 'string' ? item : ''}
-      </Text>
+      <Text style={styles.timeText}>{item}</Text>
       <View style={[styles.bookButton, isBooked(item) && styles.booked]}>
         {isBooked(item) && (
           <View style={styles.bookedContent}>
@@ -382,33 +421,49 @@ const BookingSection = ({ route }) => {
   const checkTimeSlotAvailability = (hour) => {
     if (!bookedSlots.length) return { isBooked: false };
 
+    // เช็คการจองแต่ละรายการ
     for (const booking of bookedSlots) {
       try {
-        if (!booking.start_time || !booking.end_time) continue;
+        // แยกเวลาออกจาก start_time และ end_time
+        const startTimePart = booking.start_time.split(' at ')[1];
+        const endTimePart = booking.end_time.split(' at ')[1];
 
-        const bookingStartHour = booking.start_time.toDate().getHours();
-        const bookingEndHour = booking.end_time.toDate().getHours();
+        // แปลงเวลาเป็นชั่วโมง
+        const startHour = parseInt(startTimePart.split(':')[0]);
+        const endHour = parseInt(endTimePart.split(':')[0]);
 
-        if (hour >= bookingStartHour && hour < bookingEndHour) {
+        // ปรับค่าชั่วโมงตาม AM/PM
+        const adjustedStartHour = startTimePart.includes('PM') && startHour !== 12
+          ? startHour + 12
+          : startHour;
+        const adjustedEndHour = endTimePart.includes('PM') && endHour !== 12
+          ? endHour + 12
+          : endHour;
+
+        console.log('Checking time slot:', {
+          slotHour: hour,
+          startHour: adjustedStartHour,
+          endHour: adjustedEndHour,
+          booking: booking
+        });
+
+        if (hour >= adjustedStartHour && hour < adjustedEndHour) {
           return {
             isBooked: true,
             isUserBooking: booking.user_id === currentUserId,
             booking: booking,
-            timeDisplay: {
-              start: booking.start_time.toDate().toLocaleTimeString(),
-              end: booking.end_time.toDate().toLocaleTimeString()
-            }
+            timeRange: `${startTimePart.split(' UTC')[0]} - ${endTimePart.split(' UTC')[0]}`
           };
         }
       } catch (error) {
-        console.error('Error checking booking:', error);
-        continue;
+        console.error('Error checking time slot:', error);
       }
     }
+
     return { isBooked: false };
   };
 
-  // แก้ไขฟังก์ชัน renderTimeSlots
+  // แก้ไข renderTimeSlots function เพื่อแสดงสถานะการจอง
   const renderTimeSlots = () => {
     if (!date) return null;
 
@@ -419,48 +474,39 @@ const BookingSection = ({ route }) => {
 
     return (
       <View style={styles.timeSlotsContainer}>
-        {/* แก้ส่วนแสดงจำนวนการจอง */}
-        <View style={styles.bookingsSummaryContainer}>
-          <Text style={styles.bookingsSummaryText}>
-            <Text>การจองวันนี้: </Text>
-            <Text>{bookedSlots.length}</Text>
-            <Text> รายการ</Text>
+        <Text style={styles.dateHeader}>
+          {date.toLocaleDateString('th-TH', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })}
+        </Text>
+
+        {bookedSlots.length > 0 && (
+          <Text style={styles.bookingsSummary}>
+            การจองวันนี้: {bookedSlots.length} รายการ
           </Text>
-        </View>
+        )}
 
         {timeSlots.map(({ hour, display }) => {
-          const { isBooked, isUserBooking, timeDisplay } = checkTimeSlotAvailability(hour);
-          
+          const { isBooked, isUserBooking, timeRange } = checkTimeSlotAvailability(hour);
+
           return (
             <View key={hour} style={styles.timeSlotRow}>
               <Text style={styles.timeDisplay}>{display}</Text>
               <View style={[
                 styles.statusIndicator,
-                isBooked ? 
-                  (isUserBooking ? styles.userBookedSlot : styles.bookedSlot) 
+                isBooked ?
+                  (isUserBooking ? styles.userBookedSlot : styles.bookedSlot)
                   : styles.availableSlot
               ]}>
-                <View style={styles.statusContainer}>
-                  <Text style={styles.statusText}>
-                    {isBooked ? 
-                      (isUserBooking ? 
-                        <Text>การจองของคุณ</Text> : 
-                        <Text>ไม่ว่าง</Text>
-                      ) : 
-                      <Text>ว่าง</Text>
-                    }
-                  </Text>
-                </View>
-                
-                {timeDisplay && (
-                  <View style={styles.timeDisplayContainer}>
-                    <Text style={styles.timeRangeText}>
-                      <Text>{timeDisplay.start}</Text>
-                      <Text> - </Text>
-                      <Text>{timeDisplay.end}</Text>
-                    </Text>
-                  </View>
-                )}
+                <Text style={styles.statusText}>
+                  {isBooked ?
+                    (isUserBooking ? 'การจองของคุณ' : 'ไม่ว่าง')
+                    : 'ว่าง'}
+                </Text>
+                {timeRange && <Text style={styles.timeRangeText}>{timeRange}</Text>}
               </View>
             </View>
           );
@@ -508,18 +554,6 @@ const BookingSection = ({ route }) => {
     // ...existing styles...
   });
 
-  const onDayPress = (day) => {
-    if (markedDates[day.dateString]?.marked) {
-      Alert.alert(
-        <Text>Booking Status</Text>,
-        <Text>This date is already booked</Text>,
-        [{ text: <Text>OK</Text> }]
-      );
-      return;
-    }
-    // ...existing code...
-  };
-
   return (
     <FlatList
       keyExtractor={(item) => item}
@@ -534,31 +568,32 @@ const BookingSection = ({ route }) => {
           {/* Court Card - similar to Booking screen */}
           <View style={styles.card}>
             {court && (
-              <Image 
-                source={{ uri: court.image[0] }} 
-                style={styles.courtImage} 
+              <Image
+                source={{ uri: court.image[0] }}
+                style={styles.courtImage}
                 resizeMode="cover"
               />
             )}
             <View style={styles.courtDetails}>
-              <Text style={styles.courtTitle}>{court ? court.field : 'Loading...'}</Text>
-              <Text style={styles.courtSubtitle}>{court ? court.address : 'Loading...'}</Text>
-              <Text style={[styles.fieldText, { textAlign: 'center' }]}>Player : 6-15 people/court</Text>
-              <Text style={[styles.fieldText, { textAlign: 'center' }]}>Time : 8:00 - 14:00</Text>
-              <Text style={[styles.fieldText, { textAlign: 'center' }]}>Price : 1 Hour/ 500 Bath</Text>
+            <Text style={styles.courtTitle}>{court ? court.field : 'Loading...'}</Text>
+               <Text style={styles.courtSubtitle}>{court ? court.address : 'Loading...'}</Text>
+               <Text style={[styles.fieldText, { textAlign: 'center' }]}>Player : 6-15 people/court</Text>
+               <Text style={[styles.fieldText, { textAlign: 'center' }]}>Time : 8:00 - 14:00</Text>
+               <Text style={[styles.fieldText, { textAlign: 'center' }]}>
+                Price : 1 Hour/ {court && ["a01"].includes(court.court_id) ? "1000" : "500"} Bath
+              </Text>
             </View>
           </View>
-
           <View style={styles.timeContainer}>
             <Text style={styles.timeLabel}>Time</Text>
             <View style={styles.dateInputContainer}>
               <AntDesign name="calendar" size={18} color="black" style={styles.calendarIcon} />
               <TouchableOpacity onPress={showDatepicker} style={{ flex: 1 }}>
-                <TextInput 
-                  style={styles.dateInput} 
-                  placeholder="Select date" 
-                  value={date ? date.toLocaleDateString() : ''} 
-                  editable={false} 
+                <TextInput
+                  style={styles.dateInput}
+                  placeholder="Select date"
+                  value={date ? date.toLocaleDateString() : ''}
+                  editable={false}
                   pointerEvents="none"
                 />
               </TouchableOpacity>
@@ -786,7 +821,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 15,
     borderWidth: 1,
     borderColor: '#FFFFFF', // เส้นกรอบสีขาว
-    borderRadius: 10, 
+    borderRadius: 10,
   },
   userBookingsTitle: {
     fontSize: 18,
@@ -818,24 +853,6 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: '#388E3C', // สีขอบสีเขียวเข้ม
   },
-  bookingsSummaryContainer: {
-    backgroundColor: '#f5f5f5',
-    padding: 8,
-    borderRadius: 5,
-    marginBottom: 10,
-  },
-  bookingsSummaryText: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-  },
-  statusContainer: {
-    marginBottom: 4,
-  },
-  timeDisplayContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  }
 });
 
 export default BookingSection;
