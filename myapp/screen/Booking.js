@@ -385,20 +385,22 @@ const formatTimeTo12Hour = (date) => {
       }
 
       // 6. อัพเดตยอดเงินทั้งสองฝ่าย
-      await Promise.all([
-        updateDoc(payerWalletDoc.ref, {
-          balance: payerBalance - totalPrice,
-          amount: totalPrice,
-          status: "tranfer_out",
-          create_at: Timestamp.now(),
-        }),
-        updateDoc(receiverWalletDoc.ref, {
-          balance: receiverBalance + totalPrice,
-          amount: totalPrice,
-          status: "tranfer_in",
-          create_at: Timestamp.now(),
-        })
-      ]);
+      await addDoc(collection(db, 'Wallet'), {
+        wallet_id: courtOwnerWalletId,
+        balance: receiverBalance + totalPrice,
+        amount: totalPrice,
+        status: "tranfer_in",
+        create_at: Timestamp.now(),
+        user_id: courtOwnerId // Add user_id for reference
+      });
+
+      // Update payer's wallet as before
+      await updateDoc(payerWalletDoc.ref, {
+        balance: payerBalance - totalPrice,
+        amount: totalPrice,
+        status: "tranfer_out",
+        create_at: Timestamp.now(),
+      });
 
       console.log('Payment completed successfully');
       console.log('New payer balance:', payerBalance - totalPrice);
