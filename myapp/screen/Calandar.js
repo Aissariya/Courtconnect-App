@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, Image, FlatList, StyleSheet, TouchableOpacity } from "react-native";
 import { AntDesign } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
 import { getAuth } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -10,6 +10,8 @@ import { doc, getDoc } from 'firebase/firestore';
 const BookingSection = ({ route }) => {
   const { court } = route.params || {};
   const [date, setDate] = useState(null); // เปลี่ยนจาก new Date() เป็น null
+  const [courtDetails, setCourtDetails] = useState(null);
+  const [timeslotDetails, setTimeslotDetails] = useState(null);
 
   // เพิ่ม console.log เพื่อตรวจสอบข้อมูลที่เข้ามา
   useEffect(() => {
@@ -159,55 +161,75 @@ const BookingSection = ({ route }) => {
     });
   };
 
-  // แก้ไข onChange function เพื่อตรวจสอบการจองเมื่อเลือกวันที่
-  const onChange = async (event, selectedDate) => {
-    if (event.type === "dismissed") {
-      setDate(null); // Reset date
-      setBookedSlots([]); // Clear booked slots
-    } else if (selectedDate) {
-      setDate(selectedDate);
-      fetchBookingsForDate(selectedDate);
-    }
-    setShow(false);
-  };
-
-  // เพิ่มฟังก์ชันใหม่สำหรับดึงข้อมูลการจองตามวันที่
+  // แก้ไข fetchBookingsForDate เพื่อดึงข้อมูลเฉพาะวันที่เลือก
   const fetchBookingsForDate = async (selectedDate) => {
     if (!court?.court_id) return;
 
     try {
       console.log('Fetching bookings for date:', selectedDate);
-      const bookingsRef = collection(db, 'Booking');
-      const q = query(bookingsRef, where('court_id', '==', court.court_id));
-      const querySnapshot = await getDocs(q);
+      
+      // สร้างช่วงเวลาสำหรับวันที่เลือก
+      const startOfDay = new Date(selectedDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(selectedDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      // แปลงเป็น Timestamp
+      const startTimestamp = Timestamp.fromDate(startOfDay);
+      const endTimestamp = Timestamp.fromDate(endOfDay);
 
-      // กรองข้อมูลตามวันที่
+      // ดึงข้อมูลการจองตามสนาม
+      const bookingsRef = collection(db, 'Booking');
+      const q = query(
+        bookingsRef,
+        where('court_id', '==', court.court_id)
+      );
+
+      const querySnapshot = await getDocs(q);
       const todayBookings = [];
+
+      // กรองเฉพาะการจองในวันที่เลือก
       querySnapshot.forEach((doc) => {
         const booking = doc.data();
-        // ดึงวันที่จาก start_time
-        const bookingDateStr = booking.start_time.split(' at')[0];
-        const selectedDateStr = selectedDate.toLocaleDateString('en-US', {
-          month: 'long',
-          day: 'numeric',
-          year: 'numeric'
-        });
+        const bookingStartTime = booking.start_time.toDate();
+        const bookingDate = new Date(bookingStartTime);
+        bookingDate.setHours(0, 0, 0, 0);
 
-        console.log('Comparing dates:', {
-          bookingDate: bookingDateStr,
-          selectedDate: selectedDateStr,
-          booking
-        });
-
-        if (bookingDateStr === selectedDateStr) {
-          todayBookings.push(booking);
+        // เช็คว่าเป็นวันเดียวกัน
+        if (bookingDate.getTime() === startOfDay.getTime()) {
+          todayBookings.push({
+            ...booking,
+            start_time: booking.start_time,
+            end_time: booking.end_time
+          });
         }
       });
 
-      console.log('Found bookings:', todayBookings);
+      // เรียงลำดับตามเวลาเริ่มต้น
+      todayBookings.sort((a, b) => {
+        const timeA = a.start_time.toDate().getTime();
+        const timeB = b.start_time.toDate().getTime();
+        return timeA - timeB;
+      });
+
+      console.log('Found and sorted bookings:', todayBookings);
       setBookedSlots(todayBookings);
+
     } catch (error) {
       console.error('Error fetching bookings:', error);
+    }
+  };
+
+  // แก้ไข onChange function เพื่อใช้ fetchBookingsForDate
+  const onChange = async (event, selectedDate) => {
+    setShow(false);
+    
+    if (event.type === "dismissed") {
+      setDate(null);
+      setBookedSlots([]);
+    } else if (selectedDate) {
+      setDate(selectedDate);
+      await fetchBookingsForDate(selectedDate);
     }
   };
 
@@ -215,83 +237,54 @@ const BookingSection = ({ route }) => {
     setShow(true);
   };
 
+  // แก้ไขฟังก์ชันสำหรับแปลง Timestamp เป็น String
+  const formatDateTime = (timestamp) => {
+    if (!timestamp?.toDate) {
+      console.error('Invalid timestamp:', timestamp);
+      return null;
+    }
+
+    try {
+      const date = timestamp.toDate();
+      return {
+        date: date.toLocaleDateString('th-TH', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        }),
+        time: date.toLocaleTimeString('th-TH', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        })
+      };
+    } catch (error) {
+      console.error('Error formatting timestamp:', error);
+      return null;
+    }
+  };
+
+  // แก้ไข renderBookedSlots สำหรับแสดงการจองที่มีอยู่
   const renderBookedSlots = () => {
-    if (!date || !bookedSlots.length) return null; // เพิ่มการตรวจสอบ date
-
-    const parseDateTime = (dateTimeStr) => {
-      try {
-        console.log('Parsing datetime:', dateTimeStr);
-        // Format: "March 7, 2025 at 10:00 AM UTC+7"
-        const [monthDay, yearTime] = dateTimeStr.split(', ');
-        const [year, timeStr] = yearTime.split(' at ');
-        const [time, period, timezone] = timeStr.split(' ');
-        const [month, day] = monthDay.split(' ');
-
-        // Convert month name to month number (0-11)
-        const months = {
-          January: 0, February: 1, March: 2, April: 3, May: 4, June: 5,
-          July: 6, August: 7, September: 8, October: 9, November: 10, December: 11
-        };
-
-        const [hours, minutes] = time.split(':');
-        let hour = parseInt(hours);
-
-        // Convert to 24 hour format
-        if (period === 'PM' && hour !== 12) hour += 12;
-        if (period === 'AM' && hour === 12) hour = 0;
-
-        const date = new Date(
-          parseInt(year),
-          months[month],
-          parseInt(day),
-          hour,
-          parseInt(minutes)
-        );
-
-        console.log('Parsed date:', date);
-        return date;
-      } catch (error) {
-        console.error('Error parsing date:', error);
-        return null;
-      }
-    };
+    if (!date || !bookedSlots.length) return null;
 
     return (
       <View style={styles.bookedSlotsContainer}>
         <Text style={styles.bookedSlotsTitle}>Booked Time Slots:</Text>
         {bookedSlots.map((slot) => {
-          const startDate = parseDateTime(slot.start_time);
-          const endDate = parseDateTime(slot.end_time);
+          const startDateTime = formatDateTime(slot.start_time);
+          const endDateTime = formatDateTime(slot.end_time);
 
-          if (!startDate || !endDate) {
-            console.error('Invalid date found:', slot);
-            return null;
-          }
+          if (!startDateTime || !endDateTime) return null;
 
           return (
             <View key={slot.booking_id} style={styles.bookedSlotItem}>
               <AntDesign name="clockcircle" size={16} color="#D32F2F" style={styles.clockIcon} />
               <View style={styles.bookedSlotContent}>
-                <Text style={styles.bookedSlotDate}>
-                  {startDate.toLocaleDateString('th-TH', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </Text>
+                <Text style={styles.bookedSlotDate}>{startDateTime.date}</Text>
                 <Text style={styles.bookedSlotTime}>
-                  {startDate.toLocaleTimeString('th-TH', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: true
-                  })}
-                  {' - '}
-                  {endDate.toLocaleTimeString('th-TH', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: true
-                  })}
+                  {startDateTime.time} - {endDateTime.time}
                 </Text>
               </View>
             </View>
@@ -424,35 +417,25 @@ const BookingSection = ({ route }) => {
     // เช็คการจองแต่ละรายการ
     for (const booking of bookedSlots) {
       try {
-        // แยกเวลาออกจาก start_time และ end_time
-        const startTimePart = booking.start_time.split(' at ')[1];
-        const endTimePart = booking.end_time.split(' at ')[1];
+        const startTime = booking.start_time.toDate();
+        const endTime = booking.end_time.toDate();
+        
+        const bookingStartHour = startTime.getHours();
+        const bookingEndHour = endTime.getHours();
 
-        // แปลงเวลาเป็นชั่วโมง
-        const startHour = parseInt(startTimePart.split(':')[0]);
-        const endHour = parseInt(endTimePart.split(':')[0]);
-
-        // ปรับค่าชั่วโมงตาม AM/PM
-        const adjustedStartHour = startTimePart.includes('PM') && startHour !== 12
-          ? startHour + 12
-          : startHour;
-        const adjustedEndHour = endTimePart.includes('PM') && endHour !== 12
-          ? endHour + 12
-          : endHour;
-
-        console.log('Checking time slot:', {
-          slotHour: hour,
-          startHour: adjustedStartHour,
-          endHour: adjustedEndHour,
-          booking: booking
-        });
-
-        if (hour >= adjustedStartHour && hour < adjustedEndHour) {
+        if (hour >= bookingStartHour && hour < bookingEndHour) {
           return {
             isBooked: true,
             isUserBooking: booking.user_id === currentUserId,
-            booking: booking,
-            timeRange: `${startTimePart.split(' UTC')[0]} - ${endTimePart.split(' UTC')[0]}`
+            timeRange: `${startTime.toLocaleTimeString('th-TH', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: false 
+            })} - ${endTime.toLocaleTimeString('th-TH', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false
+            })}`
           };
         }
       } catch (error) {
@@ -554,6 +537,92 @@ const BookingSection = ({ route }) => {
     // ...existing styles...
   });
 
+  // Add useEffect to fetch court details
+  useEffect(() => {
+    const fetchCourtDetails = async () => {
+      if (!court?.court_id) return;
+      
+      try {
+        const courtRef = collection(db, 'Court');
+        const q = query(courtRef, where('court_id', '==', court.court_id));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          setCourtDetails(querySnapshot.docs[0].data());
+        }
+      } catch (error) {
+        console.error('Error fetching court details:', error);
+      }
+    };
+
+    fetchCourtDetails();
+  }, [court]);
+
+  // Add useEffect to fetch court and timeslot details
+  useEffect(() => {
+    const fetchDetails = async () => {
+      if (!court?.court_id) return;
+      
+      try {
+        // Fetch timeslot details
+        const timeslotRef = collection(db, 'Timeslot');
+        const q = query(timeslotRef, where('court_id', '==', court.court_id));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          const timeslotData = querySnapshot.docs[0].data();
+          setTimeslotDetails(timeslotData);
+        }
+      } catch (error) {
+        console.error('Error fetching timeslot details:', error);
+      }
+    };
+
+    fetchDetails();
+  }, [court]);
+
+  // Helper function to format time from Timestamp
+  const formatTime = (timestamp) => {
+    if (!timestamp || !(timestamp instanceof Timestamp)) {
+      console.error('Invalid timestamp:', timestamp);
+      return '';
+    }
+    const date = timestamp.toDate();
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).replace(/^24:/, '00:');
+  };
+
+  // Add useEffect to fetch timeslot details
+  useEffect(() => {
+    const fetchTimeslotDetails = async () => {
+      if (!court?.court_id) return;
+      
+      try {
+        const timeslotRef = collection(db, 'Timeslot');
+        const q = query(timeslotRef, where('court_id', '==', court.court_id));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          const timeslotData = querySnapshot.docs[0].data();
+          // Verify timestamps
+          if (timeslotData.time_start instanceof Timestamp && 
+              timeslotData.time_end instanceof Timestamp) {
+            setTimeslotDetails(timeslotData);
+          } else {
+            console.error('Invalid timestamp format:', timeslotData);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching timeslot details:', error);
+      }
+    };
+
+    fetchTimeslotDetails();
+  }, [court]);
+
   return (
     <FlatList
       keyExtractor={(item) => item}
@@ -575,12 +644,21 @@ const BookingSection = ({ route }) => {
               />
             )}
             <View style={styles.courtDetails}>
-            <Text style={styles.courtTitle}>{court ? court.field : 'Loading...'}</Text>
-               <Text style={styles.courtSubtitle}>{court ? court.address : 'Loading...'}</Text>
-               <Text style={[styles.fieldText, { textAlign: 'center' }]}>Player : 6-15 people/court</Text>
-               <Text style={[styles.fieldText, { textAlign: 'center' }]}>Time : 8:00 - 14:00</Text>
-               <Text style={[styles.fieldText, { textAlign: 'center' }]}>
-                Price : 1 Hour/ {court && ["a01"].includes(court.court_id) ? "1000" : "500"} Bath
+              <Text style={styles.courtTitle}>{court ? court.field : 'Loading...'}</Text>
+              <Text style={styles.courtSubtitle}>{court ? court.address : 'Loading...'}</Text>
+              <Text style={[styles.fieldText, { textAlign: 'center' }]}>
+                Player : {courtDetails ? `${courtDetails.capacity} people/court` : 'Loading...'}
+              </Text>
+              <Text style={[styles.fieldText, { textAlign: 'center' }]}>
+                Time : {timeslotDetails ? 
+                  `${formatTime(timeslotDetails.time_start)} - ${formatTime(timeslotDetails.time_end)}` 
+                  : 'Loading...'}
+              </Text>
+              
+              <Text style={[styles.fieldText, { textAlign: 'center' }]}>
+                Price : {courtDetails ? 
+                  `${courtDetails.bookingslot} minutes / ${courtDetails.priceslot} Bath`
+                  : 'Loading...'}
               </Text>
             </View>
           </View>
