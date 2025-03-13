@@ -302,26 +302,8 @@ export default function AlreadyBooked({ navigation, route }) {
               onPress={() => navigation.navigate('MainTab')}
               activeOpacity={1}
             >
-              <MaterialCommunityIcons name='home' size={20} color='#000' />
-              <Text style={styles.calanderText}>Home</Text>
+              
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.calanderButton}
-              onPress={() => navigation.navigate('CalanderScreen', {
-                court: {
-                  court_id: booking.courtDetails.court_id,
-                  field: booking.courtDetails.name,
-                  image: images,
-                  address: booking.courtDetails.address
-                }
-              })}
-              activeOpacity={1}
-            >
-              <MaterialCommunityIcons name='calendar-outline' size={20} color='#000' />
-              <Text style={styles.calanderText}>Calendar</Text>
-            </TouchableOpacity>
-
             <TouchableOpacity
               style={styles.bookingButton}
               onPress={() => setShowReason(true)}
@@ -612,18 +594,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     zIndex: 2,
   },
-  calanderButton: {
-    flex: 1,
-    borderColor: 'black',
-    borderWidth: 2,
-    paddingVertical: 10,
-    backgroundColor: 'white',
-    alignItems: 'center',
-  },
-  calanderText: {
-    color: 'black',
-    fontWeight: 'bold',
-  },
+
+
   bookingButton: {
     flex: 2,
     borderColor: 'black',

@@ -161,41 +161,34 @@ const BookingSection = ({ route }) => {
     });
   };
 
-  // แก้ไข fetchBookingsForDate เพื่อดึงข้อมูลเฉพาะวันที่เลือก
+  // แก้ไข fetchBookingsForDate เพื่อกรองเฉพาะ successful bookings
   const fetchBookingsForDate = async (selectedDate) => {
     if (!court?.court_id) return;
 
     try {
       console.log('Fetching bookings for date:', selectedDate);
       
-      // สร้างช่วงเวลาสำหรับวันที่เลือก
       const startOfDay = new Date(selectedDate);
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date(selectedDate);
       endOfDay.setHours(23, 59, 59, 999);
-      
-      // แปลงเป็น Timestamp
-      const startTimestamp = Timestamp.fromDate(startOfDay);
-      const endTimestamp = Timestamp.fromDate(endOfDay);
 
-      // ดึงข้อมูลการจองตามสนาม
       const bookingsRef = collection(db, 'Booking');
       const q = query(
         bookingsRef,
-        where('court_id', '==', court.court_id)
+        where('court_id', '==', court.court_id),
+        where('status', '==', 'successful') // เพิ่มเงื่อนไขกรอง status
       );
 
       const querySnapshot = await getDocs(q);
       const todayBookings = [];
 
-      // กรองเฉพาะการจองในวันที่เลือก
       querySnapshot.forEach((doc) => {
         const booking = doc.data();
         const bookingStartTime = booking.start_time.toDate();
         const bookingDate = new Date(bookingStartTime);
         bookingDate.setHours(0, 0, 0, 0);
 
-        // เช็คว่าเป็นวันเดียวกัน
         if (bookingDate.getTime() === startOfDay.getTime()) {
           todayBookings.push({
             ...booking,
@@ -212,7 +205,7 @@ const BookingSection = ({ route }) => {
         return timeA - timeB;
       });
 
-      console.log('Found and sorted bookings:', todayBookings);
+      console.log('Found successful bookings:', todayBookings);
       setBookedSlots(todayBookings);
 
     } catch (error) {

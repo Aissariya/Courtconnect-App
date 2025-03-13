@@ -10,7 +10,7 @@ import PropTypes from 'prop-types';
 import { collection, addDoc, getFirestore, doc, getDoc, updateDoc, arrayUnion, getDocs, query, where, serverTimestamp,Timestamp } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
 
-const App = ({ navigation, route }) => {
+const App = ({ route }) => {
   const { court } = route.params || {};
   const [hourStart, setHourStart] = useState("12");
   const [minuteStart, setMinuteStart] = useState("00");
@@ -29,6 +29,13 @@ const App = ({ navigation, route }) => {
   const { getAuth } = require('firebase/auth'); // เพิ่ม import getAuth
   const [userData, setUserData] = useState(null);
   const [walletBalance, setWalletBalance] = useState(0);
+  const [isPriceCalculated, setIsPriceCalculated] = useState(false);
+  const [lastCalculatedTimes, setLastCalculatedTimes] = useState({
+    hourStart: null,
+    minuteStart: null,
+    hourEnd: null,
+    minuteEnd: null
+  });
 
 
   // เพิ่ม useEffect เพื่อดึงข้อมูล user
@@ -449,7 +456,7 @@ const formatTimeTo12Hour = (date) => {
     navigation.navigate('MainTab');
   };
 
-  // ฟังก์ชันคำนวณราคา
+  // แก้ไขฟังก์ชัน calculatePrice
   const calculatePrice = (hStart, mStart, hEnd, mEnd) => {
     console.log('=== Price Calculation ===');
     const startMinutes = parseInt(hStart) * 60 + parseInt(mStart);
@@ -458,16 +465,12 @@ const formatTimeTo12Hour = (date) => {
     if (endMinutes <= startMinutes) {
       alert('End time must be after start time');
       setTotalPrice(0);
+      setIsPriceCalculated(false);
       return 0;
     }
   
-    // คำนวณระยะเวลาเป็นนาที
     const diffMinutes = endMinutes - startMinutes;
-    
-    // คำนวณชั่วโมง
     const hours = diffMinutes / 60;
-    
-    // คำนวณราคา
     const pricePerHour = court?.priceslot || 500;
     const totalPrice = Math.ceil(hours) * pricePerHour;
   
@@ -481,6 +484,13 @@ const formatTimeTo12Hour = (date) => {
     });
   
     setTotalPrice(totalPrice);
+    setIsPriceCalculated(true);
+    setLastCalculatedTimes({
+      hourStart: hStart,
+      minuteStart: mStart,
+      hourEnd: hEnd,
+      minuteEnd: mEnd
+    });
     return totalPrice;
   };
 
@@ -518,13 +528,30 @@ const formatTimeTo12Hour = (date) => {
       return false;
     }
 
+    // เช็คว่ามีการเปลี่ยนแปลงเวลาหลังจากคำนวณราคาครั้งล่าสุด
+    if (
+      hourStart !== lastCalculatedTimes.hourStart ||
+      minuteStart !== lastCalculatedTimes.minuteStart ||
+      hourEnd !== lastCalculatedTimes.hourEnd ||
+      minuteEnd !== lastCalculatedTimes.minuteEnd ||
+      !isPriceCalculated
+    ) {
+      alert('Please calculate price before confirming');
+      return false;
+    }
+
     if (totalPrice === 0) {
-      alert('Please calculate price first');
+      alert('Please calculate a valid price');
       return false;
     }
 
     return true;
   };
+
+  // เพิ่ม useEffect สำหรับรีเซ็ตสถานะการคำนวณราคาเมื่อมีการเปลี่ยนเวลา
+  useEffect(() => {
+    setIsPriceCalculated(false);
+  }, [hourStart, minuteStart, hourEnd, minuteEnd]);
 
   const onChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
@@ -724,7 +751,14 @@ const formatTimeTo12Hour = (date) => {
           <Text style={styles.priceText}>{totalPrice} Bath</Text>
        {/* ปุ่มยืนยัน*/}
         </View>
-        <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
+        <TouchableOpacity 
+          style={[
+            styles.confirmButton,
+            (!isPriceCalculated || totalPrice === 0) && styles.disabledButton
+          ]} 
+          onPress={handleConfirm}
+          disabled={!isPriceCalculated || totalPrice === 0}
+        >
           <Text style={styles.confirmText}>CONFIRM</Text>
         </TouchableOpacity>
       </View>
@@ -986,4 +1020,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
+  disabledButton: {
+    backgroundColor: '#cccccc',
+    opacity: 0.7
+  }
 });

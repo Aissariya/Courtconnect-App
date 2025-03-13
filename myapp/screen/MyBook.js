@@ -54,25 +54,24 @@ const MyBook = () => {
   const fetchUserBookings = async () => {
     try {
       setLoading(true);
-      const now = new Date();
       const auth = getAuth();
       const currentUser = auth.currentUser;
       
       if (!currentUser) return;
 
-      console.log('=== Fetching Booking Data ===');
-
-      // ดึงข้อมูล user_id
+      // 1. ดึง user_id
       const userDoc = await getDoc(doc(db, "users", currentUser.uid));
       if (!userDoc.exists()) return;
       const user_id = userDoc.data().user_id;
 
+      // 2. ดึงข้อมูลสนาม refund และ booking พร้อมกัน
       const [bookingSnapshot, refundSnapshot, courtSnapshot] = await Promise.all([
         getDocs(query(collection(db, 'Booking'), where('user_id', '==', user_id))),
-        getDocs(query(collection(db, 'Refund'), where('user_id', '==', user_id))),
+        getDocs(collection(db, 'Refund')),
         getDocs(collection(db, 'Court'))
       ]);
 
+      // เก็บข้อมูล courts
       const courts = {};
       courtSnapshot.forEach(doc => {
         const courtData = doc.data();
@@ -82,70 +81,55 @@ const MyBook = () => {
         };
       });
 
+      // เก็บข้อมูล Refund status
       const refundMap = new Map();
       refundSnapshot.forEach(doc => {
         const refundData = doc.data();
-        // เก็บข้อมูล refund ทั้งหมด ไม่ว่าจะเป็น status อะไร
-        refundMap.set(refundData.booking_id, refundData);
+        refundMap.set(refundData.booking_id, refundData.status);
       });
 
-      // Get all history booking IDs
-      const historyBookingsQuery = query(
-        collection(db, "Booking"),
-        where("user_id", "==", user_id)
-      );
-      const historySnapshot = await getDocs(historyBookingsQuery);
-      const historyBookingIds = new Set();
-
-      historySnapshot.forEach(doc => {
-        const booking = doc.data();
-        const endTime = booking.end_time.toDate();
-        if (endTime < now) {
-          historyBookingIds.add(booking.booking_id);
-        }
-      });
-
-      // แปลงข้อมูล bookings และตรวจสอบกับ refund
+      const now = new Date();
       const processedBookings = [];
+
+      // กรองและแปลงข้อมูล bookings
       bookingSnapshot.forEach(doc => {
         const booking = doc.data();
-        const endTime = booking.end_time.toDate();
+        const court = courts[booking.court_id];
+        const refundStatus = refundMap.get(booking.booking_id);
         
-        // Only include if not in history and not ended
-        if (!historyBookingIds.has(booking.booking_id) && endTime > now) {
-          const court = courts[booking.court_id];
+        // ไม่รวมการจองที่มี Refund status เป็น Accepted
+        if (refundStatus !== 'Accepted' && court) {
+          // แปลง Timestamp เป็น Date
+          const startTime = booking.start_time.toDate();
+          const endTime = booking.end_time.toDate();
           
-          if (court) {
-            const refundData = refundMap.get(booking.booking_id);
+          // คำนวณจำนวนชั่วโมงและราคา
+          const hours = Math.ceil((endTime - startTime) / (1000 * 60 * 60));
+          const price = hours * court.priceslot;
 
-            // ถ้าไม่มี refund หรือ status ไม่ใช่ Rejected จึงจะแสดงในรายการ
-            if (!refundData || refundData.status !== 'Rejected') {
-              const startTime = booking.start_time.toDate();
-              const endTime = booking.end_time.toDate();
-              const diffHours = (endTime - startTime) / (1000 * 60 * 60);
-              const calculatedPrice = Math.ceil(diffHours) * court.priceslot;
-
-              processedBookings.push({
-                id: booking.booking_id,
-                start_time: startTime,
-                end_time: endTime,
-                status: refundData ? refundData.status : booking.status,
-                price: calculatedPrice,
-                courtDetails: {
-                  name: court.field,
-                  image: court.image[0],
-                  type: court.court_type,
-                  address: court.address,
-                  court_id: court.court_id,
-                  priceslot: court.priceslot
-                }
-              });
-            }
+          if (endTime > now) { // แสดงเฉพาะการจองที่ยังไม่สิ้นสุด
+            processedBookings.push({
+              id: booking.booking_id,
+              start_time: startTime,
+              end_time: endTime,
+              status: refundStatus === 'Need Action' ? 'Need Action' : 
+                     refundStatus === 'Rejected' ? 'Confirmed' : 
+                     booking.status,
+              price: price,
+              courtDetails: {
+                name: court.field,
+                image: court.image[0],
+                type: court.court_type,
+                address: court.address,
+                court_id: court.court_id
+              }
+            });
           }
         }
       });
 
-      console.log('Processed bookings:', processedBookings);
+      // เรียงตามวันที่
+      processedBookings.sort((a, b) => a.start_time.getTime() - b.start_time.getTime());
       setBookings(processedBookings);
 
     } catch (error) {
@@ -164,33 +148,28 @@ const MyBook = () => {
     fetchUserBookings();
   }, []);
 
-  const formatDateTime = (date) => {
-    if (!date || !(date instanceof Date)) {
+  const formatDateTime = (timeStr) => {
+    try {
+      if (!timeStr) return { date: 'Invalid date', time: 'Invalid time' };
+      
+      // แยกวันและเวลา เช่น "March 7, 2024 at 10:00 AM UTC+7"
+      const [monthDay, yearAndTime] = timeStr.split(', ');
+      const [year, timeWithZone] = yearAndTime.split(' at ');
+      const [time, period] = timeWithZone.split(' UTC')[0].split(' ');
+
+      return {
+        date: `${monthDay}, ${year}`,
+        time: `${time} ${period}`
+      };
+    } catch (error) {
+      console.error('Error parsing datetime:', error, 'for string:', timeStr);
       return { date: 'Invalid date', time: 'Invalid time' };
     }
-  
-    return {
-      date: date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      }),
-      time: date.toLocaleString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      })
-    };
   };
 
   const renderBookingCard = ({ item }) => (
     <TouchableOpacity 
-      onPress={() => navigation.navigate("AlreadyBooked", { 
-        booking: {
-          ...item,
-          calculatedPrice: item.price
-        }
-      })} 
+      onPress={() => navigation.navigate("AlreadyBooked", { booking: item })} 
       style={styles.card}
     >
       <View style={[
@@ -207,8 +186,13 @@ const MyBook = () => {
       <Image source={{ uri: item.courtDetails.image }} style={styles.image} />
       <View style={styles.cardContent}>
         <Text style={styles.title}>{item.courtDetails.name}</Text>
-        <Text style={styles.text}>Date: {formatDateTime(item.start_time).date}</Text>
-        <Text style={styles.text}>Time: {formatDateTime(item.start_time).time} - {formatDateTime(item.end_time).time}</Text>
+        <Text style={styles.text}>
+          Date: {item.start_time.toLocaleDateString()}
+        </Text>
+        <Text style={styles.text}>
+          Time: {item.start_time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} 
+          - {item.end_time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </Text>
         <Text style={styles.price}>Price: {item.price} THB</Text>
       </View>
     </TouchableOpacity>
