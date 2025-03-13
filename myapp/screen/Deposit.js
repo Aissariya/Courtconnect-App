@@ -157,9 +157,18 @@ export default function Deposit() {
         visible={showQRModal}
         transparent={true}
         animationType="slide"
+        onRequestClose={() => setShowQRModal(false)}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
+        <TouchableOpacity 
+          style={styles.modalContainer} 
+          activeOpacity={1}
+          onPress={() => setShowQRModal(false)}
+        >
+          <TouchableOpacity 
+            style={styles.modalContent}
+            activeOpacity={1} 
+            onPress={(e) => e.stopPropagation()}
+          >
             <Text style={styles.modalTitle}>Scan QR Code to Pay</Text>
             <Text style={styles.modalAmount}>Amount: ฿{(parseFloat(amount) || 0).toFixed(2)}</Text>
             <Image
@@ -176,8 +185,8 @@ export default function Deposit() {
                 {isLoading ? "PROCESSING..." : "OK"}
               </Text>
             </TouchableOpacity>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </View>
   );
