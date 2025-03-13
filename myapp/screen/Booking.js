@@ -7,8 +7,9 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { AntDesign } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import PropTypes from 'prop-types';
-import { collection, addDoc, getFirestore, doc, getDoc, updateDoc, arrayUnion, getDocs, query, where, serverTimestamp,Timestamp } from 'firebase/firestore';
+import { collection, addDoc, getFirestore, doc, getDoc, updateDoc, arrayUnion, getDocs, query, where, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
+import Home from '../screen/Home';
 
 const App = ({ route }) => {
   const { court } = route.params || {};
@@ -36,6 +37,7 @@ const App = ({ route }) => {
     hourEnd: null,
     minuteEnd: null
   });
+  const navigation = useNavigation();
 
 
   // เพิ่ม useEffect เพื่อดึงข้อมูล user
@@ -44,7 +46,7 @@ const App = ({ route }) => {
       try {
         const auth = getAuth();
         const currentUser = auth.currentUser;
-        
+
         if (currentUser) {
           const userDoc = await getDoc(doc(db, "users", currentUser.uid));
           if (userDoc.exists()) {
@@ -66,17 +68,17 @@ const App = ({ route }) => {
       try {
         const auth = getAuth();
         const currentUser = auth.currentUser;
-        
+
         if (currentUser) {
           const userDoc = await getDoc(doc(db, "users", currentUser.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data();
             console.log("User's wallet_id:", userData.wallet_id);
-  
+
             if (userData.wallet_id) {
               const q = query(collection(db, "Wallet"), where("wallet_id", "==", userData.wallet_id));
               const walletSnapshot = await getDocs(q);
-  
+
               if (!walletSnapshot.empty) {
                 // ดึงเอกสารแรกที่ตรงกัน
                 const walletData = walletSnapshot.docs[0].data();
@@ -94,63 +96,63 @@ const App = ({ route }) => {
         console.error("❌ Error fetching wallet balance:", error);
       }
     };
-  
+
     fetchWalletBalance();
   }, []);
 
-const formatTo12Hour = (date24) => {
-  // ตรวจสอบว่าเป็น Timestamp หรือไม่
-  if (date24?.seconds) {
-    // แปลง Timestamp เป็น Date object
-    const date = new Date(date24.seconds * 1000);
-    return date.toLocaleString('th-TH', {
-      year: 'numeric',  
-      month: 'numeric',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-  }
+  const formatTo12Hour = (date24) => {
+    // ตรวจสอบว่าเป็น Timestamp หรือไม่
+    if (date24?.seconds) {
+      // แปลง Timestamp เป็น Date object
+      const date = new Date(date24.seconds * 1000);
+      return date.toLocaleString('th-TH', {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+    }
 
-  // กรณีเป็น Date object
-  if (date24 instanceof Date) {
-    return date24.toLocaleString('th-TH', {
-      year: 'numeric',
-      month: 'numeric', 
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-  }
+    // กรณีเป็น Date object
+    if (date24 instanceof Date) {
+      return date24.toLocaleString('th-TH', {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+    }
 
-  console.error('Invalid date format:', date24);
-  return '';
-};
-
-const formatTimeTo12Hour = (date) => {
-  if (!date) return '';
-  
-  // ตรวจสอบว่าเป็น Timestamp
-  if (date?.seconds) {
-    date = new Date(date.seconds * 1000);
-  }
-
-  try {
-    return date.toLocaleString('th-TH', {
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric', 
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-  } catch (error) {
-    console.error('Error formatting time:', error);
+    console.error('Invalid date format:', date24);
     return '';
-  }
-};
+  };
+
+  const formatTimeTo12Hour = (date) => {
+    if (!date) return '';
+
+    // ตรวจสอบว่าเป็น Timestamp
+    if (date?.seconds) {
+      date = new Date(date.seconds * 1000);
+    }
+
+    try {
+      return date.toLocaleString('th-TH', {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return '';
+    }
+  };
 
   const roundToHour = (date) => {
     const roundedDate = new Date(date);
@@ -176,12 +178,12 @@ const formatTimeTo12Hour = (date) => {
 
     // ตรวจสอบการซ้อนทับของช่วงเวลา
     return (
-      (roundedSelectedStart.getTime() >= roundedBookingStart.getTime() && 
-       roundedSelectedStart.getTime() < roundedBookingEnd.getTime()) || 
-      (roundedSelectedEnd.getTime() > roundedBookingStart.getTime() && 
-       roundedSelectedEnd.getTime() <= roundedBookingEnd.getTime()) ||
-      (roundedSelectedStart.getTime() <= roundedBookingStart.getTime() && 
-       roundedSelectedEnd.getTime() >= roundedBookingEnd.getTime())
+      (roundedSelectedStart.getTime() >= roundedBookingStart.getTime() &&
+        roundedSelectedStart.getTime() < roundedBookingEnd.getTime()) ||
+      (roundedSelectedEnd.getTime() > roundedBookingStart.getTime() &&
+        roundedSelectedEnd.getTime() <= roundedBookingEnd.getTime()) ||
+      (roundedSelectedStart.getTime() <= roundedBookingStart.getTime() &&
+        roundedSelectedEnd.getTime() >= roundedBookingEnd.getTime())
     );
   };
 
@@ -192,32 +194,32 @@ const formatTimeTo12Hour = (date) => {
       console.log('Missing required data for checking');
       return false;
     }
-  
+
     try {
       // สร้าง Timestamp จากเวลาที่เลือก
       const selectedStartDate = new Date(date);
       selectedStartDate.setHours(parseInt(hourStart), parseInt(minuteStart), 0, 0);
       const selectedEndDate = new Date(date);
       selectedEndDate.setHours(parseInt(hourEnd), parseInt(minuteEnd), 0, 0);
-  
+
       const selectedStartTimestamp = Timestamp.fromDate(selectedStartDate);
       const selectedEndTimestamp = Timestamp.fromDate(selectedEndDate);
-  
+
       // ดึงข้อมูลการจองทั้งหมดของสนามนี้
       const bookingRef = collection(db, 'Booking');
       const bookingsSnapshot = await getDocs(
-        query(bookingRef, 
+        query(bookingRef,
           where('court_id', '==', court.court_id),
           where('status', '==', 'successful')
         )
       );
-  
+
       // ตรวจสอบการจองที่ซ้ำซ้อน
       for (const doc of bookingsSnapshot.docs) {
         const booking = doc.data();
         const bookingStart = booking.start_time;
         const bookingEnd = booking.end_time;
-  
+
         // เปรียบเทียบ Timestamp โดยตรง
         if (
           (selectedStartTimestamp.seconds >= bookingStart.seconds && selectedStartTimestamp.seconds < bookingEnd.seconds) ||
@@ -233,7 +235,7 @@ const formatTimeTo12Hour = (date) => {
           };
         }
       }
-  
+
       return { hasConflict: false };
     } catch (error) {
       console.error('Error checking booking conflicts:', error);
@@ -244,7 +246,7 @@ const formatTimeTo12Hour = (date) => {
   // แก้ไขฟังก์ชัน handleConfirm
   const handleConfirm = async () => {
     console.log('=== Starting Booking Process ===');
-    
+
     if (!validateBooking()) {
       console.log('❌ Booking validation failed');
       return;
@@ -253,7 +255,7 @@ const formatTimeTo12Hour = (date) => {
     try {
       console.log('Checking for booking conflicts...');
       const { hasConflict, conflictTime } = await checkBookingConflict();
-      
+
       if (hasConflict) {
         console.log('❌ Booking conflict detected');
         alert(`This time slot is already booked!\nBooked time: ${conflictTime}\n\nPlease select a different time.`);
@@ -262,7 +264,7 @@ const formatTimeTo12Hour = (date) => {
 
       console.log('✅ No conflicts found, proceeding with booking');
       setShowConfirmModal(true);
-      
+
     } catch (error) {
       console.error('Error in handleConfirm:', error);
       alert('An error occurred while checking the booking availability.');
@@ -274,13 +276,13 @@ const formatTimeTo12Hour = (date) => {
     const hour = parseInt(hour24);
     const period = hour >= 12 ? 'PM' : 'AM';
     const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-    
+
     console.log('Converted to:', {
       hour12,
       period,
       formatted: `${String(hour12).padStart(2, '0')}:${minute} ${period}`
     });
-    
+
     return `${String(hour12).padStart(2, '0')}:${minute} ${period}`;
   };
 
@@ -416,7 +418,7 @@ const formatTimeTo12Hour = (date) => {
       const bookingDate = new Date(date);
       const startTime = new Date(date);
       startTime.setHours(parseInt(hourStart), parseInt(minuteStart), 0, 0);
-      
+
       const endTime = new Date(date);
       endTime.setHours(parseInt(hourEnd), parseInt(minuteEnd), 0, 0);
 
@@ -436,11 +438,12 @@ const formatTimeTo12Hour = (date) => {
       // อัพเดต UI และนำทางกลับ
       setWalletBalance(payerBalance - totalPrice);
       setShowConfirmModal(false);
-      setShowSuccess(true);
+      setShowSuccess(true); // แสดงไอคอนติ๊กถูก
 
+      // รอ 2 วินาทีแล้วนำทางไปหน้า Home
       setTimeout(() => {
         setShowSuccess(false);
-        navigation.navigate('MainTab');
+        navigation.navigate('MainTab'); // เปลี่ยนจาก MainTab เป็น Home
       }, 2000);
 
     } catch (error) {
@@ -453,7 +456,7 @@ const formatTimeTo12Hour = (date) => {
 
   const handleSuccessPress = () => {
     setShowSuccess(false);
-    navigation.navigate('MainTab');
+    navigation.navigate('MainTab'); // เปลี่ยนจาก MainTab เป็น Home
   };
 
   // แก้ไขฟังก์ชัน calculatePrice
@@ -461,28 +464,28 @@ const formatTimeTo12Hour = (date) => {
     console.log('=== Price Calculation ===');
     const startMinutes = parseInt(hStart) * 60 + parseInt(mStart);
     const endMinutes = parseInt(hEnd) * 60 + parseInt(mEnd);
-      
+
     if (endMinutes <= startMinutes) {
       alert('End time must be after start time');
       setTotalPrice(0);
       setIsPriceCalculated(false);
       return 0;
     }
-  
+
     const diffMinutes = endMinutes - startMinutes;
     const hours = diffMinutes / 60;
     const pricePerHour = court?.priceslot || 500;
     const totalPrice = Math.ceil(hours) * pricePerHour;
-  
+
     console.log('Price calculation:', {
       startTime: `${hStart}:${mStart}`,
-      endTime: `${hEnd}:${mEnd}`, 
+      endTime: `${hEnd}:${mEnd}`,
       diffMinutes,
       hours,
       pricePerHour,
       totalPrice
     });
-  
+
     setTotalPrice(totalPrice);
     setIsPriceCalculated(true);
     setLastCalculatedTimes({
@@ -507,13 +510,13 @@ const formatTimeTo12Hour = (date) => {
     selectedTime.setHours(parseInt(hourStart), parseInt(minuteStart), 0, 0);
 
     // เช็คว่าเป็นวันในอดีตหรือไม่
-    if (selectedDate.setHours(0,0,0,0) < now.setHours(0,0,0,0)) {
+    if (selectedDate.setHours(0, 0, 0, 0) < now.setHours(0, 0, 0, 0)) {
       alert('Cannot select past dates. Please select a future date.');
       return false;
     }
 
     // เช็คว่าเป็นเวลาในอดีตหรือไม่ (สำหรับวันนี้)
-    if (selectedDate.setHours(0,0,0,0) === now.setHours(0,0,0,0)) {
+    if (selectedDate.setHours(0, 0, 0, 0) === now.setHours(0, 0, 0, 0)) {
       if (selectedTime < new Date()) {
         alert('Cannot select past time. Please select a future time.');
         return false;
@@ -522,7 +525,7 @@ const formatTimeTo12Hour = (date) => {
 
     const startTime = parseInt(hourStart) * 60 + parseInt(minuteStart);
     const endTime = parseInt(hourEnd) * 60 + parseInt(minuteEnd);
-    
+
     if (endTime <= startTime) {
       alert('End time must be after start time');
       return false;
@@ -557,12 +560,12 @@ const formatTimeTo12Hour = (date) => {
     const currentDate = selectedDate || date;
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Set the time to midnight for comparison
-    
+
     if (currentDate < today) {
       alert('Cannot select past dates');
       return;
     }
-    
+
     setShow(false);
     setDate(currentDate);
   };
@@ -580,7 +583,7 @@ const formatTimeTo12Hour = (date) => {
       // แปลงวันที่และเวลาที่เลือกเป็น timestamp
       const selectedStartTimestamp = startTime.getTime();
       const selectedEndTimestamp = endTime.getTime();
-  
+
       // ดึงข้อมูลการจองทั้งหมดของสนามนี้
       const bookingsRef = collection(db, 'Booking');
       const q = query(
@@ -588,18 +591,18 @@ const formatTimeTo12Hour = (date) => {
         where('court_id', '==', court_id),
         where('status', '==', 'successful')
       );
-  
+
       const querySnapshot = await getDocs(q);
-      
+
       // ตรวจสอบการซ้อนทับกับการจองที่มีอยู่
       for (const doc of querySnapshot.docs) {
         const booking = doc.data();
         const bookingStartTime = booking.start_time.toDate();
         const bookingEndTime = booking.end_time.toDate();
-        
+
         const bookingStartTimestamp = bookingStartTime.getTime();
         const bookingEndTimestamp = bookingEndTime.getTime();
-  
+
         // เช็คการซ้อนทับของเวลา
         if (
           (selectedStartTimestamp >= bookingStartTimestamp && selectedStartTimestamp < bookingEndTimestamp) ||
@@ -609,7 +612,7 @@ const formatTimeTo12Hour = (date) => {
           // พบการจองที่ซ้อนทับ
           const formattedStartTime = bookingStartTime.toLocaleTimeString();
           const formattedEndTime = bookingEndTime.toLocaleTimeString();
-          
+
           Alert.alert(
             'Booking Conflict',
             `This time slot is already booked (${formattedStartTime} - ${formattedEndTime})`,
@@ -624,18 +627,18 @@ const formatTimeTo12Hour = (date) => {
       return true; // ส่งคืน true เพื่อป้องกันการจองในกรณีที่เกิดข้อผิดพลาด
     }
   };
-  
+
   // ในส่วนของการ handleBooking
   const handleBooking = async () => {
     try {
       // ...existing validation code...
-  
+
       // เช็คการซ้อนทับก่อนทำการจอง
       const isOverlap = await checkBookingOverlap(startTime, endTime, court.court_id);
       if (isOverlap) {
         return; // ยกเลิกการจองถ้ามีการซ้อนทับ
       }
-  
+
       // ...existing booking code...
     } catch (error) {
       console.error('Error during booking:', error);
@@ -667,16 +670,16 @@ const formatTimeTo12Hour = (date) => {
           <Text style={styles.value}>{court ? court.address : 'Loading...'}</Text>
 
           <Text style={styles.label}>Date</Text>
-          
+
           {/* ช่องกรอกวันที่ */}
           <View style={styles.dateInputContainer}>
             <AntDesign name="calendar" size={18} color="black" style={styles.calendarIcon} />
             <TouchableOpacity onPress={showDatepicker} style={{ flex: 1 }}>
-              <TextInput 
-                style={styles.dateInput} 
-                placeholder="Select date" 
-                value={date ? date.toLocaleDateString() : ''} 
-                editable={false} 
+              <TextInput
+                style={styles.dateInput}
+                placeholder="Select date"
+                value={date ? date.toLocaleDateString() : ''}
+                editable={false}
                 pointerEvents="none"
               />
             </TouchableOpacity>
@@ -749,13 +752,13 @@ const formatTimeTo12Hour = (date) => {
       <View style={styles.footer}>
         <View style={styles.priceContainer}>
           <Text style={styles.priceText}>{totalPrice} Bath</Text>
-       {/* ปุ่มยืนยัน*/}
+          {/* ปุ่มยืนยัน*/}
         </View>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
             styles.confirmButton,
             (!isPriceCalculated || totalPrice === 0) && styles.disabledButton
-          ]} 
+          ]}
           onPress={handleConfirm}
           disabled={!isPriceCalculated || totalPrice === 0}
         >
