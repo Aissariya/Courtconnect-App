@@ -60,7 +60,8 @@ export default function SearchScreen({ route, navigation }) {
                 const formattedSlotStartTime = parseInt(slotStartTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }).replace(":", ""));
                 const formattedSlotEndTime = parseInt(slotEndTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }).replace(":", ""));
 
-                const dayOfWeek = formatteddate.toLowerCase();
+                const dayOfWeek = formatteddate.slice(0, 3);
+
                 console.log("dayOfWeek: ", slot.availableDays[dayOfWeek])
                 return formattedSlotStartTime <= numericStartTime &&
                     formattedSlotEndTime >= numericEndTime &&
