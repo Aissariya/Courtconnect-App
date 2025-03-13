@@ -1,63 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, ImageBackground, TouchableOpacity, FlatList, RefreshControl } from 'react-native';
 import { windowWidth } from '../utils/Dimensions';
 import Database from '../Model/database';
 import { db } from '../FirebaseConfig';
 import { getDocs, collection } from 'firebase/firestore';
+import DatabaseTimeslots from '../Model/datebase_ts';
 
 export default function Home({ navigation, route }) {
   const [courts, setCourts] = useState([]);
+  const [TimeSlot, setTimeslots] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  // const TimeSlot = DatabaseTimeslots();
 
-  useEffect(() => {
-    const fetchCourts = async () => {
-      try {
-        const courtSnapshot = await getDocs(collection(db, 'Court'));
-        if (!courtSnapshot.empty) {
-          const courtsData = courtSnapshot.docs.map(doc => {
-            const data = { id: doc.id, ...doc.data() };
-            return data;
-          });
-          setCourts(courtsData);
-        } else {
-          console.log('No courts found in database');
-        }
-      } catch (error) {
-        console.error("Error fetching courts: ", error);
-      }
-    };
-
-    fetchCourts();
-  }, []);
-
-  const sections = [
-    // { title: "All Courts", data: courts },
-    { title: "Football", data: courts.filter(item => item.court_type === "Football"), court_type: "Football" },
-    { title: "Basketball", data: courts.filter(item => item.court_type === "Basketball"), court_type: "Basketball" },
-    { title: "Badminton", data: courts.filter(item => item.court_type === "Badminton"), court_type: "Badminton" },
-    { title: "Tennis", data: courts.filter(item => item.court_type === "Tennis"), court_type: "Tennis" },
-    { title: "Ping Pong", data: courts.filter(item => item.court_type === "Ping Pong"), court_type: "Ping Pong" },
-    { title: "Swimming", data: courts.filter(item => item.court_type === "Swimming"), court_type: "Swimming" },
-    { title: "Boxing", data: courts.filter(item => item.court_type === "Boxing"), court_type: "Boxing" },
-    { title: "Aerobic", data: courts.filter(item => item.court_type === "Aerobic"), court_type: "Aerobic" },
-    { title: "Yoga", data: courts.filter(item => item.court_type === "Yoga"), court_type: "Yoga" },
-  ];
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    setCourts([]);
-    await fetchCourts();
-    setRefreshing(false);
-  };
-
-  const fetchCourts = async () => {
+  const fetchCourts = useCallback(async () => {
     try {
       const courtSnapshot = await getDocs(collection(db, 'Court'));
       if (!courtSnapshot.empty) {
-        const courtsData = courtSnapshot.docs.map(doc => {
-          const data = { id: doc.id, ...doc.data() };
-          return data;
-        });
+        const courtsData = courtSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setCourts(courtsData);
       } else {
         console.log('No courts found in database');
@@ -65,7 +24,52 @@ export default function Home({ navigation, route }) {
     } catch (error) {
       console.error("Error fetching courts: ", error);
     }
+  }, []);
+
+  const fetchTimeslots = useCallback(async () => {
+    try {
+      const TimeslotsSnapshot = await getDocs(collection(db, 'Timeslot'));
+      if (!TimeslotsSnapshot.empty) {
+        const TimeslotsData = TimeslotsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setTimeslots(TimeslotsData);
+      } else {
+        console.log('No Timeslots found in database');
+      }
+    } catch (error) {
+      console.error("Error fetching Timeslots: ", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCourts();
+    fetchTimeslots();
+  }, [fetchCourts, fetchTimeslots]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setCourts([]);
+    setTimeslots([]);
+    await fetchCourts();
+    await fetchTimeslots();
+    setRefreshing(false);
   };
+
+  const filteredCourts = courts.filter(court =>
+    TimeSlot?.some(slot => slot.court_id === court.court_id && slot.available === true) || false
+  );
+
+  const sections = [
+    // { title: "All Courts", data: courts },
+    { title: "Football", data: filteredCourts.filter(item => item.court_type === "Football"), court_type: "Football" },
+    { title: "Basketball", data: filteredCourts.filter(item => item.court_type === "Basketball"), court_type: "Basketball" },
+    { title: "Badminton", data: filteredCourts.filter(item => item.court_type === "Badminton"), court_type: "Badminton" },
+    { title: "Tennis", data: filteredCourts.filter(item => item.court_type === "Tennis"), court_type: "Tennis" },
+    { title: "Ping Pong", data: filteredCourts.filter(item => item.court_type === "Ping Pong"), court_type: "Ping Pong" },
+    { title: "Swimming", data: filteredCourts.filter(item => item.court_type === "Swimming"), court_type: "Swimming" },
+    { title: "Boxing", data: filteredCourts.filter(item => item.court_type === "Boxing"), court_type: "Boxing" },
+    { title: "Aerobic", data: filteredCourts.filter(item => item.court_type === "Aerobic"), court_type: "Aerobic" },
+    { title: "Yoga", data: filteredCourts.filter(item => item.court_type === "Yoga"), court_type: "Yoga" },
+  ];
 
   // ฟังก์ชันสำหรับแสดงรายการ
   const renderItem = ({ item }) => {

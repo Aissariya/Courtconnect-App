@@ -29,9 +29,12 @@ export default function SearchScreen({ route, navigation }) {
         : '';
 
     useEffect(() => {
-        let filtered = courts;
+        let filtered = courts.filter(court =>
+            Timeslot.some(slot => slot.court_id === court.court_id && slot.available === true)
+        );
 
         console.log("priceslot:", priceslot);
+
 
         if (searchQuery) {
             filtered = filtered.filter(field =>
@@ -61,7 +64,6 @@ export default function SearchScreen({ route, navigation }) {
                 console.log("dayOfWeek: ", slot.availableDays[dayOfWeek])
                 return formattedSlotStartTime <= numericStartTime &&
                     formattedSlotEndTime >= numericEndTime &&
-                    slot.available === true &&
                     slot.availableDays[dayOfWeek];
             });
 
@@ -70,6 +72,7 @@ export default function SearchScreen({ route, navigation }) {
             console.log("availableCourtIds:", availableCourtIds);
             filtered = filtered.filter(field => availableCourtIds.includes(field.court_id));
         }
+
 
         setFilteredFields(filtered);
         console.log("Filtered Fields:", filtered);

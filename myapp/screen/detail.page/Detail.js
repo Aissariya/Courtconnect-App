@@ -113,6 +113,7 @@ export default function Detail({ route, navigation }) {
   const price = item ? item.priceslot : "500";
   const court = item ? item.court_type : "Null";
   const address = item ? item.address : "Null";
+  const Capacity = item ? item.capacity : "Null";
 
   const matchingSlot = Timeslot.find(slot => slot.court_id === item.court_id);
   if (!matchingSlot) {
@@ -153,6 +154,7 @@ export default function Detail({ route, navigation }) {
         <Text style={Detailstyles.detailsText}>
           Court Type: {court}{"\n"}
           Location: {address}{"\n"}
+          Capacity: {Capacity}{"\n"}
           Facilities: Locker Room, Shower Room{"\n"}
           Operating Hours: Open Daily {formattedTimeStart} - {formattedTimeEnd}{"\n"}
           Payment: Can pay through various channels
