@@ -67,7 +67,7 @@ export default function Home({ navigation, route }) {
     { title: "Ping Pong", data: filteredCourts.filter(item => item.court_type === "Ping Pong"), court_type: "Ping Pong" },
     { title: "Swimming", data: filteredCourts.filter(item => item.court_type === "Swimming"), court_type: "Swimming" },
     { title: "Boxing", data: filteredCourts.filter(item => item.court_type === "Boxing"), court_type: "Boxing" },
-    { title: "Aerobic", data: filteredCourts.filter(item => item.court_type === "Aerobic"), court_type: "Aerobic" },
+    { title: "Aerobic", data: filteredCourts.filter(item => item.court_type === "Aerobics"), court_type: "Aerobics" },
     { title: "Yoga", data: filteredCourts.filter(item => item.court_type === "Yoga"), court_type: "Yoga" },
   ];
 

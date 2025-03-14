@@ -21,7 +21,7 @@ export default function Filter({ navigation }) {
     { name: "Tennis", icon: "tennisball-outline" },
     { name: "Swimming", icon: "water-outline" },
     { name: "Boxing", icon: "fitness-outline" },
-    { name: "Aerobic", icon: "walk-outline" },
+    { name: "Aerobics", icon: "walk-outline" },
     { name: "Yoga", icon: "body-outline" },
   ];
 
